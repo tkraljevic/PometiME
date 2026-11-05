@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>PometiME — Čistač diska i deinstalater aplikacija</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --color-brand-light: #0284c7;
+      --color-brand-dark: #38bdf8;
+      --color-danger-light: #dc2626;
+      --color-danger-dark: #f87171;
+      --surface-bg-light: #f4f6f9;
+      --surface-bg-dark: #0f172a;
+      --surface-card-light: #ffffff;
+      --surface-card-dark: #1e293b;
+      --surface-sidebar-light: #e8eef5;
+      --surface-sidebar-dark: #131c31;
+      --text-primary-light: #0f172a;
+      --text-primary-dark: #f1f5f9;
+      --text-muted-light: #475569;
+      --text-muted-dark: #94a3b8;
+      --border-subtle-light: #cbd5e1;
+      --border-subtle-dark: #334155;
+
+      --color-brand: var(--color-brand-light);
+      --color-danger: var(--color-danger-light);
+      --surface-bg: var(--surface-bg-light);
+      --surface-card: var(--surface-card-light);
+      --surface-sidebar: var(--surface-sidebar-light);
+      --text-primary: var(--text-primary-light);
+      --text-muted: var(--text-muted-light);
+      --border-subtle: var(--border-subtle-light);
+
+      scrollbar-color: var(--color-brand) var(--surface-sidebar);
+      scrollbar-width: thin;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-brand: var(--color-brand-dark);
+        --color-danger: var(--color-danger-dark);
+        --surface-bg: var(--surface-bg-dark);
+        --surface-card: var(--surface-card-dark);
+        --surface-sidebar: var(--surface-sidebar-dark);
+        --text-primary: var(--text-primary-dark);
+        --text-muted: var(--text-muted-dark);
+        --border-subtle: var(--border-subtle-dark);
+      }
+    }
+
+    @supports (color: light-dark(white, black)) {
+      :root {
+        --color-brand: light-dark(var(--color-brand-light), var(--color-brand-dark));
+        --color-danger: light-dark(var(--color-danger-light), var(--color-danger-dark));
+        --surface-bg: light-dark(var(--surface-bg-light), var(--surface-bg-dark));
+        --surface-card: light-dark(var(--surface-card-light), var(--surface-card-dark));
+        --surface-sidebar: light-dark(var(--surface-sidebar-light), var(--surface-sidebar-dark));
+        --text-primary: light-dark(var(--text-primary-light), var(--text-primary-dark));
+        --text-muted: light-dark(var(--text-muted-light), var(--text-muted-dark));
+        --border-subtle: light-dark(var(--border-subtle-light), var(--border-subtle-dark));
+      }
+    }
+
+    @supports not (scrollbar-color: auto) {
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--surface-sidebar);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--color-brand);
+        border-radius: 4px;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background-color: var(--surface-bg);
+      color: var(--text-primary);
+      accent-color: var(--color-brand);
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 255px 1fr;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    @supports not (accent-color: var(--color-brand)) {
+      input[type="checkbox"]:checked {
+        background-color: var(--color-brand);
+        border-color: var(--color-brand);
+      }
+    }
+
+    aside {
+      background-color: var(--surface-sidebar);
+      border-right: 1px solid var(--border-subtle);
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 10px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+    }
+
+    .brand-title h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title p {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .nav-btn:hover {
+      background-color: var(--surface-card);
+    }
+
+    .nav-btn.active {
+      background-color: var(--surface-card);
+      border-color: var(--color-brand);
+      color: var(--color-brand);
+      font-weight: 600;
+    }
+
+    .badge {
+      font-size: 0.74rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background-color: var(--surface-bg);
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sidebar-footer {
+      padding: 12px;
+      border-radius: 10px;
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header.topbar {
+      padding: 18px 26px;
+      border-bottom: 1px solid var(--border-subtle);
+      background-color: var(--surface-card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar-info h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .topbar-info p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="search"] {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background-color: var(--surface-bg);
+      color: var(--text-primary);
+      font-size: 0.88rem;
+      min-width: 220px;
+    }
+
+    .btn {
+      padding: 8px 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background-color: var(--surface-bg);
+      color: var(--text-primary);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s ease, transform 0.1s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: var(--color-brand);
+      border-color: var(--color-brand);
+      color: #ffffff;
+    }
+
+    .btn-danger {
+      background-color: var(--color-danger);
+      border-color: var(--color-danger);
+      color: #ffffff;
+    }
+
+    .content-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .stat-card {
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .stat-card .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-card .sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    progress {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .status-banner {
+      padding: 12px 16px;
+      border-radius: 10px;
+      background-color: var(--surface-card);
+      border-left: 4px solid var(--color-brand);
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .status-banner.visible {
+      display: block;
+    }
+
+    .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .item-row {
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .item-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .item-left input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .item-details {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .item-title {
+      font-weight: 600;
+      font-size: 0.94rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag-rec {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background-color: rgba(2, 132, 199, 0.15);
+      color: var(--color-brand);
+      font-weight: 600;
+    }
+
+    .item-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .item-path {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      word-break: break-all;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .item-size {
+      font-weight: 700;
+      font-size: 0.96rem;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .related-list {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    footer.actionbar {
+      padding: 14px 26px;
+      border-top: 1px solid var(--border-subtle);
+      background-color: var(--surface-card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .selection-summary {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    dialog {
+      margin: auto;
+      padding: 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      background-color: var(--surface-card);
+      color: var(--text-primary);
+      max-width: 480px;
+      width: calc(100% - 32px);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    dialog[open] {
+      display: flex;
+      flex-direction: column;
+    }
+
+    dialog:modal {
+      overscroll-behavior: contain;
+    }
+
+    dialog::backdrop {
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(3px);
+      overflow: hidden;
+      overscroll-behavior: contain;
+    }
+
+    .dialog-body {
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .dialog-body h3 {
+      font-size: 1.12rem;
+      font-weight: 700;
+    }
+
+    .dialog-body p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .dialog-actions {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .empty-state {
+      padding: 36px;
+      text-align: center;
+      color: var(--text-muted);
+      background-color: var(--surface-card);
+      border: 1px dashed var(--border-subtle);
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="brand-header">
+      <div class="brand-icon">P</div>
+      <div class="brand-title">
+        <h1>PometiME</h1>
+        <p>Čistač za macOS</p>
+      </div>
+    </div>
+
+    <nav aria-label="Kategorije čišćenja">
+      <button type="button" class="nav-btn active" data-tab="pregled">
+        <span>Pregled i Brzo Čišćenje</span>
+        <span class="badge" id="badge-pregled">0 B</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="predmemorija">
+        <span>Predmemorija i Zapisnici</span>
+        <span class="badge" id="badge-predmemorija">0 B</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="razvojni">
+        <span>Razvojni i AI Alati</span>
+        <span class="badge" id="badge-razvojni">0 B</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="ostaci">
+        <span>Ostaci Aplikacija</span>
+        <span class="badge" id="badge-ostaci">0 B</span>
+      </button>
+      <button type="button" class="nav-btn" data-tab="aplikacije">
+        <span>Deinstalater Aplikacija</span>
+        <span class="badge" id="badge-aplikacije">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      Sigurnosna zaštita je uključena: dokumenti, sustavske mape i Claude <code>memory</code> mape nikad se ne brišu.
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div class="topbar-info">
+        <h2 id="naslov-pogleda">Pregled i Brzo Čišćenje</h2>
+        <p id="opis-pogleda">Pregled zauzeća diska i preporučene stavke za sigurno oslobađanje prostora.</p>
+      </div>
+      <div class="topbar-actions">
+        <input type="search" id="trazilica" placeholder="Pretraži stavke ili putanje..." aria-label="Pretraži stavke">
+        <button type="button" class="btn" id="gumb-osvjezi">Skeniraj ponovno</button>
+      </div>
+    </header>
+
+    <div class="content-scroll">
+      <div id="status-poruka" class="status-banner" role="status" aria-live="polite"></div>
+
+      <section class="cards-grid" id="kartice-pregleda">
+        <div class="stat-card">
+          <span class="label">Slobodno na disku</span>
+          <span class="value" id="disk-slobodno">—</span>
+          <progress id="disk-napredak" max="100" value="0"></progress>
+          <span class="sub" id="disk-detalji">Učitavanje stanja diska...</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">Moguće osloboditi</span>
+          <span class="value" id="ukupno-oslobodivo">—</span>
+          <span class="sub" id="ukupno-stavki-opis">Skeniranje u tijeku...</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">Trenutačno označeno</span>
+          <span class="value" id="kartica-oznaceno">0 B</span>
+          <span class="sub" id="kartica-oznaceno-broj">0 stavki odabrano</span>
+        </div>
+      </section>
+
+      <div class="toolbar-row" id="alatna-traka-odabira">
+        <div class="toolbar-buttons">
+          <button type="button" class="btn" id="gumb-oznaci-preporuceno">Označi preporučeno</button>
+          <button type="button" class="btn" id="gumb-oznaci-sve">Označi sve u prikazu</button>
+          <button type="button" class="btn" id="gumb-odznaci-sve">Odznači sve</button>
+        </div>
+      </div>
+
+      <div id="popis-stavki" class="item-list"></div>
+    </div>
+
+    <footer class="actionbar" id="podnozje-akcije">
+      <div class="selection-summary" id="sazetak-odabira">Odabrano: 0 stavki (0 B)</div>
+      <button type="button" class="btn btn-primary" id="gumb-pometi" disabled>Pometi odabrano</button>
+    </footer>
+  </main>
+
+  <dialog id="potvrda-dijalog" aria-labelledby="potvrda-naslov">
+    <form method="dialog">
+      <div class="dialog-body">
+        <h3 id="potvrda-naslov">Potvrda čišćenja</h3>
+        <p id="potvrda-opis">Jeste li sigurni da želite trajno ukloniti odabrane stavke s diska?</p>
+      </div>
+      <div class="dialog-actions">
+        <button type="submit" class="btn" value="cancel" autofocus>Odustani</button>
+        <button type="submit" class="btn btn-danger" value="confirm" id="potvrda-gumb-izvrsi">Pometi sada</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const stanje = {
+      aktivniTab: 'pregled',
+      izvjestaj: null,
+      aplikacije: null,
+      odabranePutanje: new Map(),
+      filterTekst: '',
+      cekaPotvrduAkcija: null
+    };
+
+    const opisiTabova = {
+      pregled: {
+        naslov: 'Pregled i Brzo Čišćenje',
+        opis: 'Pregled zauzeća diska i preporučene stavke za sigurno oslobađanje prostora.'
+      },
+      predmemorija: {
+        naslov: 'Predmemorija i Zapisnici',
+        opis: 'Privremene datoteke u ~/Library/Caches i zapisnici u ~/Library/Logs.'
+      },
+      razvojni: {
+        naslov: 'Razvojni i AI Alati',
+        opis: 'Predmemorije za Go, Homebrew, NPM, Pip, Cargo i završene Claude Code pod-agente.'
+      },
+      ostaci: {
+        naslov: 'Ostaci Aplikacija',
+        opis: 'Mape u ~/Library koje ne pripadaju nijednoj trenutačno instaliranoj aplikaciji.'
+      },
+      aplikacije: {
+        naslov: 'Deinstalater Aplikacija',
+        opis: 'Potpuno uklanjanje aplikacija iz /Applications zajedno s njihovim podacima u ~/Library.'
+      }
+    };
+
+    function formatirajBajte(bajta) {
+      if (!bajta || bajta <= 0) return '0 B';
+      const kb = 1024;
+      const mb = kb * 1024;
+      const gb = mb * 1024;
+      if (bajta >= gb) return (bajta / gb).toFixed(2) + ' GB';
+      if (bajta >= mb) return (bajta / mb).toFixed(1) + ' MB';
+      if (bajta >= kb) return Math.round(bajta / kb) + ' KB';
+      return bajta + ' B';
+    }
+
+    function uzBrojHR(n, jednina, dvojina, mnozina) {
+      const aps = Math.abs(n);
+      const zadnjeDvije = aps % 100;
+      if (zadnjeDvije >= 11 && zadnjeDvije <= 14) return n + ' ' + mnozina;
+      const zadnja = aps % 10;
+      if (zadnja === 1) return n + ' ' + jednina;
+      if (zadnja >= 2 && zadnja <= 4) return n + ' ' + dvojina;
+      return n + ' ' + mnozina;
+    }
+
+    function zbrojiStavke(stavke) {
+      return (stavke || []).reduce((acc, s) => acc + (s.size_bytes || 0), 0);
+    }
+
+    function sveStavkeIzvjestaja() {
+      if (!stanje.izvjestaj) return [];
+      return [
+        ...(stanje.izvjestaj.system_caches || []),
+        ...(stanje.izvjestaj.dev_ai_junk || []),
+        ...(stanje.izvjestaj.leftovers || [])
+      ];
+    }
+
+    function stavkeZaAktivniTab() {
+      if (!stanje.izvjestaj) return [];
+      let izvor = [];
+      if (stanje.aktivniTab === 'pregled') {
+        izvor = sveStavkeIzvjestaja().filter(s => s.recommended);
+      } else if (stanje.aktivniTab === 'predmemorija') {
+        izvor = stanje.izvjestaj.system_caches || [];
+      } else if (stanje.aktivniTab === 'razvojni') {
+        izvor = stanje.izvjestaj.dev_ai_junk || [];
+      } else if (stanje.aktivniTab === 'ostaci') {
+        izvor = stanje.izvjestaj.leftovers || [];
+      }
+      const q = stanje.filterTekst.trim().toLowerCase();
+      if (!q) return izvor;
+      return izvor.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.path.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q)
+      );
+    }
+
+    function prikaziPoruku(tekst) {
+      const el = document.getElementById('status-poruka');
+      el.textContent = tekst;
+      el.classList.add('visible');
+    }
+
+    function azurirajKarticeISazetak() {
+      if (stanje.izvjestaj && stanje.izvjestaj.disk) {
+        const d = stanje.izvjestaj.disk;
+        document.getElementById('disk-slobodno').textContent = formatirajBajte(d.avail_bytes);
+        document.getElementById('disk-napredak').value = Math.min(100, Math.max(0, d.used_percent || 0));
+        document.getElementById('disk-detalji').textContent =
+          'Zauzeto ' + formatirajBajte(d.used_bytes) + ' od ' + formatirajBajte(d.total_bytes) +
+          ' (' + (d.used_percent || 0).toFixed(1) + '%)';
+
+        const sve = sveStavkeIzvjestaja();
+        document.getElementById('ukupno-oslobodivo').textContent = formatirajBajte(stanje.izvjestaj.total_reclaimable_bytes);
+        document.getElementById('ukupno-stavki-opis').textContent =
+          'Pronađeno ' + uzBrojHR(sve.length, 'stavka', 'stavke', 'stavki') + ' za čišćenje';
+
+        const preporucene = sve.filter(s => s.recommended);
+        document.getElementById('badge-pregled').textContent = formatirajBajte(zbrojiStavke(preporucene));
+        document.getElementById('badge-predmemorija').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.system_caches));
+        document.getElementById('badge-razvojni').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.dev_ai_junk));
+        document.getElementById('badge-ostaci').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.leftovers));
+      }
+
+      let ukupnoOdabranoBajta = 0;
+      for (const vel of stanje.odabranePutanje.values()) {
+        ukupnoOdabranoBajta += vel;
+      }
+      const broj = stanje.odabranePutanje.size;
+      const brojTekst = uzBrojHR(broj, 'stavka', 'stavke', 'stavki');
+
+      document.getElementById('kartica-oznaceno').textContent = formatirajBajte(ukupnoOdabranoBajta);
+      document.getElementById('kartica-oznaceno-broj').textContent = brojTekst + ' odabrano';
+      document.getElementById('sazetak-odabira').textContent =
+        'Odabrano: ' + brojTekst + ' (' + formatirajBajte(ukupnoOdabranoBajta) + ')';
+      document.getElementById('gumb-pometi').disabled = broj === 0;
+    }
+
+    function iscrtajStavkeCiscenja() {
+      const spremnik = document.getElementById('popis-stavki');
+      spremnik.replaceChildren();
+      const stavke = stavkeZaAktivniTab();
+
+      if (stavke.length === 0) {
+        const prazno = document.createElement('div');
+        prazno.className = 'empty-state';
+        prazno.textContent = 'U ovoj kategoriji nema pronađenih stavki koje prelaze prag veličine.';
+        spremnik.appendChild(prazno);
+        return;
+      }
+
+      for (const st of stavke) {
+        const red = document.createElement('div');
+        red.className = 'item-row';
+
+        const lijevo = document.createElement('label');
+        lijevo.className = 'item-left';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = stanje.odabranePutanje.has(st.path);
+        cb.addEventListener('change', () => {
+          if (cb.checked) {
+            stanje.odabranePutanje.set(st.path, st.size_bytes);
+          } else {
+            stanje.odabranePutanje.delete(st.path);
+          }
+          azurirajKarticeISazetak();
+        });
+
+        const detalji = document.createElement('div');
+        detalji.className = 'item-details';
+
+        const naslov = document.createElement('div');
+        naslov.className = 'item-title';
+        naslov.textContent = st.name;
+
+        if (st.recommended) {
+          const oznaka = document.createElement('span');
+          oznaka.className = 'tag-rec';
+          oznaka.textContent = 'Preporučeno';
+          naslov.appendChild(oznaka);
+        }
+
+        const opis = document.createElement('div');
+        opis.className = 'item-desc';
+        opis.textContent = st.description;
+
+        const put = document.createElement('div');
+        put.className = 'item-path';
+        put.textContent = st.path;
+
+        detalji.append(naslov, opis, put);
+        lijevo.append(cb, detalji);
+
+        const vel = document.createElement('div');
+        vel.className = 'item-size';
+        vel.textContent = formatirajBajte(st.size_bytes);
+
+        red.append(lijevo, vel);
+        spremnik.appendChild(red);
+      }
+    }
+
+    function iscrtajAplikacije() {
+      const spremnik = document.getElementById('popis-stavki');
+      spremnik.replaceChildren();
+
+      if (!stanje.aplikacije) {
+        const ucitavanje = document.createElement('div');
+        ucitavanje.className = 'empty-state';
+        ucitavanje.textContent = 'Učitavanje instaliranih aplikacija i njihovih podataka u ~/Library...';
+        spremnik.appendChild(ucitavanje);
+        return;
+      }
+
+      const q = stanje.filterTekst.trim().toLowerCase();
+      const filtrirane = stanje.aplikacije.filter(app =>
+        !q ||
+        app.name.toLowerCase().includes(q) ||
+        (app.bundle_id && app.bundle_id.toLowerCase().includes(q)) ||
+        app.app_path.toLowerCase().includes(q)
+      );
+
+      if (filtrirane.length === 0) {
+        const prazno = document.createElement('div');
+        prazno.className = 'empty-state';
+        prazno.textContent = 'Nema pronađenih aplikacija koje odgovaraju pretrazi.';
+        spremnik.appendChild(prazno);
+        return;
+      }
+
+      for (const app of filtrirane) {
+        const red = document.createElement('div');
+        red.className = 'item-row';
+
+        const lijevo = document.createElement('div');
+        lijevo.className = 'item-details';
+
+        const naslov = document.createElement('div');
+        naslov.className = 'item-title';
+        naslov.textContent = app.name + ' (v' + app.version + ')';
+
+        const opis = document.createElement('div');
+        opis.className = 'item-desc';
+        opis.textContent =
+          'Aplikacija: ' + formatirajBajte(app.app_size_bytes) +
+          ' • Podaci u ~/Library: ' + formatirajBajte(app.support_size_bytes);
+
+        const put = document.createElement('div');
+        put.className = 'item-path';
+        put.textContent = app.app_path;
+
+        lijevo.append(naslov, opis, put);
+
+        if (app.related_paths && app.related_paths.length > 0) {
+          const pov = document.createElement('div');
+          pov.className = 'related-list';
+          for (const rp of app.related_paths) {
+            const r = document.createElement('div');
+            r.textContent = '↳ [' + rp.kind + '] ' + rp.path + ' (' + formatirajBajte(rp.size_bytes) + ')';
+            pov.appendChild(r);
+          }
+          lijevo.appendChild(pov);
+        }
+
+        const desno = document.createElement('div');
+        desno.style.display = 'flex';
+        desno.style.alignItems = 'center';
+        desno.style.gap = '12px';
+
+        const vel = document.createElement('div');
+        vel.className = 'item-size';
+        vel.textContent = formatirajBajte(app.total_size_bytes);
+
+        const gumb = document.createElement('button');
+        gumb.type = 'button';
+        gumb.className = 'btn btn-danger';
+        gumb.textContent = 'Deinstaliraj';
+        gumb.addEventListener('click', () => zatraziPotvrduDeinstalacije(app));
+
+        desno.append(vel, gumb);
+        red.append(lijevo, desno);
+        spremnik.appendChild(red);
+      }
+    }
+
+    function iscrtajPogled() {
+      const info = opisiTabova[stanje.aktivniTab];
+      document.getElementById('naslov-pogleda').textContent = info.naslov;
+      document.getElementById('opis-pogleda').textContent = info.opis;
+
+      const jeAplikacije = stanje.aktivniTab === 'aplikacije';
+      document.getElementById('alatna-traka-odabira').style.display = jeAplikacije ? 'none' : 'flex';
+      document.getElementById('podnozje-akcije').style.display = jeAplikacije ? 'none' : 'flex';
+
+      if (jeAplikacije) {
+        iscrtajAplikacije();
+      } else {
+        iscrtajStavkeCiscenja();
+      }
+      azurirajKarticeISazetak();
+    }
+
+    async function ucitajSkeniranje() {
+      document.getElementById('gumb-osvjezi').disabled = true;
+      try {
+        const odg = await fetch('/api/skeniraj');
+        const podaci = await odg.json();
+        stanje.izvjestaj = podaci;
+        stanje.odabranePutanje.clear();
+        for (const st of sveStavkeIzvjestaja()) {
+          if (st.recommended) {
+            stanje.odabranePutanje.set(st.path, st.size_bytes);
+          }
+        }
+        iscrtajPogled();
+      } catch (err) {
+        prikaziPoruku('Greška pri skeniranju diska: ' + err.message);
+      } finally {
+        document.getElementById('gumb-osvjezi').disabled = false;
+      }
+    }
+
+    async function ucitajAplikacije() {
+      try {
+        const odg = await fetch('/api/aplikacije');
+        stanje.aplikacije = await odg.json();
+        document.getElementById('badge-aplikacije').textContent = String(stanje.aplikacije.length);
+        if (stanje.aktivniTab === 'aplikacije') {
+          iscrtajAplikacije();
+        }
+      } catch (err) {
+        prikaziPoruku('Greška pri učitavanju aplikacija: ' + err.message);
+      }
+    }
+
+    function otvoriDijalogPotvrde(naslov, opis, tekstPotvrde, akcija) {
+      const dijalog = document.getElementById('potvrda-dijalog');
+      document.getElementById('potvrda-naslov').textContent = naslov;
+      document.getElementById('potvrda-opis').textContent = opis;
+      document.getElementById('potvrda-gumb-izvrsi').textContent = tekstPotvrde;
+      stanje.cekaPotvrduAkcija = akcija;
+      dijalog.showModal();
+    }
+
+    function zatraziPotvrduCiscenja() {
+      const putanje = Array.from(stanje.odabranePutanje.keys());
+      if (putanje.length === 0) return;
+      let zbroj = 0;
+      for (const v of stanje.odabranePutanje.values()) zbroj += v;
+      const brojTekst = uzBrojHR(putanje.length, 'stavku', 'stavke', 'stavki');
+
+      otvoriDijalogPotvrde(
+        'Potvrda čišćenja diska',
+        'Trajno ćete ukloniti ' + brojTekst + ' ukupne veličine ' + formatirajBajte(zbroj) + '. Želite li nastaviti?',
+        'Pometi sada',
+        async () => {
+          const odg = await fetch('/api/ocisti', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: putanje })
+          });
+          const rez = await odg.json();
+          prikaziPoruku(rez.message || 'Čišćenje je završeno.');
+          await ucitajSkeniranje();
+        }
+      );
+    }
+
+    function zatraziPotvrduDeinstalacije(app) {
+      const povezane = (app.related_paths || []).map(r => r.path);
+      otvoriDijalogPotvrde(
+        'Potpuna deinstalacija: ' + app.name,
+        'Uklonit će se aplikacija ' + app.name + ' i ' +
+          uzBrojHR(povezane.length, 'pripadajuća mapa', 'pripadajuće mape', 'pripadajućih mapa') +
+          ' u ~/Library (ukupno ' + formatirajBajte(app.total_size_bytes) + ').',
+        'Potpuno ukloni',
+        async () => {
+          const odg = await fetch('/api/deinstaliraj', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ app_path: app.app_path, related_paths: povezane })
+          });
+          const rez = await odg.json();
+          prikaziPoruku(rez.message || 'Aplikacija je uklonjena.');
+          await Promise.all([ucitajSkeniranje(), ucitajAplikacije()]);
+        }
+      );
+    }
+
+    document.getElementById('potvrda-dijalog').addEventListener('close', async (e) => {
+      const dijalog = e.currentTarget;
+      const odluka = dijalog.returnValue;
+      dijalog.returnValue = '';
+      const akcija = stanje.cekaPotvrduAkcija;
+      stanje.cekaPotvrduAkcija = null;
+      if (odluka === 'confirm' && typeof akcija === 'function') {
+        await akcija();
+      }
+    });
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        stanje.aktivniTab = btn.dataset.tab;
+        if (stanje.aktivniTab === 'aplikacije' && !stanje.aplikacije) {
+          ucitajAplikacije();
+        }
+        iscrtajPogled();
+      });
+    });
+
+    document.getElementById('trazilica').addEventListener('input', (e) => {
+      stanje.filterTekst = e.target.value;
+      iscrtajPogled();
+    });
+
+    document.getElementById('gumb-osvjezi').addEventListener('click', () => {
+      ucitajSkeniranje();
+      ucitajAplikacije();
+    });
+
+    document.getElementById('gumb-oznaci-preporuceno').addEventListener('click', () => {
+      stanje.odabranePutanje.clear();
+      for (const st of sveStavkeIzvjestaja()) {
+        if (st.recommended) stanje.odabranePutanje.set(st.path, st.size_bytes);
+      }
+      iscrtajPogled();
+    });
+
+    document.getElementById('gumb-oznaci-sve').addEventListener('click', () => {
+      for (const st of stavkeZaAktivniTab()) {
+        stanje.odabranePutanje.set(st.path, st.size_bytes);
+      }
+      iscrtajPogled();
+    });
+
+    document.getElementById('gumb-odznaci-sve').addEventListener('click', () => {
+      stanje.odabranePutanje.clear();
+      iscrtajPogled();
+    });
+
+    document.getElementById('gumb-pometi').addEventListener('click', zatraziPotvrduCiscenja);
+
+    ucitajSkeniranje();
+    ucitajAplikacije();
+  </script>
+</body>
+</html>

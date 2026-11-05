@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "coverage_target": 85,
+  "critical_coverage_target": 95,
+  "complexity_limit": 10,
+  "critical_complexity_limit": 7,
+  "crap_limit": 10,
+  "critical_crap_limit": 7,
+  "coverage_drop_pp": 0.1,
+  "crap_increase": 0.5,
+  "duplication_increase_pp": 0.1,
+  "exact_min_tokens": 100,
+  "fuzzy_min_tokens": 80,
+  "fuzzy_similarity": 0.85,
+  "critical": [
+    "^internal/cistac/"
+  ],
+  "exceptions": [],
+  "premjestaji": []
+}

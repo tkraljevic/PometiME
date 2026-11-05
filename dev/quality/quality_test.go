@@ -1,0 +1,629 @@
+package main
+
+import (
+	"go/parser"
+	"go/token"
+	"math"
+	"os"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/fzipp/gocyclo"
+)
+
+func testConfig() config {
+	return config{Schema: 1, CoverageTarget: 85, CriticalCoverageTarget: 95, ComplexityLimit: 15, CriticalComplexityLimit: 10, CRAPLimit: 30, CriticalCRAPLimit: 10, CoverageDrop: 0.1, CRAPIncrease: 0.5, DuplicationIncrease: 0.1, ExactMinTokens: 20, FuzzyMinTokens: 20, FuzzySimilarity: 0.85}
+}
+
+func cov(total, covered int) coverage { var c coverage; c.add(total, covered); return c }
+func number(n float64) *float64       { return &n }
+func cleanReport() report {
+	return report{Schema: 1, Analyzer: "1", Platform: "test", GoVersion: "test", ConfigHash: "same", Tests: "PASS", Race: "PASS", Measurements: "PASS", Static: lintSummary{Status: "PASS", Findings: map[string]int{}}, Coverage: cov(100, 70), CriticalCoverage: cov(100, 70)}
+}
+
+func TestCRAPFormula(t *testing.T) {
+	for _, tc := range []struct {
+		cc             int
+		coverage, want float64
+	}{{1, 0, 2}, {6, 100, 6}, {10, 50, 22.5}, {15, 0, 240}, {10, 100, 10}} {
+		if got := crap(tc.cc, tc.coverage); math.Abs(got-tc.want) > 1e-9 {
+			t.Errorf("%+v: %f", tc, got)
+		}
+	}
+}
+
+func TestComplexityIncludesConditionsAndClosures(t *testing.T) {
+	src := `package p; func f(a,b bool){if a && b {} ; for a {} ; _=func(){if b{}}}`
+	f, err := parser.ParseFile(token.NewFileSet(), "p.go", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := gocyclo.Complexity(f.Decls[0]); got != 5 {
+		t.Fatalf("CC=%d", got)
+	}
+}
+
+func TestWeightedCoverageAndFunctionBoundaries(t *testing.T) {
+	blocks := []block{{Start: token.Position{Line: 2, Column: 2}, Statements: 9, Count: 1}, {Start: token.Position{Line: 3, Column: 2}, Statements: 1, Count: 0}, {Start: token.Position{Line: 4, Column: 2}, Statements: 500, Count: 1}}
+	c := functionCoverage(blocks, token.Position{Line: 2, Column: 1}, token.Position{Line: 4, Column: 1})
+	if c.Percent == nil || *c.Percent != 90 || c.Statements != 10 {
+		t.Fatalf("%+v", c)
+	}
+	if functionCoverage(nil, token.Position{}, token.Position{}).Percent != nil {
+		t.Fatal("prazna funkcija ne smije dobiti izmišljeni coverage")
+	}
+}
+
+func TestProfileParsing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "cover.out")
+	if err := os.WriteFile(path, []byte("mode: atomic\np/f.go:2.1,4.2 9 1\np/f.go:5.1,6.2 1 0\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	p, err := readProfile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p["p/f.go"]) != 2 || p["p/f.go"][0].Statements != 9 {
+		t.Fatal(p)
+	}
+	if err := os.WriteFile(path, []byte("mode: atomic\ninvalid\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readProfile(path); err == nil {
+		t.Fatal("prihvaćen neispravan profil")
+	}
+}
+
+func TestMethodIdentitiesAndCriticalCoverage(t *testing.T) {
+	c := testConfig()
+	c.patterns = []*regexp.Regexp{regexp.MustCompile(`::\(\*A\)\.Read$`)}
+	src := []byte("package p\ntype A struct{}; type B struct{}\nfunc (a *A) Read(){ println(1) }\nfunc (b *B) Read(){ println(2) }\n")
+	r := report{}
+	p := map[string][]block{"p/x.go": {{Start: token.Position{Line: 3, Column: 19}, Statements: 2, Count: 1}, {Start: token.Position{Line: 4, Column: 19}, Statements: 8, Count: 0}}}
+	_, err := measure([]sourceFile{{"x.go", "p", src}}, "p", p, c, &r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Functions) != 2 || r.Functions[0].ID == r.Functions[1].ID {
+		t.Fatal(r.Functions)
+	}
+	if *r.Coverage.Percent != 20 || *r.CriticalCoverage.Percent != 100 {
+		t.Fatalf("%+v %+v", r.Coverage, r.CriticalCoverage)
+	}
+	p["p/stale.go"] = nil
+	if _, err := measure([]sourceFile{{"x.go", "p", src}}, "p", p, c, &report{}); err == nil {
+		t.Fatal("zastarjeli profil mora pasti")
+	}
+}
+
+func body(t *testing.T, id, src string) functionTokens {
+	t.Helper()
+	v, err := scanTokens([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return functionTokens{ID: id, Tokens: v}
+}
+
+func TestExactClonesUseUnionAndRespectIdentifierChanges(t *testing.T) {
+	a := body(t, "a", `{ x:=1; if x>0 { println(x) }; for x<10 { x++ }; println(x) }`)
+	b := body(t, "b", `{ /*same*/ x := 1; if x > 0 { println(x) }; for x < 10 { x++ }; println(x) }`)
+	d := exactClones([]functionTokens{a, b}, 10)
+	if d.Percent != 100 || d.DuplicatedTokens != len(a.Tokens)+len(b.Tokens) {
+		t.Fatalf("%+v", d)
+	}
+	c := body(t, "c", strings.ReplaceAll(`{ x:=1; if x>0 { println(x) }; for x<10 { x++ }; println(x) }`, "x", "renamed"))
+	if got := exactClones([]functionTokens{a, c}, len(a.Tokens)); got.Percent != 0 {
+		t.Fatal(got)
+	}
+	if got := fuzzyClones([]functionTokens{a, c}, 20, 0.99); got.Percent != 100 {
+		t.Fatal(got)
+	}
+}
+
+func TestSingleFunctionIsNotItsOwnDuplicate(t *testing.T) {
+	a := body(t, "a", `{ println(1); println(2); println(3); println(4) }`)
+	if d := exactClones([]functionTokens{a}, 10); d.Percent != 0 {
+		t.Fatal(d)
+	}
+}
+
+func TestLegacyDebtPassesButRegressionFails(t *testing.T) {
+	c := testConfig()
+	base := cleanReport()
+	base.Functions = []function{{ID: "legacy", Complexity: 40, Coverage: cov(100, 70), CRAP: number(83.2)}}
+	r := cleanReport()
+	r.Functions = append([]function(nil), base.Functions...)
+	evaluate(&r, &base, c, false)
+	if len(r.Failures) != 0 || r.Status != "BASELINE_DEBT" {
+		t.Fatalf("%+v", r)
+	}
+	r = cleanReport()
+	r.Coverage = cov(100, 65)
+	r.Functions = []function{{ID: "legacy", Complexity: 41, Coverage: cov(100, 70), CRAP: number(86.4)}}
+	evaluate(&r, &base, c, false)
+	if len(r.Failures) < 3 || r.Status != "FAIL" {
+		t.Fatal(r.Failures)
+	}
+}
+
+func TestNewCriticalCodeHasStricterTargets(t *testing.T) {
+	c := testConfig()
+	base := cleanReport()
+	r := cleanReport()
+	r.Functions = []function{{ID: "new", Critical: true, Complexity: 11, Coverage: cov(100, 90), CRAP: number(11.121)}}
+	evaluate(&r, &base, c, false)
+	if len(r.Failures) != 3 {
+		t.Fatal(r.Failures)
+	}
+}
+
+func TestChangedFunctionCoverageCannotHideBehindAggregate(t *testing.T) {
+	c := testConfig()
+	base := cleanReport()
+	r := cleanReport()
+	base.Functions = []function{{ID: "f", Coverage: cov(10, 10), Complexity: 1, CRAP: number(1), Tokens: 40}}
+	r.Functions = []function{{ID: "f", Coverage: cov(10, 9), Complexity: 1, CRAP: number(1.001), Tokens: 44}}
+	evaluate(&r, &base, c, false)
+	if len(r.Failures) != 1 || !strings.Contains(r.Failures[0], "coverage:f") {
+		t.Fatal(r.Failures)
+	}
+}
+
+// Nepromijenjena funkcija čiji coverage pleše zbog testova ovisnih o
+// vremenu nije regresija; ukupni coverage se i dalje uspoređuje
+func TestUnchangedFunctionCoverageNoiseIsNotRegression(t *testing.T) {
+	c := testConfig()
+	base := cleanReport()
+	base.Functions = []function{{ID: "f", Coverage: cov(17, 14), Complexity: 5, CRAP: number(5.2), Tokens: 120}}
+	r := cleanReport()
+	r.Functions = []function{{ID: "f", Coverage: cov(17, 13), Complexity: 5, CRAP: number(5.5), Tokens: 120}}
+	evaluate(&r, &base, c, false)
+	if len(r.Failures) != 0 {
+		t.Fatalf("šum coveragea nepromijenjene funkcije: %v", r.Failures)
+	}
+	r.Coverage = cov(100, 60)
+	evaluate(&r, &base, c, false)
+	if len(r.Failures) == 0 {
+		t.Fatal("pad ukupnog coveragea mora i dalje biti regresija")
+	}
+}
+
+func TestGateFailureCases(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		change func(*report)
+	}{
+		{"race", func(r *report) { r.Race = "FAIL" }},
+		{"test", func(r *report) { r.Tests = "FAIL" }},
+		{"missing lint", func(r *report) { r.Static.Status = "INCOMPLETE" }},
+		{"platform", func(r *report) { r.Platform = "other" }},
+		{"policy", func(r *report) { r.ConfigHash = "changed" }},
+		{"duplicate", func(r *report) { r.Exact.Percent = 0.2 }},
+		{"new lint", func(r *report) { r.Static.Findings["lint:errcheck:file:unchecked"] = 1 }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			base := cleanReport()
+			r := cleanReport()
+			tc.change(&r)
+			evaluate(&r, &base, testConfig(), false)
+			if len(r.Failures) == 0 {
+				t.Fatal("false green")
+			}
+		})
+	}
+}
+
+func TestExceptionsAreScopedAndExpire(t *testing.T) {
+	c := testConfig()
+	c.Exceptions = []exception{{Key: "crap:f", Reason: "review", Owner: "owner", Expires: "2026-10-05"}}
+	r := report{}
+	now := time.Date(2026, 10, 4, 12, 0, 0, 0, time.UTC)
+	if !allowed("crap:f", c, &r, now) || allowed("crap:other", c, &r, now) || allowed("crap:f", c, &r, now.Add(48*time.Hour)) {
+		t.Fatal("iznimka nije ograničena")
+	}
+}
+
+func TestStaticSeverity(t *testing.T) {
+	for _, tc := range []struct {
+		linter, text string
+		want         bool
+	}{{"govet", "error", true}, {"typecheck", "error", true}, {"staticcheck", "SA5000: assignment", true}, {"staticcheck", "SA1019: deprecated", false}, {"errcheck", "ignored", false}} {
+		if serious(lintIssue{FromLinter: tc.linter, Text: tc.text}) != tc.want {
+			t.Fatal(tc)
+		}
+	}
+}
+
+func TestEvidenceRejectsChangedReport(t *testing.T) {
+	o := options{out: t.TempDir(), reuseTests: true}
+	r := cleanReport()
+	r.SourceHash = "source"
+	for _, name := range []string{"coverage.out", "tests.log"} {
+		if err := os.WriteFile(filepath.Join(o.out, name), []byte("original"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e, err := evidence(o, &r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeJSON(filepath.Join(o.out, "test-evidence.json"), e); err != nil {
+		t.Fatal(err)
+	}
+	if err := runTests(o, &r); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(o.out, "coverage.out"), []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := runTests(o, &r); err == nil {
+		t.Fatal("pozmenjen profil prihvaćen")
+	}
+}
+
+// Potvrda snimljena s drukčijim zastavicama testova, npr. prije iznimaka za
+// race, ne smije proći kao da su testovi izvedeni s današnjim
+func TestEvidenceRejectsOtherTestArgs(t *testing.T) {
+	o := options{out: t.TempDir(), reuseTests: true}
+	r := cleanReport()
+	for _, name := range []string{"coverage.out", "tests.log"} {
+		if err := os.WriteFile(filepath.Join(o.out, name), []byte("original"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	e, err := evidence(o, &r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.TestArgs = "test -race -covermode=atomic"
+	if err := writeJSON(filepath.Join(o.out, "test-evidence.json"), e); err != nil {
+		t.Fatal(err)
+	}
+	if err := runTests(o, &r); err == nil {
+		t.Fatal("potvrda s drugim zastavicama prihvaćena")
+	}
+}
+
+func TestCheckedInConfig(t *testing.T) {
+	c, err := loadConfig("../../quality/config.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.critical("internal/cistac/sigurnost.go::JeSigurnaPutanja") || c.critical("internal/web/posluzitelj.go::Posluzitelj") {
+		t.Fatal("kritični odabir")
+	}
+}
+
+func TestDuplLineMovesDoNotCreateNewFinding(t *testing.T) {
+	a := lintIssue{FromLinter: "dupl", Text: "76-110 lines are duplicate of `repo/other.go:71-105`"}
+	a.Pos.Filename = "repo/current.go"
+	b := a
+	b.Text = "80-114 lines are duplicate of `repo/other.go:100-134`"
+	if lintKey(a, "/root") != lintKey(b, "/root") {
+		t.Fatal("pomak retka promijenio identitet klona")
+	}
+}
+
+func TestIntentionalExceptionDoesNotHideSecondProblem(t *testing.T) {
+	i := lintIssue{FromLinter: "staticcheck", Text: "SA5000: assignment to nil map"}
+	i.Pos.Filename = "p_test.go"
+	c := testConfig()
+	c.Exceptions = []exception{{Key: lintKey(i, "/root"), Reason: "one deliberate panic", Owner: "test", Expires: time.Now().AddDate(1, 0, 0).Format("2006-01-02")}}
+	path := filepath.Join(t.TempDir(), "lint.json")
+	if err := writeJSON(path, struct{ Issues []lintIssue }{[]lintIssue{i, i}}); err != nil {
+		t.Fatal(err)
+	}
+	r := report{}
+	if err := measureLint(path, "/root", c, &r); err != nil {
+		t.Fatal(err)
+	}
+	if r.Static.Errors != 1 || len(r.Exceptions) != 1 {
+		t.Fatalf("%+v", r.Static)
+	}
+}
+
+func TestIncompleteMetricsAndMissingBaselineFailClosed(t *testing.T) {
+	r := cleanReport()
+	r.Measurements = "INCOMPLETE"
+	evaluate(&r, nil, testConfig(), false)
+	if len(r.Failures) != 2 || r.Status != "FAIL" {
+		t.Fatal(r.Failures)
+	}
+}
+
+func TestMutationRejectsLiveProject(t *testing.T) {
+	root := t.TempDir()
+	if err := mutation(options{root: root, mutationRoot: root, mutationPackage: "internal/models"}); err == nil {
+		t.Fatal("mutation dopušten u živom projektu")
+	}
+}
+
+func TestMarkdownAndJSONExposeFailureAndNullMutation(t *testing.T) {
+	r := cleanReport()
+	r.Failures = []string{"test failure"}
+	r.Status = "FAIL"
+	r.MutationStatus = "NOT_RUN"
+	out := t.TempDir()
+	if err := writeReport(out, r); err != nil {
+		t.Fatal(err)
+	}
+	md, err := os.ReadFile(filepath.Join(out, "code-health.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(md), "test failure") || !strings.Contains(string(md), "FAIL") {
+		t.Fatal(string(md))
+	}
+	var read report
+	if err := readJSON(filepath.Join(out, "code-health.json"), &read); err != nil {
+		t.Fatal(err)
+	}
+	if read.MutationScore != nil || read.Status != "FAIL" {
+		t.Fatal(read)
+	}
+}
+
+func TestMetricLintersCompareByFunctionNotValue(t *testing.T) {
+	a := lintIssue{FromLinter: "gocognit", Text: "cognitive complexity 66 of func `pdfPrijave` is high (> 30)"}
+	a.Pos.Filename = "internal/web/prijava_pdf.go"
+	b := a
+	b.Text = "cognitive complexity 64 of func `pdfPrijave` is high (> 30)"
+	if lintKey(a, "/root") != lintKey(b, "/root") {
+		t.Fatal("smanjenje složenosti iste funkcije postalo je novi nalaz")
+	}
+	c := a
+	c.Text = "cognitive complexity 66 of func `drugaFunkcija` is high (> 30)"
+	if lintKey(a, "/root") == lintKey(c, "/root") {
+		t.Fatal("dvije funkcije dobile su isti ključ")
+	}
+	m := lintIssue{FromLinter: "maintidx", Text: "Function name: applyOne, Cyclomatic Complexity: 134, Halstead Volume: 28997.31, Maintainability Index: 0"}
+	n := m
+	n.Text = "Function name: applyOne, Cyclomatic Complexity: 140, Halstead Volume: 29101.80, Maintainability Index: 0"
+	if lintKey(m, "/root") != lintKey(n, "/root") {
+		t.Fatal("maintidx s promijenjenim vrijednostima nije isti nalaz")
+	}
+	// ostali linteri čuvaju brojeve: SA kodovi i poruke nisu mjerenja
+	s := lintIssue{FromLinter: "staticcheck", Text: "SA4006: this value of org is never used"}
+	s2 := s
+	s2.Text = "SA4009: this value of org is never used"
+	if lintKey(s, "/root") == lintKey(s2, "/root") {
+		t.Fatal("staticcheck kodovi se ne smiju izjednačiti")
+	}
+}
+
+func TestOnlyPackagesGitSeesAreMeasured(t *testing.T) {
+	root := filepath.FromSlash("/repo")
+	dirs := []string{
+		root,
+		filepath.Join(root, "internal", "web"),
+		filepath.Join(root, "tools", "admin", "alat"), // u .gitignore: git je ne vidi
+		filepath.Join(root, "internal", "novi"),       // nova, još nepraćena datoteka
+		"",
+	}
+	vidljive := []string{"main.go", "internal/web/server.go", "internal/novi/novi.go", ""}
+	got := odaberiPakete(root, dirs, vidljive)
+	want := []string{".", "./internal/novi", "./internal/web"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("paketi: %v, želim %v", got, want)
+	}
+}
+
+// Dugi paketi idu prvi, redom s popisa; ostali ostaju abecedno. Svaki
+// paket s popisa mora postojati, da preimenovani ne ispadne tiho s početka.
+func TestDugiPaketiKrecuPrvi(t *testing.T) {
+	got := poTrajanju([]string{".", "./internal/a", dugiPaketi[1], dugiPaketi[0], "./internal/z"})
+	want := []string{dugiPaketi[0], dugiPaketi[1], ".", "./internal/a", "./internal/z"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("redoslijed: %v, želim %v", got, want)
+	}
+	for _, p := range dugiPaketi {
+		if datoteke, err := filepath.Glob(filepath.Join("..", "..", p, "*_test.go")); err != nil || len(datoteke) == 0 {
+			t.Errorf("%s s popisa dugiPaketi nema testova (greška: %v)", p, err)
+		}
+	}
+}
+
+func TestExceptionsDoNotChangePolicyHash(t *testing.T) {
+	osnova := []byte(`{"schema":1,"complexity_limit":15,"exceptions":[]}`)
+	sIznimkom := []byte(`{"schema":1,"complexity_limit":15,"exceptions":[{"key":"complexity:x::y","reason":"r","owner":"o","expires":"2026-12-01"}]}`)
+	strozi := []byte(`{"schema":1,"complexity_limit":12,"exceptions":[]}`)
+	a, err := bezIznimki(osnova)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := bezIznimki(sIznimkom)
+	c, _ := bezIznimki(strozi)
+	if string(a) != string(b) {
+		t.Fatal("iznimka je promijenila pravila mjerenja")
+	}
+	if string(a) == string(c) {
+		t.Fatal("promjena praga mora promijeniti pravila mjerenja")
+	}
+}
+
+func TestSazetakPadaPokazujeStoJePalo(t *testing.T) {
+	log := []byte("ok  \tgocop/a\t1s\n--- FAIL: TestNesto (0.01s)\n    x_test.go:12: krivo\nFAIL\tgocop/b\t2s\npanic: test timed out after 30m0s\nok  \tgocop/c\t1s\n")
+	got := sazetakPada(log)
+	for _, ima := range []string{"--- FAIL: TestNesto", "FAIL\tgocop/b", "test timed out"} {
+		if !strings.Contains(got, ima) {
+			t.Errorf("sažetak nema %q:\n%s", ima, got)
+		}
+	}
+	if strings.Contains(got, "gocop/a") || sazetakPada([]byte("ok  \tgocop/a\t1s\n")) != "" {
+		t.Errorf("sažetak sadrži uspješne pakete:\n%s", got)
+	}
+}
+
+func TestRaspodjelaCRAPPokazujeCudovista(t *testing.T) {
+	// 18 urednih funkcija i dva čudovišta: prosjek je velik, medijan nije
+	v := []float64{1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 9, 12, 25, 72, 48180}
+	r := raspodjela(v)
+	if r.Medijan != 5 || r.P90 != 25 || r.P95 != 72 {
+		t.Errorf("medijan/P90/P95: %+v", r)
+	}
+	if r.DoDeset != 16 || r.DoTrideset != 2 || r.DoSto != 1 || r.PrekoSto != 1 {
+		t.Errorf("razredi: %+v", r)
+	}
+	if (raspodjela(nil) != raspodjelaCRAP{}) || raspodjela([]float64{3, 7, 1}).Medijan != 3 {
+		t.Error("prazan ili neparan skup")
+	}
+}
+
+// premjestajMaina: izvor main (CC 40, bez testova) rastavljen na run i uvoz
+func premjestajMaina() (config, report, report) {
+	c := testConfig()
+	c.Premjestaji = []premjestaj{{Iz: "cmd/main.go::main", Funkcije: []string{"cmd/main.go::run", "cmd/main.go::uvoz"}, Razlog: "rastavljanje main", Pregledano: "2026-10-04"}}
+	base := cleanReport()
+	base.Functions = []function{{ID: "cmd/main.go::main", File: "cmd/main.go", Complexity: 40, Coverage: cov(100, 0), CRAP: number(crap(40, 0)), Tokens: 900}}
+	r := cleanReport()
+	r.Functions = []function{
+		{ID: "cmd/main.go::main", File: "cmd/main.go", Line: 1, Kraj: 5, Complexity: 1, Coverage: cov(3, 0), CRAP: number(crap(1, 0)), Tokens: 20},
+		{ID: "cmd/main.go::run", File: "cmd/main.go", Line: 10, Kraj: 90, Complexity: 25, Coverage: cov(60, 40), CRAP: number(crap(25, 66.7)), Tokens: 600},
+		{ID: "cmd/main.go::uvoz", File: "cmd/main.go", Line: 100, Kraj: 150, Complexity: 14, Coverage: cov(30, 0), CRAP: number(crap(14, 0)), Tokens: 300},
+	}
+	return c, base, r
+}
+
+// Funkcija izdvojena iz main nasljeđuje njegovo stanje: složena i
+// nepokrivena kao i izvor nije regresija, a bez upisa premještaja jest
+func TestPremjestenaFunkcijaNasljedujeIzvor(t *testing.T) {
+	c, base, r := premjestajMaina()
+	evaluate(&r, &base, c, false)
+	if len(r.Failures) != 0 {
+		t.Fatalf("premještaj: %v", r.Failures)
+	}
+	if len(r.Premjestaji) != 2 || !strings.Contains(r.Premjestaji[0], "cmd/main.go::run ← cmd/main.go::main") {
+		t.Fatalf("izvještaj o premještajima: %v", r.Premjestaji)
+	}
+
+	c.Premjestaji = nil
+	_, _, r = premjestajMaina()
+	evaluate(&r, &base, c, false)
+	if len(r.Failures) == 0 {
+		t.Fatal("bez premještaja izdvojene funkcije su nov kod")
+	}
+}
+
+// Složenost se ne može pojaviti niotkuda: premještene funkcije ne nose više
+// nego što je izvor izgubio; izvor mora biti u baselineu, funkcije postojati
+func TestPremjestajNeSkrivaNovKod(t *testing.T) {
+	for ime, promijeni := range map[string]func(*config, *report){
+		"više složenosti": func(_ *config, r *report) { r.Functions[2].Complexity = 20 },
+		"izvor nepoznat":  func(c *config, _ *report) { c.Premjestaji[0].Iz = "cmd/main.go::nema" },
+		"funkcije nema":   func(_ *config, r *report) { r.Functions = r.Functions[:2] },
+		"gora od izvora":  func(_ *config, r *report) { r.Functions[1].Complexity = 41 },
+	} {
+		t.Run(ime, func(t *testing.T) {
+			c, base, r := premjestajMaina()
+			promijeni(&c, &r)
+			evaluate(&r, &base, c, false)
+			if len(r.Failures) == 0 {
+				t.Fatal("false green")
+			}
+		})
+	}
+}
+
+// Metrički lint nalaz u premještenoj funkciji nije nov (složenost drži
+// usporedba po funkciji); errcheck i ostali linteri i dalje jesu
+func TestMetrickiLintUPremjestenojFunkciji(t *testing.T) {
+	for _, tc := range []struct {
+		linter string
+		redak  int
+		pada   bool
+	}{
+		{"gocyclo", 20, false},
+		{"nestif", 120, false},
+		{"gocyclo", 95, true}, // izvan premještenih funkcija
+		{"errcheck", 20, true},
+	} {
+		c, base, r := premjestajMaina()
+		key := "lint:" + tc.linter + ":cmd/main.go:nalaz"
+		r.Static.Findings[key] = 1
+		r.lintMjesta = map[string][]lintMjesto{key: {{tc.linter, "cmd/main.go", tc.redak}}}
+		evaluate(&r, &base, c, false)
+		if pao := len(r.Failures) > 0; pao != tc.pada {
+			t.Errorf("%s u retku %d: %v", tc.linter, tc.redak, r.Failures)
+		}
+	}
+}
+
+func TestPremjestajiNeMijenjajuPravilaIMorajuBitiIspravni(t *testing.T) {
+	a, _ := bezIznimki([]byte(`{"schema":1,"premjestaji":[]}`))
+	b, _ := bezIznimki([]byte(`{"schema":1,"premjestaji":[{"iz":"a::main","funkcije":["a::run"],"razlog":"r","pregledano":"2026-10-04"}]}`))
+	if string(a) != string(b) {
+		t.Fatal("premještaj je promijenio pravila mjerenja")
+	}
+	put := filepath.Join(t.TempDir(), "config.json")
+	for ime, premjestaj := range map[string]string{
+		"bez razloga":  `{"iz":"a::main","funkcije":["a::run"],"pregledano":"2026-10-04"}`,
+		"bez datuma":   `{"iz":"a::main","funkcije":["a::run"],"razlog":"r"}`,
+		"sam u sebe":   `{"iz":"a::main","funkcije":["a::main"],"razlog":"r","pregledano":"2026-10-04"}`,
+		"bez funkcija": `{"iz":"a::main","funkcije":[],"razlog":"r","pregledano":"2026-10-04"}`,
+		"dvaput":       `{"iz":"a::main","funkcije":["a::run","a::run"],"razlog":"r","pregledano":"2026-10-04"}`,
+	} {
+		cfg := `{"schema":1,"coverage_target":85,"critical_coverage_target":95,"complexity_limit":15,"critical_complexity_limit":10,"crap_limit":30,"critical_crap_limit":10,"coverage_drop_pp":0.1,"crap_increase":0.5,"duplication_increase_pp":0.1,"exact_min_tokens":100,"fuzzy_min_tokens":80,"fuzzy_similarity":0.85,"critical":["^x"],"premjestaji":[` + premjestaj + `]}`
+		if err := os.WriteFile(put, []byte(cfg), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := loadConfig(put); err == nil {
+			t.Errorf("%s: prihvaćen neispravan premještaj", ime)
+		}
+	}
+}
+
+// Odluke (11. 10. 2026.): nova kritična funkcija CRAP ≤ 7 (dakle CC ≤ 7),
+// nova ostala CRAP ≤ 10 i CC ≤ 10. Dirana ne smije postati gora: mala
+// ostaje ispod 7, a velika smije dobiti ispravak, ali ne smije narasti.
+func TestStrozeGraniceZaNoveIDiraneFunkcije(t *testing.T) {
+	c := testConfig()
+	c.CriticalComplexityLimit, c.CriticalCRAPLimit, c.ComplexityLimit, c.CRAPLimit = 7, 7, 10, 10
+	mala := function{ID: "mala", Critical: true, Complexity: 5, Coverage: cov(10, 10), CRAP: number(5), Tokens: 50}
+	velika := function{ID: "velika", Critical: true, Complexity: 30, Coverage: cov(100, 80), CRAP: number(37.2), Tokens: 900}
+	for _, tc := range []struct {
+		ime  string
+		f    function
+		pada bool
+	}{
+		{"nova kritična CC 7, puna pokrivenost", function{ID: "nova", Critical: true, Complexity: 7, Coverage: cov(10, 10), CRAP: number(7)}, false},
+		{"nova kritična CC 8", function{ID: "nova", Critical: true, Complexity: 8, Coverage: cov(10, 10), CRAP: number(8)}, true},
+		{"nova ostala CC 10", function{ID: "nova", Complexity: 10, Coverage: cov(10, 10), CRAP: number(10)}, false},
+		{"nova ostala CC 11", function{ID: "nova", Complexity: 11, Coverage: cov(10, 10), CRAP: number(11)}, true},
+		{"mala dirana ostaje mala", function{ID: "mala", Critical: true, Complexity: 6, Coverage: cov(12, 12), CRAP: number(6), Tokens: 60}, false},
+		{"mala dirana preraste 7", function{ID: "mala", Critical: true, Complexity: 8, Coverage: cov(14, 14), CRAP: number(8), Tokens: 70}, true},
+		{"velika dirana, ispravak bez rasta", function{ID: "velika", Critical: true, Complexity: 30, Coverage: cov(100, 80), CRAP: number(37.2), Tokens: 905}, false},
+		{"velika dirana naraste", function{ID: "velika", Critical: true, Complexity: 31, Coverage: cov(102, 82), CRAP: number(38.9), Tokens: 920}, true},
+	} {
+		base := cleanReport()
+		base.Functions = []function{mala, velika}
+		r := cleanReport()
+		r.Functions = []function{mala, velika}
+		if i := slices.IndexFunc(r.Functions, func(f function) bool { return f.ID == tc.f.ID }); i >= 0 {
+			r.Functions[i] = tc.f
+		} else {
+			r.Functions = append(r.Functions, tc.f)
+		}
+		evaluate(&r, &base, c, false)
+		palo := slices.ContainsFunc(r.Failures, func(s string) bool { return strings.Contains(s, ":"+tc.f.ID+":") })
+		if palo != tc.pada {
+			t.Errorf("%s: palo=%v, želim %v (%v)", tc.ime, palo, tc.pada, r.Failures)
+		}
+	}
+}
+
+// Granice u quality/config.json ne smiju popustiti bez nove odluke.
+func TestGraniceUKonfiguraciji(t *testing.T) {
+	c, err := loadConfig(filepath.Join("..", "..", "quality", "config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.CriticalComplexityLimit > 7 || c.CriticalCRAPLimit > 7 || c.ComplexityLimit > 10 || c.CRAPLimit > 10 {
+		t.Errorf("granice su popustile: kritične CC %d CRAP %.0f, ostale CC %d CRAP %.0f",
+			c.CriticalComplexityLimit, c.CriticalCRAPLimit, c.ComplexityLimit, c.CRAPLimit)
+	}
+}

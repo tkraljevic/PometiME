@@ -1,0 +1,6 @@
+.DS_Store
+.quality/
+bin/
+dist/
+/pometime
+*.out
