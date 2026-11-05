@@ -21,11 +21,16 @@ func DozvoljeniKorijeni(p Postavke) []string {
 		filepath.Join(k, "Library", "Preferences"),
 		filepath.Join(k, "Library", "Containers"),
 		filepath.Join(k, "Library", "Developer", "CoreSimulator"),
+		filepath.Join(k, "Library", "Developer", "Xcode"),
+		filepath.Join(k, "Library", "pnpm"),
 		filepath.Join(k, ".npm"),
 		filepath.Join(k, ".cache"),
+		filepath.Join(k, ".gradle", "caches"),
+		filepath.Join(k, ".m2", "repository"),
 		filepath.Join(k, ".cargo", "registry", "cache"),
 		filepath.Join(k, ".claude", "projects"),
 		filepath.Join(k, "go", "pkg", "mod", "cache"),
+		filepath.Join(k, "Applications"),
 		app,
 	}
 }
@@ -80,8 +85,8 @@ func obrisiJednuStavku(p Postavke, putanja string) (int64, error) {
 		return 0, fmt.Errorf("provjera putanje %s: %w", cista, err)
 	}
 	velicina := IzracunajVelicinu(cista)
-	if err := os.RemoveAll(cista); err != nil {
-		return 0, fmt.Errorf("brisanje %s: %w", cista, err)
+	if err := PremjestiUKos(p, cista, velicina); err != nil {
+		return 0, err
 	}
 	return velicina, nil
 }
@@ -113,10 +118,10 @@ func OcistiPutanje(p Postavke, putanje []string) RezultatCiscenja {
 	}
 }
 
-// DeinstalirajAplikaciju provjerava je li riječ o .app paketu i uklanja ga zajedno s podacima.
+// DeinstalirajAplikaciju provjerava je li riječ o .app paketu i premješta ga zajedno s podacima u Koš.
 func DeinstalirajAplikaciju(p Postavke, putanjaApp string, povezane []string) RezultatCiscenja {
 	cistaApp := filepath.Clean(putanjaApp)
-	if !strings.HasSuffix(strings.ToLower(cistaApp), ".app") || !JeUnutarKorijena(cistaApp, p.KorijenAplikacija) {
+	if !jeValjanaPutanjaAplikacije(p, cistaApp) {
 		return RezultatCiscenja{
 			Poruka: "Deinstalacija odbijena jer putanja nije valjana aplikacija.",
 			Greske: []string{fmt.Sprintf("nevaljana putanja aplikacije: %s", putanjaApp)},
@@ -127,4 +132,12 @@ func DeinstalirajAplikaciju(p Postavke, putanjaApp string, povezane []string) Re
 	svePutanje = append(svePutanje, cistaApp)
 	svePutanje = append(svePutanje, povezane...)
 	return OcistiPutanje(p, svePutanje)
+}
+
+func jeValjanaPutanjaAplikacije(p Postavke, cistaApp string) bool {
+	if !strings.HasSuffix(strings.ToLower(cistaApp), ".app") {
+		return false
+	}
+	korisnickeApp := filepath.Join(filepath.Clean(p.KorijenKorisnika), "Applications")
+	return JeUnutarKorijena(cistaApp, p.KorijenAplikacija) || JeUnutarKorijena(cistaApp, korisnickeApp)
 }

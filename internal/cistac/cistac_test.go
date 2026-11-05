@@ -165,6 +165,7 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 	// 1. Predmemorija i logovi
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "com.test.ShipIt", "pkg.bin"), 500)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "ObičnaApp", "cache.db"), 300)
+	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "Google", "chrome.db"), 350)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "PremalaApp", "mali.db"), 10)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "com.apple.Safari", "sys.db"), 500)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "go-build", "go.o"), 600)
@@ -201,8 +202,8 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 	_ = SkenirajSve(Postavke{KorijenKorisnika: filepath.Join(dom, "nepostoji"), KorijenAplikacija: filepath.Join(apps, "nepostoji")})
 
 	izvj := SkenirajSve(p)
-	if len(izvj.PredmemorijaSustava) != 3 {
-		t.Fatalf("očekivane 3 stavke predmemorije/logova, dobiveno %d", len(izvj.PredmemorijaSustava))
+	if len(izvj.PredmemorijaSustava) != 4 {
+		t.Fatalf("očekivane 4 stavke predmemorije/logova, dobiveno %d", len(izvj.PredmemorijaSustava))
 	}
 	if len(izvj.RazvojniAlati) != 2 {
 		t.Fatalf("očekivane 2 razvojne stavke (go-build i claude subagents), dobiveno %d", len(izvj.RazvojniAlati))
@@ -211,14 +212,26 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 		t.Fatalf("očekivan 1 ostatak aplikacije, dobiveno %d", len(izvj.OstaciAplikacija))
 	}
 
-	// Test čišćenja (uključujući nepostojeću i zabranjenu putanju)
+	// Test čišćenja u Koš i povrata iz Koša
+	prvaPutanja := izvj.PredmemorijaSustava[0].Putanja
 	rez := OcistiPutanje(p, []string{
-		izvj.PredmemorijaSustava[0].Putanja,
+		prvaPutanja,
 		filepath.Join(dom, "Library", "Caches", "nepostojeca-stavka"),
 		"/zabranjena/putanja",
 	})
 	if rez.ObrisanoStavki != 1 || len(rez.Greske) != 1 {
 		t.Fatalf("neočekivan rezultat čišćenja: %+v", rez)
+	}
+	uKosu := IzlistajKos(p)
+	if len(uKosu) != 1 {
+		t.Fatalf("očekivana 1 stavka u Košu, dobiveno %d", len(uKosu))
+	}
+	povratRez := VratiIzKosa(p, []string{uKosu[0].PutanjaUKosu})
+	if povratRez.ObrisanoStavki != 1 {
+		t.Fatalf("očekivana 1 vraćena stavka, dobiveno %+v", povratRez)
+	}
+	if _, err := os.Stat(prvaPutanja); err != nil {
+		t.Errorf("izvorna putanja %s nije vraćena iz Koša: %v", prvaPutanja, err)
 	}
 }
 
@@ -240,9 +253,10 @@ func TestSkenirajIDeinstalirajAplikacije(t *testing.T) {
 	napraviDatoteku(t, filepath.Join(bezPlistApp, "Contents", "MacOS", "bin"), 300)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "drugaapp", "c.bin"), 200)
 
-	imePlistApp := filepath.Join(apps, "Treca.app")
+	imePlistApp := filepath.Join(apps, "Podmapa", "Treca.app")
 	napraviDatoteku(t, filepath.Join(imePlistApp, "Contents", "Info.plist"), 10)
 	_ = os.WriteFile(filepath.Join(imePlistApp, "Contents", "Info.plist"), []byte(`<key>CFBundleName</key><string>Treca App</string>`), 0o600) // testna datoteka u TempDir
+	napraviDatoteku(t, filepath.Join(apps, "Podmapa", "obicna.txt"), 10)
 
 	popis := SkenirajAplikacije(p)
 	if len(popis) != 2 {
@@ -255,11 +269,19 @@ func TestSkenirajIDeinstalirajAplikacije(t *testing.T) {
 		t.Errorf("očekivana greška za nevaljanu putanju aplikacije")
 	}
 
-	// Uspješna deinstalacija
+	// Uspješna deinstalacija u Koš i test kolizije naziva u Košu
 	dobarRez := DeinstalirajAplikaciju(p, bezPlistApp, []string{
 		filepath.Join(dom, "Library", "Caches", "drugaapp"),
 	})
 	if dobarRez.ObrisanoStavki != 2 {
 		t.Errorf("očekivane 2 obrisane stavke pri deinstalaciji, dobiveno %d", dobarRez.ObrisanoStavki)
+	}
+
+	// Druga stavka istog imena za test vremenske oznake u Košu i praznog povrata
+	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "drugaapp", "c2.bin"), 150)
+	_ = OcistiPutanje(p, []string{filepath.Join(dom, "Library", "Caches", "drugaapp")})
+	prazanPovrat := VratiIzKosa(p, []string{"/nepostojeca/u/kosu"})
+	if !strings.Contains(prazanPovrat.Poruka, "Nijedna stavka") {
+		t.Errorf("neočekivana poruka za prazan povrat: %s", prazanPovrat.Poruka)
 	}
 }

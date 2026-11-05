@@ -74,7 +74,17 @@ type IzvjestajSkeniranja struct {
 	UkupnoZaOsloboditi  int64            `json:"total_reclaimable_bytes"`
 }
 
-// RezultatCiscenja opisuje ishod brisanja odabranih putanja.
+// StavkaKosa opisuje stavku premještenu u Koš za smeće s izvornom putanjom za povrat.
+type StavkaKosa struct {
+	ID              string `json:"id"`
+	Naziv           string `json:"name"`
+	IzvornaPutanja  string `json:"original_path"`
+	PutanjaUKosu    string `json:"trash_path"`
+	VelicinaBajta   int64  `json:"size_bytes"`
+	VrijemeBrisanja string `json:"deleted_at"`
+}
+
+// RezultatCiscenja opisuje ishod premještanja u Koš ili povrata odabranih putanja.
 type RezultatCiscenja struct {
 	ObrisanoStavki  int         `json:"removed_count"`
 	OslobodenoBajta int64       `json:"freed_bytes"`
@@ -106,14 +116,24 @@ func oblikPremaZadnjojZnamenci(n, zadnja int, jednina, dvojina, mnozina string) 
 	return fmt.Sprintf("%d %s", n, mnozina)
 }
 
-// PorukaRezultata vraća cijelu rečenicu o ishodu čišćenja s ispravnim oblikom uz broj.
+// PorukaRezultata vraća cijelu rečenicu o premještanju stavki u Koš s ispravnim oblikom uz broj.
 func PorukaRezultata(obrisano int, oslobodenoBajta int64) string {
 	if obrisano == 0 {
-		return "Nijedna stavka nije uklonjena s diska."
+		return "Nijedna stavka nije premještena u Koš za smeće."
 	}
 	stavkeTekst := UzBrojHR(obrisano, "stavka", "stavke", "stavki")
 	velicinaTekst := FormatirajBajte(oslobodenoBajta)
-	return fmt.Sprintf("Uspješno uklonjeno %s i oslobođeno %s prostora.", stavkeTekst, velicinaTekst)
+	return fmt.Sprintf("Uspješno premješteno u Koš %s (%s). Po potrebi ih možete vratiti iz kartice Koš i Povrat.", stavkeTekst, velicinaTekst)
+}
+
+// PorukaPovrata vraća cijelu rečenicu o povratu stavki iz Koša za smeće na izvorno mjesto.
+func PorukaPovrata(vraceno int, vracenoBajta int64) string {
+	if vraceno == 0 {
+		return "Nijedna stavka nije vraćena iz Koša za smeće."
+	}
+	stavkeTekst := UzBrojHR(vraceno, "stavka", "stavke", "stavki")
+	velicinaTekst := FormatirajBajte(vracenoBajta)
+	return fmt.Sprintf("Uspješno vraćeno na izvorno mjesto %s (%s).", stavkeTekst, velicinaTekst)
 }
 
 // FormatirajBajte pretvara broj bajtova u čitljiv prikaz (KB, MB, GB).

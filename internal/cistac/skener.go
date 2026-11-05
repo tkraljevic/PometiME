@@ -17,18 +17,37 @@ type kandidatCiscenja struct {
 }
 
 var preskocenePredmemorije = map[string]bool{
-	"go-build":          true,
-	"Homebrew":          true,
-	"pip":               true,
-	"Codex":             true,
-	"goimports":         true,
-	"golangci-lint":     true,
-	"gopls":             true,
-	"ms-playwright":     true,
-	"ms-playwright-go":  true,
-	"CloudKit":          true,
-	"FamilyCircle":      true,
-	"GeoServices":       true,
+	"go-build":               true,
+	"Homebrew":               true,
+	"pip":                    true,
+	"Codex":                  true,
+	"CocoaPods":              true,
+	"Yarn":                   true,
+	"goimports":              true,
+	"golangci-lint":          true,
+	"gopls":                  true,
+	"ms-playwright":          true,
+	"ms-playwright-go":       true,
+	"CloudKit":               true,
+	"FamilyCircle":           true,
+	"GeoServices":            true,
+	"PassKit":                true,
+	"GameKit":                true,
+	"Animoji":                true,
+	"SiriTTS":                true,
+	"AudioUnitCache":         true,
+	"askpermissiond":         true,
+	"antigravity":            true,
+	"com.google.antigravity": true,
+	"io.tailscale.ipn.macsys": true,
+}
+
+var predmemorijePreglednika = map[string]bool{
+	"Google":        true,
+	"Firefox":       true,
+	"Mozilla":       true,
+	"BraveSoftware": true,
+	"Arc":           true,
 }
 
 func trebaPreskocitiPredmemoriju(ime string) bool {
@@ -38,9 +57,16 @@ func trebaPreskocitiPredmemoriju(ime string) bool {
 	return strings.HasPrefix(ime, "com.apple.") || strings.HasPrefix(ime, ".")
 }
 
+func jePreporucenaPredmemorija(ime string) bool {
+	return !predmemorijePreglednika[ime]
+}
+
 func opisPredmemorije(ime string) string {
 	if strings.HasSuffix(ime, ".ShipIt") || strings.Contains(strings.ToLower(ime), "updater") {
 		return "Privremeni instalacijski paketi ažuriranja aplikacije."
+	}
+	if predmemorijePreglednika[ime] {
+		return "Predmemorija web-preglednika (preporučeno zatvoriti preglednik prije čišćenja)."
 	}
 	return "Korisnička predmemorija aplikacije u ~/Library/Caches."
 }
@@ -69,7 +95,7 @@ func prikupiKandidateCaches(mapaCaches string) []kandidatCiscenja {
 			naziv:       ime,
 			kategorija:  "system_caches",
 			opis:        opisPredmemorije(ime),
-			preporuceno: true,
+			preporuceno: jePreporucenaPredmemorija(ime),
 		})
 	}
 	return izlaz
@@ -106,18 +132,26 @@ func SkenirajRazvojneAlate(p Postavke) []StavkaCiscenja {
 
 func fiksniRazvojniKandidati(k string) []kandidatCiscenja {
 	return []kandidatCiscenja{
-		{filepath.Join(k, "Library", "Caches", "go-build"), "Go Build Cache", "dev_ai", "Međuspremnik prevedenih Go paketa (go clean -cache).", true},
+		{filepath.Join(k, "Library", "Developer", "Xcode", "DerivedData"), "Xcode DerivedData", "dev_ai", "Međuspremnik prevedenih Xcode projekata i indeksa.", true},
+		{filepath.Join(k, "Library", "Developer", "Xcode", "Archives"), "Xcode Archives", "dev_ai", "Stare arhive izdanja iz Xcodea.", false},
+		{filepath.Join(k, "Library", "Developer", "Xcode", "iOS DeviceSupport"), "Xcode iOS DeviceSupport", "dev_ai", "Simboli za otklanjanje grešaka starih iOS verzija.", false},
+		{filepath.Join(k, "Library", "Developer", "CoreSimulator", "Caches"), "CoreSimulator Cache", "dev_ai", "Korisnička predmemorija za iOS simulator.", true},
+		{filepath.Join(k, "Library", "Caches", "CocoaPods"), "CocoaPods Cache", "dev_ai", "Međuspremnik preuzetih iOS/macOS CocoaPods paketa.", true},
+		{filepath.Join(k, "Library", "Caches", "go-build"), "Go Build Cache", "dev_ai", "Međuspremnik prevedenih Go paketa (go clean -cache).", false},
 		{filepath.Join(k, "go", "pkg", "mod", "cache"), "Go Module Cache", "dev_ai", "Arhive preuzetih Go modula (go clean -modcache).", false},
 		{filepath.Join(k, "Library", "Caches", "Homebrew", "downloads"), "Homebrew Downloads", "dev_ai", "Preuzete instalacijske arhive u Homebrewu.", true},
 		{filepath.Join(k, ".npm", "_cacache"), "NPM Package Cache", "dev_ai", "Međuspremnik preuzetih Node.js paketa.", true},
+		{filepath.Join(k, "Library", "Caches", "Yarn"), "Yarn Cache", "dev_ai", "Međuspremnik preuzetih Yarn paketa.", true},
+		{filepath.Join(k, "Library", "pnpm", "store"), "PNPM Store", "dev_ai", "Globalno spremište PNPM paketa.", false},
 		{filepath.Join(k, "Library", "Caches", "pip"), "Python Pip Cache", "dev_ai", "Međuspremnik preuzetih Python paketa.", true},
 		{filepath.Join(k, ".cargo", "registry", "cache"), "Rust Cargo Cache", "dev_ai", "Preuzete arhive Rust paketa.", true},
+		{filepath.Join(k, ".gradle", "caches"), "Gradle Cache", "dev_ai", "Međuspremnik preuzetih Java/Android Gradle paketa.", false},
+		{filepath.Join(k, ".m2", "repository"), "Maven Repository", "dev_ai", "Lokalno spremište Java Maven ovisnosti.", false},
 		{filepath.Join(k, "Library", "Caches", "goimports"), "Goimports Cache", "dev_ai", "Privremeni indeks za goimports alat.", true},
 		{filepath.Join(k, "Library", "Caches", "golangci-lint"), "GolangCI-Lint Cache", "dev_ai", "Međuspremnik za statičku analizu Go koda.", true},
 		{filepath.Join(k, "Library", "Caches", "gopls"), "Gopls Cache", "dev_ai", "Privremena predmemorija za Go Language Server.", true},
 		{filepath.Join(k, "Library", "Caches", "Codex"), "Codex App Cache", "dev_ai", "Predmemorija za Codex AI aplikaciju.", true},
 		{filepath.Join(k, ".cache", "codex-runtimes"), "Codex Runtimes", "dev_ai", "Privremena okruženja za Codex CLI.", false},
-		{filepath.Join(k, "Library", "Developer", "CoreSimulator", "Caches"), "CoreSimulator Cache", "dev_ai", "Korisnička predmemorija za iOS simulator.", true},
 	}
 }
 

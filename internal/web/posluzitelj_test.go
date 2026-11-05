@@ -141,4 +141,31 @@ func TestAPIOcistiIDeinstaliraj(t *testing.T) {
 	if odgDobarDeinst.Code != http.StatusOK {
 		t.Errorf("očekivan 200 za /api/deinstaliraj, dobiveno %d", odgDobarDeinst.Code)
 	}
+
+	// Provjera /api/kos i /api/vrati
+	zahKos := httptest.NewRequest(http.MethodGet, "/api/kos", nil)
+	odgKos := httptest.NewRecorder()
+	pos.ServeHTTP(odgKos, zahKos)
+	if odgKos.Code != http.StatusOK {
+		t.Fatalf("očekivan 200 za /api/kos, dobiveno %d", odgKos.Code)
+	}
+	var stavkeKosa []cistac.StavkaKosa
+	if err := json.Unmarshal(odgKos.Body.Bytes(), &stavkeKosa); err != nil || len(stavkeKosa) == 0 {
+		t.Fatalf("očekivane stavke u Košu, dobiveno %v (%v)", len(stavkeKosa), err)
+	}
+
+	losVrati := httptest.NewRequest(http.MethodPost, "/api/vrati", bytes.NewBufferString("{neispravno"))
+	odgLosVrati := httptest.NewRecorder()
+	pos.ServeHTTP(odgLosVrati, losVrati)
+	if odgLosVrati.Code != http.StatusBadRequest {
+		t.Errorf("očekivan 400 za neispravan JSON u /api/vrati, dobiveno %d", odgLosVrati.Code)
+	}
+
+	tijeloVrati, _ := json.Marshal(zahtjevCiscenja{Putanje: []string{stavkeKosa[0].PutanjaUKosu}}) // poznata struktura bez mogućnosti greške serijalizacije
+	dobarVrati := httptest.NewRequest(http.MethodPost, "/api/vrati", bytes.NewReader(tijeloVrati))
+	odgDobarVrati := httptest.NewRecorder()
+	pos.ServeHTTP(odgDobarVrati, dobarVrati)
+	if odgDobarVrati.Code != http.StatusOK {
+		t.Errorf("očekivan 200 za /api/vrati, dobiveno %d", odgDobarVrati.Code)
+	}
 }

@@ -554,10 +554,14 @@
         <span>Deinstalater Aplikacija</span>
         <span class="badge" id="badge-aplikacije">0</span>
       </button>
+      <button type="button" class="nav-btn" data-tab="kos">
+        <span>Koš i Povrat</span>
+        <span class="badge" id="badge-kos">0</span>
+      </button>
     </nav>
 
     <div class="sidebar-footer">
-      Sigurnosna zaštita je uključena: dokumenti, sustavske mape i Claude <code>memory</code> mape nikad se ne brišu.
+      Sve očišćene stavke idu u <strong>Koš za smeće</strong> (<code>~/.Trash</code>) i mogu se vratiti na izvorno mjesto čak i nakon ponovnog pokretanja macOS-a.
     </div>
   </aside>
 
@@ -630,6 +634,7 @@
       aktivniTab: 'pregled',
       izvjestaj: null,
       aplikacije: null,
+      kos: [],
       odabranePutanje: new Map(),
       filterTekst: '',
       cekaPotvrduAkcija: null
@@ -638,7 +643,7 @@
     const opisiTabova = {
       pregled: {
         naslov: 'Pregled i Brzo Čišćenje',
-        opis: 'Pregled zauzeća diska i preporučene stavke za sigurno oslobađanje prostora.'
+        opis: 'Pregled zauzeća diska i preporučene stavke za sigurno premještanje u Koš za smeće.'
       },
       predmemorija: {
         naslov: 'Predmemorija i Zapisnici',
@@ -646,15 +651,19 @@
       },
       razvojni: {
         naslov: 'Razvojni i AI Alati',
-        opis: 'Predmemorije za Go, Homebrew, NPM, Pip, Cargo i završene Claude Code pod-agente.'
+        opis: 'Xcode DerivedData, CocoaPods, Go, Homebrew, NPM, Yarn, PNPM, Pip, Cargo, Gradle, Maven i Claude Code pod-agenti.'
       },
       ostaci: {
         naslov: 'Ostaci Aplikacija',
-        opis: 'Mape u ~/Library koje ne pripadaju nijednoj trenutačno instaliranoj aplikaciji.'
+        opis: 'Mape u ~/Library koje ne pripadaju nijednoj instaliranoj aplikaciji niti aktivnom CLI alatu.'
       },
       aplikacije: {
         naslov: 'Deinstalater Aplikacija',
-        opis: 'Potpuno uklanjanje aplikacija iz /Applications zajedno s njihovim podacima u ~/Library.'
+        opis: 'Potpuno premještanje aplikacija iz /Applications i ~/Applications zajedno s njihovim podacima u Koš za smeće.'
+      },
+      kos: {
+        naslov: 'Koš za smeće i Povrat (Undo)',
+        opis: 'Stavke premještene u ~/.Trash. Možete ih jednim klikom vratiti na izvorno mjesto čak i nakon ponovnog pokretanja macOS-a.'
       }
     };
 
@@ -903,17 +912,95 @@
       }
     }
 
+    function iscrtajKos() {
+      const spremnik = document.getElementById('popis-stavki');
+      spremnik.replaceChildren();
+
+      const q = stanje.filterTekst.trim().toLowerCase();
+      const filtrirane = (stanje.kos || []).filter(st =>
+        !q ||
+        st.name.toLowerCase().includes(q) ||
+        st.original_path.toLowerCase().includes(q)
+      );
+
+      if (filtrirane.length === 0) {
+        const prazno = document.createElement('div');
+        prazno.className = 'empty-state';
+        prazno.textContent = 'U Košu za smeće trenutačno nema stavki koje je premjestio PometiME.';
+        spremnik.appendChild(prazno);
+        return;
+      }
+
+      const zaglavljeAkcije = document.createElement('div');
+      zaglavljeAkcije.className = 'toolbar-row';
+      const gumbVratiSve = document.createElement('button');
+      gumbVratiSve.type = 'button';
+      gumbVratiSve.className = 'btn btn-primary';
+      gumbVratiSve.textContent = 'Vrati sve stavke na izvorno mjesto (' + filtrirane.length + ')';
+      gumbVratiSve.addEventListener('click', () => vratiStavkeIzKosa(filtrirane.map(s => s.trash_path)));
+      zaglavljeAkcije.appendChild(gumbVratiSve);
+      spremnik.appendChild(zaglavljeAkcije);
+
+      for (const st of filtrirane) {
+        const red = document.createElement('div');
+        red.className = 'item-row';
+
+        const lijevo = document.createElement('div');
+        lijevo.className = 'item-details';
+
+        const naslov = document.createElement('div');
+        naslov.className = 'item-title';
+        naslov.textContent = st.name;
+
+        const vrijeme = document.createElement('span');
+        vrijeme.className = 'tag-rec';
+        vrijeme.textContent = 'U Košu od: ' + st.deleted_at;
+        naslov.appendChild(vrijeme);
+
+        const opis = document.createElement('div');
+        opis.className = 'item-desc';
+        opis.textContent = 'Izvorna lokacija: ' + st.original_path;
+
+        const putUKosu = document.createElement('div');
+        putUKosu.className = 'item-path';
+        putUKosu.textContent = 'Putanja u Košu: ' + st.trash_path;
+
+        lijevo.append(naslov, opis, putUKosu);
+
+        const desno = document.createElement('div');
+        desno.style.display = 'flex';
+        desno.style.alignItems = 'center';
+        desno.style.gap = '12px';
+
+        const vel = document.createElement('div');
+        vel.className = 'item-size';
+        vel.textContent = formatirajBajte(st.size_bytes);
+
+        const gumb = document.createElement('button');
+        gumb.type = 'button';
+        gumb.className = 'btn btn-primary';
+        gumb.textContent = 'Vrati natrag';
+        gumb.addEventListener('click', () => vratiStavkeIzKosa([st.trash_path]));
+
+        desno.append(vel, gumb);
+        red.append(lijevo, desno);
+        spremnik.appendChild(red);
+      }
+    }
+
     function iscrtajPogled() {
       const info = opisiTabova[stanje.aktivniTab];
       document.getElementById('naslov-pogleda').textContent = info.naslov;
       document.getElementById('opis-pogleda').textContent = info.opis;
 
-      const jeAplikacije = stanje.aktivniTab === 'aplikacije';
-      document.getElementById('alatna-traka-odabira').style.display = jeAplikacije ? 'none' : 'flex';
-      document.getElementById('podnozje-akcije').style.display = jeAplikacije ? 'none' : 'flex';
+      const bezOdabira = stanje.aktivniTab === 'aplikacije' || stanje.aktivniTab === 'kos';
+      document.getElementById('alatna-traka-odabira').style.display = bezOdabira ? 'none' : 'flex';
+      document.getElementById('podnozje-akcije').style.display = bezOdabira ? 'none' : 'flex';
 
-      if (jeAplikacije) {
+      if (stanje.aktivniTab === 'aplikacije') {
         iscrtajAplikacije();
+      } else if (stanje.aktivniTab === 'kos') {
+        iscrtajKos();
       } else {
         iscrtajStavkeCiscenja();
       }
@@ -953,6 +1040,34 @@
       }
     }
 
+    async function ucitajKos() {
+      try {
+        const odg = await fetch('/api/kos');
+        stanje.kos = await odg.json();
+        document.getElementById('badge-kos').textContent = String((stanje.kos || []).length);
+        if (stanje.aktivniTab === 'kos') {
+          iscrtajKos();
+        }
+      } catch (err) {
+        prikaziPoruku('Greška pri učitavanju Koša za smeće: ' + err.message);
+      }
+    }
+
+    async function vratiStavkeIzKosa(putanjeUKosu) {
+      try {
+        const odg = await fetch('/api/vrati', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths: putanjeUKosu })
+        });
+        const rez = await odg.json();
+        prikaziPoruku(rez.message || 'Stavke su vraćene na izvorno mjesto.');
+        await Promise.all([ucitajSkeniranje(), ucitajAplikacije(), ucitajKos()]);
+      } catch (err) {
+        prikaziPoruku('Greška pri povratu iz Koša: ' + err.message);
+      }
+    }
+
     function otvoriDijalogPotvrde(naslov, opis, tekstPotvrde, akcija) {
       const dijalog = document.getElementById('potvrda-dijalog');
       document.getElementById('potvrda-naslov').textContent = naslov;
@@ -970,9 +1085,9 @@
       const brojTekst = uzBrojHR(putanje.length, 'stavku', 'stavke', 'stavki');
 
       otvoriDijalogPotvrde(
-        'Potvrda čišćenja diska',
-        'Trajno ćete ukloniti ' + brojTekst + ' ukupne veličine ' + formatirajBajte(zbroj) + '. Želite li nastaviti?',
-        'Pometi sada',
+        'Premještanje u Koš za smeće',
+        'Premjestit ćete ' + brojTekst + ' (' + formatirajBajte(zbroj) + ') u Koš za smeće (~/.Trash). Po potrebi ih možete jednim klikom vratiti iz kartice "Koš i Povrat".',
+        'Premjesti u Koš',
         async () => {
           const odg = await fetch('/api/ocisti', {
             method: 'POST',
@@ -980,8 +1095,8 @@
             body: JSON.stringify({ paths: putanje })
           });
           const rez = await odg.json();
-          prikaziPoruku(rez.message || 'Čišćenje je završeno.');
-          await ucitajSkeniranje();
+          prikaziPoruku(rez.message || 'Stavke su premještene u Koš.');
+          await Promise.all([ucitajSkeniranje(), ucitajKos()]);
         }
       );
     }
@@ -989,11 +1104,11 @@
     function zatraziPotvrduDeinstalacije(app) {
       const povezane = (app.related_paths || []).map(r => r.path);
       otvoriDijalogPotvrde(
-        'Potpuna deinstalacija: ' + app.name,
-        'Uklonit će se aplikacija ' + app.name + ' i ' +
+        'Deinstalacija u Koš: ' + app.name,
+        'Premjestit će se aplikacija ' + app.name + ' i ' +
           uzBrojHR(povezane.length, 'pripadajuća mapa', 'pripadajuće mape', 'pripadajućih mapa') +
-          ' u ~/Library (ukupno ' + formatirajBajte(app.total_size_bytes) + ').',
-        'Potpuno ukloni',
+          ' u ~/Library (ukupno ' + formatirajBajte(app.total_size_bytes) + ') u Koš za smeće (~/.Trash).',
+        'Premjesti u Koš',
         async () => {
           const odg = await fetch('/api/deinstaliraj', {
             method: 'POST',
@@ -1001,8 +1116,8 @@
             body: JSON.stringify({ app_path: app.app_path, related_paths: povezane })
           });
           const rez = await odg.json();
-          prikaziPoruku(rez.message || 'Aplikacija je uklonjena.');
-          await Promise.all([ucitajSkeniranje(), ucitajAplikacije()]);
+          prikaziPoruku(rez.message || 'Aplikacija je premještena u Koš.');
+          await Promise.all([ucitajSkeniranje(), ucitajAplikacije(), ucitajKos()]);
         }
       );
     }
@@ -1026,6 +1141,9 @@
         if (stanje.aktivniTab === 'aplikacije' && !stanje.aplikacije) {
           ucitajAplikacije();
         }
+        if (stanje.aktivniTab === 'kos') {
+          ucitajKos();
+        }
         iscrtajPogled();
       });
     });
@@ -1038,6 +1156,7 @@
     document.getElementById('gumb-osvjezi').addEventListener('click', () => {
       ucitajSkeniranje();
       ucitajAplikacije();
+      ucitajKos();
     });
 
     document.getElementById('gumb-oznaci-preporuceno').addEventListener('click', () => {
@@ -1064,6 +1183,7 @@
 
     ucitajSkeniranje();
     ucitajAplikacije();
+    ucitajKos();
   </script>
 </body>
 </html>

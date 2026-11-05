@@ -41,7 +41,9 @@ func NoviPosluzitelj(p cistac.Postavke) *Posluzitelj {
 	mux.HandleFunc("GET /", pos.posluziSucelje)
 	mux.HandleFunc("GET /api/skeniraj", pos.obradiSkeniraj)
 	mux.HandleFunc("GET /api/aplikacije", pos.obradiAplikacije)
+	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
+	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
 	mux.HandleFunc("POST /api/deinstaliraj", pos.obradiDeinstaliraj)
 	return pos
 }
@@ -71,6 +73,11 @@ func (p *Posluzitelj) obradiAplikacije(w http.ResponseWriter, _ *http.Request) {
 	posluziJSON(w, http.StatusOK, aplikacije)
 }
 
+func (p *Posluzitelj) obradiKos(w http.ResponseWriter, _ *http.Request) {
+	stavke := cistac.IzlistajKos(p.postavke)
+	posluziJSON(w, http.StatusOK, stavke)
+}
+
 func (p *Posluzitelj) obradiOcisti(w http.ResponseWriter, r *http.Request) {
 	var zah zahtjevCiscenja
 	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
@@ -78,6 +85,16 @@ func (p *Posluzitelj) obradiOcisti(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rezultat := cistac.OcistiPutanje(p.postavke, zah.Putanje)
+	posluziJSON(w, http.StatusOK, rezultat)
+}
+
+func (p *Posluzitelj) obradiVrati(w http.ResponseWriter, r *http.Request) {
+	var zah zahtjevCiscenja
+	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za povrat iz Koša."})
+		return
+	}
+	rezultat := cistac.VratiIzKosa(p.postavke, zah.Putanje)
 	posluziJSON(w, http.StatusOK, rezultat)
 }
 

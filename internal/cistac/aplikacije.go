@@ -58,6 +58,18 @@ func odaberiImeIzParova(parovi map[string]string, zadano string) string {
 	return zadano
 }
 
+func prikupiSveMetaAplikacija(p Postavke) []metaAplikacije {
+	korijeni := []string{
+		p.KorijenAplikacija,
+		filepath.Join(p.KorijenKorisnika, "Applications"),
+	}
+	var popis []metaAplikacije
+	for _, kor := range korijeni {
+		popis = append(popis, prikupiMetaAplikacija(kor)...)
+	}
+	return popis
+}
+
 func prikupiMetaAplikacija(mapaAplikacija string) []metaAplikacije {
 	ulazi, err := os.ReadDir(mapaAplikacija)
 	if err != nil {
@@ -65,15 +77,41 @@ func prikupiMetaAplikacija(mapaAplikacija string) []metaAplikacije {
 	}
 	var popis []metaAplikacije
 	for _, u := range ulazi {
-		ime := u.Name()
-		if !strings.HasSuffix(ime, ".app") {
-			continue
-		}
-		meta := procitajInfoPlist(filepath.Join(mapaAplikacija, ime))
+		popis = append(popis, obradiUlazAplikacije(mapaAplikacija, u)...)
+	}
+	return popis
+}
+
+func obradiUlazAplikacije(mapaAplikacija string, u os.DirEntry) []metaAplikacije {
+	ime := u.Name()
+	punaPutanja := filepath.Join(mapaAplikacija, ime)
+	if strings.HasSuffix(ime, ".app") {
+		meta := procitajInfoPlist(punaPutanja)
 		if strings.HasPrefix(meta.paketID, "com.apple.") {
+			return nil
+		}
+		return []metaAplikacije{meta}
+	}
+	if u.IsDir() && !strings.HasPrefix(ime, ".") {
+		return prikupiPodmapuAplikacija(punaPutanja)
+	}
+	return nil
+}
+
+func prikupiPodmapuAplikacija(podmapa string) []metaAplikacije {
+	ulazi, err := os.ReadDir(podmapa)
+	if err != nil {
+		return nil
+	}
+	var popis []metaAplikacije
+	for _, u := range ulazi {
+		if !strings.HasSuffix(u.Name(), ".app") {
 			continue
 		}
-		popis = append(popis, meta)
+		meta := procitajInfoPlist(filepath.Join(podmapa, u.Name()))
+		if !strings.HasPrefix(meta.paketID, "com.apple.") {
+			popis = append(popis, meta)
+		}
 	}
 	return popis
 }
@@ -135,7 +173,7 @@ func pretraziJednuMapuPodrske(vrsta, mapa string, meta metaAplikacije) ([]Poveza
 
 // SkenirajAplikacije pronalazi instalirane aplikacije i sve njihove pripadajuće mape u ~/Library.
 func SkenirajAplikacije(p Postavke) []InstaliranaAplikacija {
-	mete := prikupiMetaAplikacija(p.KorijenAplikacija)
+	mete := prikupiSveMetaAplikacija(p)
 	izlaz := make([]InstaliranaAplikacija, 0, len(mete))
 
 	for _, m := range mete {
@@ -168,6 +206,12 @@ var zasticeniProizvodaci = map[string]bool{
 	"jetbrains": true, "autodesk": true, "acronis": true, "onedrive": true,
 	"zoom": true, "spotify": true, "vlc": true, "crashreporter": true,
 	"caches": true, "knowledge": true, "cloud": true,
+	"rtk": true, "go": true, "cargo": true, "rustup": true,
+	"npm": true, "pnpm": true, "yarn": true, "pip": true,
+	"brew": true, "git": true, "vode": true, "agent-hv": true,
+	"askpermissiond": true, "familycircled": true, "networkserviceproxy": true,
+	"syncservices": true, "animoji": true, "passkit": true, "gamekit": true,
+	"siritts": true, "biome": true, "replaykit": true, "fileprovider": true,
 }
 
 func izgradiSkupPoznatih(mete []metaAplikacije) map[string]bool {
@@ -178,7 +222,20 @@ func izgradiSkupPoznatih(mete []metaAplikacije) map[string]bool {
 	for _, m := range mete {
 		dodajMetuUPoznate(poznati, m)
 	}
+	ucitajImenaIzMapa(poznati, []string{"/opt/homebrew/Cellar", "/opt/homebrew/Caskroom", "/usr/local/Cellar"})
 	return poznati
+}
+
+func ucitajImenaIzMapa(poznati map[string]bool, mape []string) {
+	for _, m := range mape {
+		ulazi, err := os.ReadDir(m)
+		if err != nil {
+			continue
+		}
+		for _, u := range ulazi {
+			poznati[strings.ToLower(u.Name())] = true
+		}
+	}
 }
 
 func dodajMetuUPoznate(poznati map[string]bool, m metaAplikacije) {
@@ -214,7 +271,7 @@ func sadrziPoznatiKljuc(malo string, poznati map[string]bool) bool {
 
 // SkenirajOstatke pronalazi mape u ~/Library koje ne pripadaju nijednoj instaliranoj aplikaciji.
 func SkenirajOstatke(p Postavke) []StavkaCiscenja {
-	poznati := izgradiSkupPoznatih(prikupiMetaAplikacija(p.KorijenAplikacija))
+	poznati := izgradiSkupPoznatih(prikupiSveMetaAplikacija(p))
 	lib := filepath.Join(p.KorijenKorisnika, "Library")
 	izvori := []struct{ oznaka, putanja string }{
 		{"Application Support", filepath.Join(lib, "Application Support")},
