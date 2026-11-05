@@ -10,11 +10,14 @@ build:
 	go build -o pometime ./cmd/pometime
 
 app: build
+	rm -rf dist/PometiME.app dist/PometiME-macOS.zip
 	mkdir -p dist/PometiME.app/Contents/MacOS dist/PometiME.app/Contents/Resources
 	cp pometime dist/PometiME.app/Contents/MacOS/pometime-server
 	clang -fobjc-arc -framework Cocoa -framework WebKit -O2 build/macos_webview.m -o dist/PometiME.app/Contents/MacOS/PometiME
 	cp build/Info.plist dist/PometiME.app/Contents/Info.plist
 	cp build/AppIcon.icns dist/PometiME.app/Contents/Resources/AppIcon.icns
+	codesign --force --deep --sign - dist/PometiME.app
+	ditto -c -k --sequesterRsrc --keepParent dist/PometiME.app dist/PometiME-macOS.zip
 
 run: build
 	./pometime
