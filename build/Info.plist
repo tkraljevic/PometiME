@@ -6,6 +6,8 @@
   <string>PometiME</string>
   <key>CFBundleExecutable</key>
   <string>PometiME</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>hr.kraljevic.pometime</string>
   <key>CFBundleInfoDictionaryVersion</key>

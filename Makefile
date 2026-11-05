@@ -14,6 +14,7 @@ app: build
 	cp pometime dist/PometiME.app/Contents/MacOS/pometime-server
 	clang -fobjc-arc -framework Cocoa -framework WebKit -O2 build/macos_webview.m -o dist/PometiME.app/Contents/MacOS/PometiME
 	cp build/Info.plist dist/PometiME.app/Contents/Info.plist
+	cp build/AppIcon.icns dist/PometiME.app/Contents/Resources/AppIcon.icns
 
 run: build
 	./pometime
