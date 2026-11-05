@@ -197,12 +197,13 @@ func dodajMetuUPoznate(poznati map[string]bool, m metaAplikacije) {
 
 func pripadaPoznatojAplikaciji(imeMape string, poznati map[string]bool) bool {
 	malo := strings.TrimSuffix(strings.ToLower(imeMape), ".savedstate")
-	if strings.HasPrefix(malo, "com.apple.") || strings.HasPrefix(malo, ".") {
+	if strings.HasPrefix(malo, "com.apple.") || strings.HasPrefix(malo, ".") || poznati[malo] {
 		return true
 	}
-	if poznati[malo] {
-		return true
-	}
+	return sadrziPoznatiKljuc(malo, poznati)
+}
+
+func sadrziPoznatiKljuc(malo string, poznati map[string]bool) bool {
 	for kljuc := range poznati {
 		if len(kljuc) >= 4 && strings.Contains(malo, kljuc) {
 			return true

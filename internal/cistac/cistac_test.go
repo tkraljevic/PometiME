@@ -194,6 +194,7 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "org.primjer.mojaapp", "data.db"), 450)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "com.apple.siri", "sys.db"), 450)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "google", "g.db"), 450)
+	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "com.google.Chrome", "c.db"), 450)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "StaraObrisanaApp", "old.db"), 900)
 
 	// Skeniranje nad nepostojećim mapama
