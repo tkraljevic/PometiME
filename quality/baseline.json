@@ -1,13 +1,13 @@
 {
   "schema": 1,
   "analyzer": "2",
-  "timestamp": "2026-11-05T22:38:49Z",
-  "commit": "9fdf2c9fb8a01addb5ef9aa7e2d921f3438f68a5",
+  "timestamp": "2026-11-05T23:16:59Z",
+  "commit": "89de96cc8d87bf266fe522291fe5ee376f986aa6",
   "dirty": false,
   "platform": "darwin/arm64",
   "go_version": "go1.27.1",
   "config_hash": "02c8d8f5df86eef6e2af911baa2fdb4738957b0add91f83c8ad4c8d34e7b6f7a",
-  "source_hash": "96d17e6ff20e85f9d5b1713a480ff1eee7cd5d9e55dc28b805138d239b3dc3a0",
+  "source_hash": "6369cebeeba3e8ef52950012b3fc8a574bfd6bf1fb3b8fb90b8cf5e9bebe994c",
   "tests": "PASS",
   "race": "PASS",
   "measurements_status": "PASS",
@@ -19,14 +19,14 @@
     "findings": {}
   },
   "coverage": {
-    "statements": 424,
-    "covered": 410,
-    "percent": 96.69811320754717
+    "statements": 553,
+    "covered": 528,
+    "percent": 95.47920433996383
   },
   "critical_coverage": {
-    "statements": 338,
-    "covered": 333,
-    "percent": 98.52071005917159
+    "statements": 455,
+    "covered": 439,
+    "percent": 96.48351648351648
   },
   "packages": {
     "pometime/cmd/pometime": {
@@ -35,29 +35,29 @@
       "percent": 79.54545454545455
     },
     "pometime/internal/cistac": {
-      "statements": 338,
-      "covered": 333,
-      "percent": 98.52071005917159
+      "statements": 455,
+      "covered": 439,
+      "percent": 96.48351648351648
     },
     "pometime/internal/web": {
-      "statements": 42,
-      "covered": 42,
+      "statements": 54,
+      "covered": 54,
       "percent": 100
     }
   },
-  "average_crap": 2.972593672335685,
+  "average_crap": 2.90230460209211,
   "crap_distribution": {
     "median": 3,
     "p90": 5.025,
     "p95": 5.150262960180315,
-    "do_10": 57,
+    "do_10": 76,
     "od_10_do_30": 0,
     "od_30_do_100": 0,
     "preko_100": 0
   },
-  "max_crap": 6,
-  "worst_crap_function": "cmd/pometime/main.go::main",
-  "average_complexity": 2.8947368421052633,
+  "max_crap": 6.967930029154518,
+  "worst_crap_function": "internal/cistac/kos.go::vratiJednuStavkuIzKosa",
+  "average_complexity": 2.8157894736842106,
   "max_complexity": 6,
   "functions": [
     {
@@ -173,27 +173,75 @@
       "tokens": 40
     },
     {
+      "id": "internal/cistac/aplikacije.go::prikupiSveMetaAplikacija",
+      "file": "internal/cistac/aplikacije.go",
+      "name": "prikupiSveMetaAplikacija",
+      "line": 61,
+      "end_line": 71,
+      "complexity": 2,
+      "coverage": {
+        "statements": 8,
+        "covered": 8,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": true,
+      "tokens": 58
+    },
+    {
       "id": "internal/cistac/aplikacije.go::prikupiMetaAplikacija",
       "file": "internal/cistac/aplikacije.go",
       "name": "prikupiMetaAplikacija",
-      "line": 61,
-      "end_line": 79,
+      "line": 73,
+      "end_line": 83,
+      "complexity": 3,
+      "coverage": {
+        "statements": 7,
+        "covered": 7,
+        "percent": 100
+      },
+      "crap": 3,
+      "critical": true,
+      "tokens": 58
+    },
+    {
+      "id": "internal/cistac/aplikacije.go::obradiUlazAplikacije",
+      "file": "internal/cistac/aplikacije.go",
+      "name": "obradiUlazAplikacije",
+      "line": 85,
+      "end_line": 99,
       "complexity": 5,
       "coverage": {
-        "statements": 13,
-        "covered": 13,
+        "statements": 10,
+        "covered": 10,
         "percent": 100
       },
       "crap": 5,
       "critical": true,
-      "tokens": 105
+      "tokens": 94
+    },
+    {
+      "id": "internal/cistac/aplikacije.go::prikupiPodmapuAplikacija",
+      "file": "internal/cistac/aplikacije.go",
+      "name": "prikupiPodmapuAplikacija",
+      "line": 101,
+      "end_line": 117,
+      "complexity": 5,
+      "coverage": {
+        "statements": 11,
+        "covered": 10,
+        "percent": 90.9090909090909
+      },
+      "crap": 5.018782870022539,
+      "critical": true,
+      "tokens": 104
     },
     {
       "id": "internal/cistac/aplikacije.go::mapePodrskeKorisnika",
       "file": "internal/cistac/aplikacije.go",
       "name": "mapePodrskeKorisnika",
-      "line": 81,
-      "end_line": 92,
+      "line": 119,
+      "end_line": 130,
       "complexity": 1,
       "coverage": {
         "statements": 2,
@@ -208,8 +256,8 @@
       "id": "internal/cistac/aplikacije.go::odgovaraAplikaciji",
       "file": "internal/cistac/aplikacije.go",
       "name": "odgovaraAplikaciji",
-      "line": 94,
-      "end_line": 103,
+      "line": 132,
+      "end_line": 141,
       "complexity": 5,
       "coverage": {
         "statements": 7,
@@ -224,8 +272,8 @@
       "id": "internal/cistac/aplikacije.go::pronadiPovezanePutanje",
       "file": "internal/cistac/aplikacije.go",
       "name": "pronadiPovezanePutanje",
-      "line": 105,
-      "end_line": 115,
+      "line": 143,
+      "end_line": 153,
       "complexity": 2,
       "coverage": {
         "statements": 10,
@@ -240,8 +288,8 @@
       "id": "internal/cistac/aplikacije.go::pretraziJednuMapuPodrske",
       "file": "internal/cistac/aplikacije.go",
       "name": "pretraziJednuMapuPodrske",
-      "line": 117,
-      "end_line": 134,
+      "line": 155,
+      "end_line": 172,
       "complexity": 4,
       "coverage": {
         "statements": 13,
@@ -256,8 +304,8 @@
       "id": "internal/cistac/aplikacije.go::SkenirajAplikacije",
       "file": "internal/cistac/aplikacije.go",
       "name": "SkenirajAplikacije",
-      "line": 137,
-      "end_line": 160,
+      "line": 175,
+      "end_line": 198,
       "complexity": 2,
       "coverage": {
         "statements": 12,
@@ -266,30 +314,46 @@
       },
       "crap": 2,
       "critical": true,
-      "tokens": 149
+      "tokens": 147
     },
     {
       "id": "internal/cistac/aplikacije.go::izgradiSkupPoznatih",
       "file": "internal/cistac/aplikacije.go",
       "name": "izgradiSkupPoznatih",
-      "line": 173,
-      "end_line": 182,
+      "line": 217,
+      "end_line": 227,
       "complexity": 3,
+      "coverage": {
+        "statements": 7,
+        "covered": 7,
+        "percent": 100
+      },
+      "crap": 3,
+      "critical": true,
+      "tokens": 65
+    },
+    {
+      "id": "internal/cistac/aplikacije.go::ucitajImenaIzMapa",
+      "file": "internal/cistac/aplikacije.go",
+      "name": "ucitajImenaIzMapa",
+      "line": 229,
+      "end_line": 239,
+      "complexity": 4,
       "coverage": {
         "statements": 6,
         "covered": 6,
         "percent": 100
       },
-      "crap": 3,
+      "crap": 4,
       "critical": true,
-      "tokens": 49
+      "tokens": 59
     },
     {
       "id": "internal/cistac/aplikacije.go::dodajMetuUPoznate",
       "file": "internal/cistac/aplikacije.go",
       "name": "dodajMetuUPoznate",
-      "line": 184,
-      "end_line": 196,
+      "line": 241,
+      "end_line": 253,
       "complexity": 3,
       "coverage": {
         "statements": 9,
@@ -304,8 +368,8 @@
       "id": "internal/cistac/aplikacije.go::pripadaPoznatojAplikaciji",
       "file": "internal/cistac/aplikacije.go",
       "name": "pripadaPoznatojAplikaciji",
-      "line": 198,
-      "end_line": 204,
+      "line": 255,
+      "end_line": 261,
       "complexity": 4,
       "coverage": {
         "statements": 4,
@@ -320,8 +384,8 @@
       "id": "internal/cistac/aplikacije.go::sadrziPoznatiKljuc",
       "file": "internal/cistac/aplikacije.go",
       "name": "sadrziPoznatiKljuc",
-      "line": 206,
-      "end_line": 213,
+      "line": 263,
+      "end_line": 270,
       "complexity": 4,
       "coverage": {
         "statements": 4,
@@ -336,8 +400,8 @@
       "id": "internal/cistac/aplikacije.go::SkenirajOstatke",
       "file": "internal/cistac/aplikacije.go",
       "name": "SkenirajOstatke",
-      "line": 216,
-      "end_line": 231,
+      "line": 273,
+      "end_line": 288,
       "complexity": 2,
       "coverage": {
         "statements": 12,
@@ -346,14 +410,14 @@
       },
       "crap": 2,
       "critical": true,
-      "tokens": 141
+      "tokens": 139
     },
     {
       "id": "internal/cistac/aplikacije.go::kandidatiOstatakaUMapi",
       "file": "internal/cistac/aplikacije.go",
       "name": "kandidatiOstatakaUMapi",
-      "line": 233,
-      "end_line": 253,
+      "line": 290,
+      "end_line": 310,
       "complexity": 4,
       "coverage": {
         "statements": 10,
@@ -461,6 +525,166 @@
       "tokens": 55
     },
     {
+      "id": "internal/cistac/kos.go::mapaKosa",
+      "file": "internal/cistac/kos.go",
+      "name": "mapaKosa",
+      "line": 13,
+      "end_line": 15,
+      "complexity": 1,
+      "coverage": {
+        "statements": 1,
+        "covered": 1,
+        "percent": 100
+      },
+      "crap": 1,
+      "critical": true,
+      "tokens": 20
+    },
+    {
+      "id": "internal/cistac/kos.go::putanjaPovijesti",
+      "file": "internal/cistac/kos.go",
+      "name": "putanjaPovijesti",
+      "line": 17,
+      "end_line": 19,
+      "complexity": 1,
+      "coverage": {
+        "statements": 1,
+        "covered": 1,
+        "percent": 100
+      },
+      "crap": 1,
+      "critical": true,
+      "tokens": 16
+    },
+    {
+      "id": "internal/cistac/kos.go::odrediCiljUKosu",
+      "file": "internal/cistac/kos.go",
+      "name": "odrediCiljUKosu",
+      "line": 21,
+      "end_line": 28,
+      "complexity": 2,
+      "coverage": {
+        "statements": 5,
+        "covered": 5,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": true,
+      "tokens": 70
+    },
+    {
+      "id": "internal/cistac/kos.go::PremjestiUKos",
+      "file": "internal/cistac/kos.go",
+      "name": "PremjestiUKos",
+      "line": 31,
+      "end_line": 50,
+      "complexity": 3,
+      "coverage": {
+        "statements": 12,
+        "covered": 10,
+        "percent": 83.33333333333333
+      },
+      "crap": 3.0416666666666665,
+      "critical": true,
+      "tokens": 138
+    },
+    {
+      "id": "internal/cistac/kos.go::dodajUPovijestKosa",
+      "file": "internal/cistac/kos.go",
+      "name": "dodajUPovijestKosa",
+      "line": 52,
+      "end_line": 58,
+      "complexity": 1,
+      "coverage": {
+        "statements": 5,
+        "covered": 5,
+        "percent": 100
+      },
+      "crap": 1,
+      "critical": true,
+      "tokens": 54
+    },
+    {
+      "id": "internal/cistac/kos.go::spremiPovijestKosa",
+      "file": "internal/cistac/kos.go",
+      "name": "spremiPovijestKosa",
+      "line": 60,
+      "end_line": 66,
+      "complexity": 2,
+      "coverage": {
+        "statements": 4,
+        "covered": 3,
+        "percent": 75
+      },
+      "crap": 2.0625,
+      "critical": true,
+      "tokens": 43
+    },
+    {
+      "id": "internal/cistac/kos.go::IzlistajKos",
+      "file": "internal/cistac/kos.go",
+      "name": "IzlistajKos",
+      "line": 69,
+      "end_line": 85,
+      "complexity": 5,
+      "coverage": {
+        "statements": 11,
+        "covered": 10,
+        "percent": 90.9090909090909
+      },
+      "crap": 5.018782870022539,
+      "critical": true,
+      "tokens": 121
+    },
+    {
+      "id": "internal/cistac/kos.go::VratiIzKosa",
+      "file": "internal/cistac/kos.go",
+      "name": "VratiIzKosa",
+      "line": 88,
+      "end_line": 118,
+      "complexity": 4,
+      "coverage": {
+        "statements": 25,
+        "covered": 22,
+        "percent": 88
+      },
+      "crap": 4.027648,
+      "critical": true,
+      "tokens": 160
+    },
+    {
+      "id": "internal/cistac/kos.go::skupPutanja",
+      "file": "internal/cistac/kos.go",
+      "name": "skupPutanja",
+      "line": 120,
+      "end_line": 126,
+      "complexity": 2,
+      "coverage": {
+        "statements": 4,
+        "covered": 4,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": true,
+      "tokens": 44
+    },
+    {
+      "id": "internal/cistac/kos.go::vratiJednuStavkuIzKosa",
+      "file": "internal/cistac/kos.go",
+      "name": "vratiJednuStavkuIzKosa",
+      "line": 128,
+      "end_line": 139,
+      "complexity": 5,
+      "coverage": {
+        "statements": 7,
+        "covered": 4,
+        "percent": 57.142857142857146
+      },
+      "crap": 6.967930029154518,
+      "critical": true,
+      "tokens": 124
+    },
+    {
       "id": "internal/cistac/model.go::ZadanePostavke",
       "file": "internal/cistac/model.go",
       "name": "ZadanePostavke",
@@ -480,8 +704,8 @@
       "id": "internal/cistac/model.go::UzBrojHR",
       "file": "internal/cistac/model.go",
       "name": "UzBrojHR",
-      "line": 87,
-      "end_line": 97,
+      "line": 97,
+      "end_line": 107,
       "complexity": 4,
       "coverage": {
         "statements": 7,
@@ -496,8 +720,8 @@
       "id": "internal/cistac/model.go::oblikPremaZadnjojZnamenci",
       "file": "internal/cistac/model.go",
       "name": "oblikPremaZadnjojZnamenci",
-      "line": 99,
-      "end_line": 107,
+      "line": 109,
+      "end_line": 117,
       "complexity": 4,
       "coverage": {
         "statements": 5,
@@ -512,8 +736,24 @@
       "id": "internal/cistac/model.go::PorukaRezultata",
       "file": "internal/cistac/model.go",
       "name": "PorukaRezultata",
-      "line": 110,
-      "end_line": 117,
+      "line": 120,
+      "end_line": 127,
+      "complexity": 2,
+      "coverage": {
+        "statements": 5,
+        "covered": 5,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": true,
+      "tokens": 45
+    },
+    {
+      "id": "internal/cistac/model.go::PorukaPovrata",
+      "file": "internal/cistac/model.go",
+      "name": "PorukaPovrata",
+      "line": 130,
+      "end_line": 137,
       "complexity": 2,
       "coverage": {
         "statements": 5,
@@ -528,8 +768,8 @@
       "id": "internal/cistac/model.go::FormatirajBajte",
       "file": "internal/cistac/model.go",
       "name": "FormatirajBajte",
-      "line": 120,
-      "end_line": 136,
+      "line": 140,
+      "end_line": 156,
       "complexity": 4,
       "coverage": {
         "statements": 8,
@@ -545,7 +785,7 @@
       "file": "internal/cistac/sigurnost.go",
       "name": "DozvoljeniKorijeni",
       "line": 11,
-      "end_line": 31,
+      "end_line": 36,
       "complexity": 1,
       "coverage": {
         "statements": 3,
@@ -554,14 +794,14 @@
       },
       "crap": 1,
       "critical": true,
-      "tokens": 192
+      "tokens": 247
     },
     {
       "id": "internal/cistac/sigurnost.go::JeUnutarKorijena",
       "file": "internal/cistac/sigurnost.go",
       "name": "JeUnutarKorijena",
-      "line": 34,
-      "end_line": 41,
+      "line": 39,
+      "end_line": 46,
       "complexity": 4,
       "coverage": {
         "statements": 5,
@@ -576,8 +816,8 @@
       "id": "internal/cistac/sigurnost.go::jeZasticenaClaudeMemorija",
       "file": "internal/cistac/sigurnost.go",
       "name": "jeZasticenaClaudeMemorija",
-      "line": 44,
-      "end_line": 51,
+      "line": 49,
+      "end_line": 56,
       "complexity": 3,
       "coverage": {
         "statements": 5,
@@ -592,8 +832,8 @@
       "id": "internal/cistac/sigurnost.go::JeSigurnaPutanja",
       "file": "internal/cistac/sigurnost.go",
       "name": "JeSigurnaPutanja",
-      "line": 54,
-      "end_line": 68,
+      "line": 59,
+      "end_line": 73,
       "complexity": 6,
       "coverage": {
         "statements": 9,
@@ -608,8 +848,8 @@
       "id": "internal/cistac/sigurnost.go::obrisiJednuStavku",
       "file": "internal/cistac/sigurnost.go",
       "name": "obrisiJednuStavku",
-      "line": 71,
-      "end_line": 87,
+      "line": 76,
+      "end_line": 92,
       "complexity": 5,
       "coverage": {
         "statements": 11,
@@ -618,14 +858,14 @@
       },
       "crap": 5.150262960180315,
       "critical": true,
-      "tokens": 124
+      "tokens": 117
     },
     {
       "id": "internal/cistac/sigurnost.go::OcistiPutanje",
       "file": "internal/cistac/sigurnost.go",
       "name": "OcistiPutanje",
-      "line": 90,
-      "end_line": 114,
+      "line": 95,
+      "end_line": 119,
       "complexity": 4,
       "coverage": {
         "statements": 16,
@@ -640,24 +880,40 @@
       "id": "internal/cistac/sigurnost.go::DeinstalirajAplikaciju",
       "file": "internal/cistac/sigurnost.go",
       "name": "DeinstalirajAplikaciju",
-      "line": 117,
-      "end_line": 130,
-      "complexity": 3,
+      "line": 122,
+      "end_line": 135,
+      "complexity": 2,
       "coverage": {
         "statements": 7,
         "covered": 7,
         "percent": 100
       },
+      "crap": 2,
+      "critical": true,
+      "tokens": 102
+    },
+    {
+      "id": "internal/cistac/sigurnost.go::jeValjanaPutanjaAplikacije",
+      "file": "internal/cistac/sigurnost.go",
+      "name": "jeValjanaPutanjaAplikacije",
+      "line": 137,
+      "end_line": 143,
+      "complexity": 3,
+      "coverage": {
+        "statements": 4,
+        "covered": 4,
+        "percent": 100
+      },
       "crap": 3,
       "critical": true,
-      "tokens": 119
+      "tokens": 59
     },
     {
       "id": "internal/cistac/skener.go::trebaPreskocitiPredmemoriju",
       "file": "internal/cistac/skener.go",
       "name": "trebaPreskocitiPredmemoriju",
-      "line": 34,
-      "end_line": 39,
+      "line": 53,
+      "end_line": 58,
       "complexity": 3,
       "coverage": {
         "statements": 3,
@@ -669,27 +925,43 @@
       "tokens": 33
     },
     {
+      "id": "internal/cistac/skener.go::jePreporucenaPredmemorija",
+      "file": "internal/cistac/skener.go",
+      "name": "jePreporucenaPredmemorija",
+      "line": 60,
+      "end_line": 62,
+      "complexity": 1,
+      "coverage": {
+        "statements": 1,
+        "covered": 1,
+        "percent": 100
+      },
+      "crap": 1,
+      "critical": true,
+      "tokens": 10
+    },
+    {
       "id": "internal/cistac/skener.go::opisPredmemorije",
       "file": "internal/cistac/skener.go",
       "name": "opisPredmemorije",
-      "line": 41,
-      "end_line": 46,
-      "complexity": 3,
+      "line": 64,
+      "end_line": 72,
+      "complexity": 4,
       "coverage": {
-        "statements": 3,
-        "covered": 3,
+        "statements": 5,
+        "covered": 5,
         "percent": 100
       },
-      "crap": 3,
+      "crap": 4,
       "critical": true,
-      "tokens": 35
+      "tokens": 46
     },
     {
       "id": "internal/cistac/skener.go::SkenirajPredmemoriju",
       "file": "internal/cistac/skener.go",
       "name": "SkenirajPredmemoriju",
-      "line": 49,
-      "end_line": 54,
+      "line": 75,
+      "end_line": 80,
       "complexity": 1,
       "coverage": {
         "statements": 4,
@@ -704,8 +976,8 @@
       "id": "internal/cistac/skener.go::prikupiKandidateCaches",
       "file": "internal/cistac/skener.go",
       "name": "prikupiKandidateCaches",
-      "line": 56,
-      "end_line": 76,
+      "line": 82,
+      "end_line": 102,
       "complexity": 4,
       "coverage": {
         "statements": 10,
@@ -714,14 +986,14 @@
       },
       "crap": 4,
       "critical": true,
-      "tokens": 102
+      "tokens": 105
     },
     {
       "id": "internal/cistac/skener.go::prikupiKandidateLogova",
       "file": "internal/cistac/skener.go",
       "name": "prikupiKandidateLogova",
-      "line": 78,
-      "end_line": 98,
+      "line": 104,
+      "end_line": 124,
       "complexity": 4,
       "coverage": {
         "statements": 10,
@@ -736,8 +1008,8 @@
       "id": "internal/cistac/skener.go::SkenirajRazvojneAlate",
       "file": "internal/cistac/skener.go",
       "name": "SkenirajRazvojneAlate",
-      "line": 101,
-      "end_line": 105,
+      "line": 127,
+      "end_line": 131,
       "complexity": 1,
       "coverage": {
         "statements": 3,
@@ -752,8 +1024,8 @@
       "id": "internal/cistac/skener.go::fiksniRazvojniKandidati",
       "file": "internal/cistac/skener.go",
       "name": "fiksniRazvojniKandidati",
-      "line": 107,
-      "end_line": 122,
+      "line": 133,
+      "end_line": 156,
       "complexity": 1,
       "coverage": {
         "statements": 1,
@@ -762,14 +1034,14 @@
       },
       "crap": 1,
       "critical": true,
-      "tokens": 288
+      "tokens": 474
     },
     {
       "id": "internal/cistac/skener.go::prikupiClaudeKandidate",
       "file": "internal/cistac/skener.go",
       "name": "prikupiClaudeKandidate",
-      "line": 124,
-      "end_line": 137,
+      "line": 158,
+      "end_line": 171,
       "complexity": 4,
       "coverage": {
         "statements": 9,
@@ -784,8 +1056,8 @@
       "id": "internal/cistac/skener.go::claudeKandidatiProjekta",
       "file": "internal/cistac/skener.go",
       "name": "claudeKandidatiProjekta",
-      "line": 139,
-      "end_line": 153,
+      "line": 173,
+      "end_line": 187,
       "complexity": 5,
       "coverage": {
         "statements": 10,
@@ -800,8 +1072,8 @@
       "id": "internal/cistac/skener.go::claudePodmapeSesije",
       "file": "internal/cistac/skener.go",
       "name": "claudePodmapeSesije",
-      "line": 155,
-      "end_line": 170,
+      "line": 189,
+      "end_line": 204,
       "complexity": 4,
       "coverage": {
         "statements": 6,
@@ -816,8 +1088,8 @@
       "id": "internal/cistac/skener.go::izmjeriKandidate",
       "file": "internal/cistac/skener.go",
       "name": "izmjeriKandidate",
-      "line": 172,
-      "end_line": 204,
+      "line": 206,
+      "end_line": 238,
       "complexity": 3,
       "coverage": {
         "statements": 23,
@@ -832,8 +1104,8 @@
       "id": "internal/cistac/skener.go::SkenirajSve",
       "file": "internal/cistac/skener.go",
       "name": "SkenirajSve",
-      "line": 207,
-      "end_line": 231,
+      "line": 241,
+      "end_line": 265,
       "complexity": 4,
       "coverage": {
         "statements": 18,
@@ -849,23 +1121,23 @@
       "file": "internal/web/posluzitelj.go",
       "name": "NoviPosluzitelj",
       "line": 35,
-      "end_line": 47,
+      "end_line": 49,
       "complexity": 1,
       "coverage": {
-        "statements": 16,
-        "covered": 16,
+        "statements": 20,
+        "covered": 20,
         "percent": 100
       },
       "crap": 1,
       "critical": false,
-      "tokens": 84
+      "tokens": 106
     },
     {
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).ServeHTTP",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).ServeHTTP",
-      "line": 50,
-      "end_line": 52,
+      "line": 52,
+      "end_line": 54,
       "complexity": 1,
       "coverage": {
         "statements": 1,
@@ -880,8 +1152,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).posluziSucelje",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).posluziSucelje",
-      "line": 54,
-      "end_line": 62,
+      "line": 56,
+      "end_line": 64,
       "complexity": 2,
       "coverage": {
         "statements": 6,
@@ -896,8 +1168,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiSkeniraj",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiSkeniraj",
-      "line": 64,
-      "end_line": 67,
+      "line": 66,
+      "end_line": 69,
       "complexity": 1,
       "coverage": {
         "statements": 2,
@@ -912,8 +1184,24 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiAplikacije",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiAplikacije",
-      "line": 69,
-      "end_line": 72,
+      "line": 71,
+      "end_line": 74,
+      "complexity": 1,
+      "coverage": {
+        "statements": 2,
+        "covered": 2,
+        "percent": 100
+      },
+      "crap": 1,
+      "critical": false,
+      "tokens": 25
+    },
+    {
+      "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiKos",
+      "file": "internal/web/posluzitelj.go",
+      "name": "(*Posluzitelj).obradiKos",
+      "line": 76,
+      "end_line": 79,
       "complexity": 1,
       "coverage": {
         "statements": 2,
@@ -928,8 +1216,24 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiOcisti",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiOcisti",
-      "line": 74,
-      "end_line": 82,
+      "line": 81,
+      "end_line": 89,
+      "complexity": 2,
+      "coverage": {
+        "statements": 6,
+        "covered": 6,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": false,
+      "tokens": 75
+    },
+    {
+      "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiVrati",
+      "file": "internal/web/posluzitelj.go",
+      "name": "(*Posluzitelj).obradiVrati",
+      "line": 91,
+      "end_line": 99,
       "complexity": 2,
       "coverage": {
         "statements": 6,
@@ -944,8 +1248,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiDeinstaliraj",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiDeinstaliraj",
-      "line": 84,
-      "end_line": 92,
+      "line": 101,
+      "end_line": 109,
       "complexity": 2,
       "coverage": {
         "statements": 6,
@@ -960,8 +1264,8 @@
       "id": "internal/web/posluzitelj.go::posluziJSON",
       "file": "internal/web/posluzitelj.go",
       "name": "posluziJSON",
-      "line": 94,
-      "end_line": 98,
+      "line": 111,
+      "end_line": 115,
       "complexity": 1,
       "coverage": {
         "statements": 3,
@@ -976,13 +1280,13 @@
   "exact_duplication": {
     "percent": 0,
     "duplicated_tokens": 0,
-    "total_tokens": 4766,
+    "total_tokens": 6303,
     "pairs": null
   },
   "fuzzy_duplication": {
     "percent": 0,
     "duplicated_tokens": 0,
-    "total_tokens": 4766,
+    "total_tokens": 6303,
     "pairs": null
   },
   "mutation_score": null,
