@@ -696,18 +696,69 @@
     }
 
     .update-notes-body {
-      max-height: 140px;
+      max-height: 160px;
       overflow-y: auto;
-      padding: 10px 12px;
+      padding: 10px 14px;
       background: var(--surface-card);
       border-radius: 8px;
       border: 1px solid var(--border-subtle);
       font-size: 0.82rem;
-      line-height: 1.45;
-      white-space: pre-wrap;
+      line-height: 1.5;
       word-break: break-word;
       color: var(--text-secondary);
       font-family: inherit;
+    }
+
+    .update-notes-body .md-h3,
+    .update-notes-body .md-h4,
+    .update-notes-body .md-h5 {
+      color: var(--text-primary);
+      font-weight: 700;
+      margin: 8px 0 4px 0;
+    }
+
+    .update-notes-body .md-h3:first-child,
+    .update-notes-body .md-h4:first-child,
+    .update-notes-body .md-h5:first-child {
+      margin-top: 0;
+    }
+
+    .update-notes-body .md-h3 { font-size: 0.96rem; }
+    .update-notes-body .md-h4 { font-size: 0.90rem; }
+    .update-notes-body .md-h5 { font-size: 0.84rem; }
+
+    .update-notes-body .md-list {
+      margin: 4px 0 6px 18px;
+      padding: 0;
+      list-style-type: disc;
+    }
+
+    .update-notes-body .md-list li {
+      margin-bottom: 4px;
+      line-height: 1.45;
+    }
+
+    .update-notes-body .md-gap {
+      height: 8px;
+    }
+
+    .update-notes-body strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .update-notes-body code {
+      background: rgba(148, 163, 184, 0.15);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.78rem;
+      color: var(--text-primary);
+    }
+
+    .update-notes-body a {
+      color: var(--color-brand);
+      text-decoration: underline;
     }
 
     .status-box {
@@ -1817,6 +1868,58 @@
       dijalog.showModal();
     }
 
+    function renderirajMarkdown(tekst) {
+      if (!tekst) return '';
+
+      let html = tekst
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+      html = html.replace(/^### (.*$)/gim, '<h5 class="md-h5">$1</h5>');
+      html = html.replace(/^## (.*$)/gim, '<h4 class="md-h4">$1</h4>');
+      html = html.replace(/^# (.*$)/gim, '<h3 class="md-h3">$1</h3>');
+
+      html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+      html = html.replace(/__(.*?)__/gim, '<strong>$1</strong>');
+      html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+      html = html.replace(/_(.*?)_/gim, '<em>$1</em>');
+      html = html.replace(/`([^`]+)`/gim, '<code>$1</code>');
+      html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+      const linije = html.split('\n');
+      let uListi = false;
+      const obradjeno = [];
+
+      for (const linija of linije) {
+        const stavkaMatch = linija.match(/^\s*[-*]\s+(.*)/);
+        if (stavkaMatch) {
+          if (!uListi) {
+            obradjeno.push('<ul class="md-list">');
+            uListi = true;
+          }
+          obradjeno.push(`<li>${stavkaMatch[1]}</li>`);
+        } else {
+          if (uListi) {
+            obradjeno.push('</ul>');
+            uListi = false;
+          }
+          obradjeno.push(linija);
+        }
+      }
+      if (uListi) obradjeno.push('</ul>');
+
+      html = obradjeno.join('\n');
+      html = html.replace(/\n\n+/g, '<div class="md-gap"></div>');
+      html = html.replace(/\n/g, '<br>');
+      html = html.replace(/<br>(<\/?(ul|li|h3|h4|h5|div)[^>]*>)/gi, '$1');
+      html = html.replace(/(<\/?(ul|li|h3|h4|h5|div)[^>]*>)<br>/gi, '$1');
+
+      return html;
+    }
+
     function osvjeziPrikazNadogradnje(rucno) {
       if (!podaciONadogradnji) return;
 
@@ -1840,7 +1943,7 @@
       const biljeskeBlok = document.getElementById('nadogradnja-biljeske-blok');
       const biljeskeTekst = document.getElementById('nadogradnja-biljeske-tekst');
       if (podaciONadogradnji.release_notes && podaciONadogradnji.release_notes.trim()) {
-        biljeskeTekst.textContent = podaciONadogradnji.release_notes;
+        biljeskeTekst.innerHTML = renderirajMarkdown(podaciONadogradnji.release_notes);
         biljeskeBlok.classList.remove('hidden');
       } else {
         biljeskeBlok.classList.add('hidden');
