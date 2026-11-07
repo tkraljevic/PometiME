@@ -1,13 +1,13 @@
 {
   "schema": 1,
   "analyzer": "2",
-  "timestamp": "2026-11-07T22:25:53Z",
-  "commit": "2b162e2152fe3cf0c7286e30116d9d121b95f688",
+  "timestamp": "2026-11-07T22:34:00Z",
+  "commit": "076c9354895f2177527dd85f4d2041e8e34c0015",
   "dirty": false,
   "platform": "darwin/arm64",
   "go_version": "go1.27.1",
   "config_hash": "02c8d8f5df86eef6e2af911baa2fdb4738957b0add91f83c8ad4c8d34e7b6f7a",
-  "source_hash": "a8c3e6e65579397f89efe2b4e4cff7c48bebb7aaa7d67134bdb010858c0e5a2f",
+  "source_hash": "ee7957b5a6fa7b96530771a1bb3c39039ba9dfc4fa8187d2c5dcb40101465905",
   "tests": "PASS",
   "race": "PASS",
   "measurements_status": "PASS",
@@ -19,14 +19,14 @@
     "findings": {}
   },
   "coverage": {
-    "statements": 939,
-    "covered": 910,
-    "percent": 96.91160809371672
+    "statements": 988,
+    "covered": 959,
+    "percent": 97.06477732793522
   },
   "critical_coverage": {
-    "statements": 796,
-    "covered": 778,
-    "percent": 97.73869346733669
+    "statements": 845,
+    "covered": 827,
+    "percent": 97.8698224852071
   },
   "packages": {
     "pometime/cmd/pometime": {
@@ -35,9 +35,9 @@
       "percent": 79.54545454545455
     },
     "pometime/internal/cistac": {
-      "statements": 799,
-      "covered": 779,
-      "percent": 97.49687108886107
+      "statements": 848,
+      "covered": 828,
+      "percent": 97.64150943396227
     },
     "pometime/internal/web": {
       "statements": 96,
@@ -45,19 +45,19 @@
       "percent": 100
     }
   },
-  "average_crap": 2.9336958953829284,
+  "average_crap": 2.9595476023405367,
   "crap_distribution": {
     "median": 3,
-    "p90": 5.025,
+    "p90": 5.018782870022539,
     "p95": 6,
-    "do_10": 127,
+    "do_10": 134,
     "od_10_do_30": 0,
     "od_30_do_100": 0,
     "preko_100": 0
   },
   "max_crap": 7,
-  "worst_crap_function": "internal/cistac/zracne_pozadine.go::OcistiZracnePozadine",
-  "average_complexity": 2.8818897637795278,
+  "worst_crap_function": "internal/cistac/pokretaci.go::IzvrsiOptimizaciju",
+  "average_complexity": 2.91044776119403,
   "max_complexity": 7,
   "functions": [
     {
@@ -523,6 +523,102 @@
       "crap": 5.1157407407407405,
       "critical": true,
       "tokens": 55
+    },
+    {
+      "id": "internal/cistac/emulatori.go::prikupiSimulatorKandidate",
+      "file": "internal/cistac/emulatori.go",
+      "name": "prikupiSimulatorKandidate",
+      "line": 16,
+      "end_line": 31,
+      "complexity": 5,
+      "coverage": {
+        "statements": 10,
+        "covered": 10,
+        "percent": 100
+      },
+      "crap": 5,
+      "critical": true,
+      "tokens": 95
+    },
+    {
+      "id": "internal/cistac/emulatori.go::obradiJedanSimulator",
+      "file": "internal/cistac/emulatori.go",
+      "name": "obradiJedanSimulator",
+      "line": 33,
+      "end_line": 48,
+      "complexity": 2,
+      "coverage": {
+        "statements": 7,
+        "covered": 7,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": true,
+      "tokens": 95
+    },
+    {
+      "id": "internal/cistac/emulatori.go::izvuciNazivIRuntimeSimulatora",
+      "file": "internal/cistac/emulatori.go",
+      "name": "izvuciNazivIRuntimeSimulatora",
+      "line": 50,
+      "end_line": 59,
+      "complexity": 3,
+      "coverage": {
+        "statements": 6,
+        "covered": 6,
+        "percent": 100
+      },
+      "crap": 3,
+      "critical": true,
+      "tokens": 76
+    },
+    {
+      "id": "internal/cistac/emulatori.go::formatirajNazivSimulatora",
+      "file": "internal/cistac/emulatori.go",
+      "name": "formatirajNazivSimulatora",
+      "line": 61,
+      "end_line": 71,
+      "complexity": 4,
+      "coverage": {
+        "statements": 5,
+        "covered": 5,
+        "percent": 100
+      },
+      "crap": 4,
+      "critical": true,
+      "tokens": 62
+    },
+    {
+      "id": "internal/cistac/emulatori.go::urediSimulatorRuntime",
+      "file": "internal/cistac/emulatori.go",
+      "name": "urediSimulatorRuntime",
+      "line": 73,
+      "end_line": 80,
+      "complexity": 2,
+      "coverage": {
+        "statements": 5,
+        "covered": 5,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": true,
+      "tokens": 59
+    },
+    {
+      "id": "internal/cistac/emulatori.go::prikupiAvdKandidate",
+      "file": "internal/cistac/emulatori.go",
+      "name": "prikupiAvdKandidate",
+      "line": 82,
+      "end_line": 102,
+      "complexity": 5,
+      "coverage": {
+        "statements": 10,
+        "covered": 10,
+        "percent": 100
+      },
+      "crap": 5,
+      "critical": true,
+      "tokens": 144
     },
     {
       "id": "internal/cistac/instalacije.go::SkenirajInstalacije",
@@ -1249,23 +1345,23 @@
       "file": "internal/cistac/pokretaci.go",
       "name": "IzvrsiOptimizaciju",
       "line": 125,
-      "end_line": 140,
-      "complexity": 6,
+      "end_line": 142,
+      "complexity": 7,
       "coverage": {
-        "statements": 7,
-        "covered": 7,
+        "statements": 8,
+        "covered": 8,
         "percent": 100
       },
-      "crap": 6,
+      "crap": 7,
       "critical": true,
-      "tokens": 63
+      "tokens": 71
     },
     {
       "id": "internal/cistac/pokretaci.go::izvrsiDnsOptimizaciju",
       "file": "internal/cistac/pokretaci.go",
       "name": "izvrsiDnsOptimizaciju",
-      "line": 142,
-      "end_line": 147,
+      "line": 144,
+      "end_line": 149,
       "complexity": 2,
       "coverage": {
         "statements": 3,
@@ -1280,8 +1376,8 @@
       "id": "internal/cistac/pokretaci.go::izvrsiQuicklookOptimizaciju",
       "file": "internal/cistac/pokretaci.go",
       "name": "izvrsiQuicklookOptimizaciju",
-      "line": 149,
-      "end_line": 153,
+      "line": 151,
+      "end_line": 155,
       "complexity": 1,
       "coverage": {
         "statements": 3,
@@ -1296,8 +1392,8 @@
       "id": "internal/cistac/pokretaci.go::izvrsiSnapshotsOptimizaciju",
       "file": "internal/cistac/pokretaci.go",
       "name": "izvrsiSnapshotsOptimizaciju",
-      "line": 155,
-      "end_line": 160,
+      "line": 157,
+      "end_line": 162,
       "complexity": 2,
       "coverage": {
         "statements": 3,
@@ -1312,8 +1408,8 @@
       "id": "internal/cistac/pokretaci.go::otvoriMapuAerials",
       "file": "internal/cistac/pokretaci.go",
       "name": "otvoriMapuAerials",
-      "line": 162,
-      "end_line": 166,
+      "line": 164,
+      "end_line": 168,
       "complexity": 1,
       "coverage": {
         "statements": 3,
@@ -1325,11 +1421,27 @@
       "tokens": 32
     },
     {
+      "id": "internal/cistac/pokretaci.go::izvrsiSimulatorsOptimizaciju",
+      "file": "internal/cistac/pokretaci.go",
+      "name": "izvrsiSimulatorsOptimizaciju",
+      "line": 170,
+      "end_line": 175,
+      "complexity": 2,
+      "coverage": {
+        "statements": 3,
+        "covered": 3,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": true,
+      "tokens": 40
+    },
+    {
       "id": "internal/cistac/sigurnost.go::DozvoljeniKorijeni",
       "file": "internal/cistac/sigurnost.go",
       "name": "DozvoljeniKorijeni",
       "line": 11,
-      "end_line": 38,
+      "end_line": 39,
       "complexity": 1,
       "coverage": {
         "statements": 3,
@@ -1338,14 +1450,14 @@
       },
       "crap": 1,
       "critical": true,
-      "tokens": 267
+      "tokens": 278
     },
     {
       "id": "internal/cistac/sigurnost.go::JeUnutarKorijena",
       "file": "internal/cistac/sigurnost.go",
       "name": "JeUnutarKorijena",
-      "line": 41,
-      "end_line": 48,
+      "line": 42,
+      "end_line": 49,
       "complexity": 4,
       "coverage": {
         "statements": 5,
@@ -1360,8 +1472,8 @@
       "id": "internal/cistac/sigurnost.go::jeZasticenaClaudeMemorija",
       "file": "internal/cistac/sigurnost.go",
       "name": "jeZasticenaClaudeMemorija",
-      "line": 51,
-      "end_line": 58,
+      "line": 52,
+      "end_line": 59,
       "complexity": 3,
       "coverage": {
         "statements": 5,
@@ -1376,8 +1488,8 @@
       "id": "internal/cistac/sigurnost.go::JeSigurnaPutanja",
       "file": "internal/cistac/sigurnost.go",
       "name": "JeSigurnaPutanja",
-      "line": 61,
-      "end_line": 75,
+      "line": 62,
+      "end_line": 76,
       "complexity": 6,
       "coverage": {
         "statements": 9,
@@ -1392,8 +1504,8 @@
       "id": "internal/cistac/sigurnost.go::obrisiJednuStavku",
       "file": "internal/cistac/sigurnost.go",
       "name": "obrisiJednuStavku",
-      "line": 78,
-      "end_line": 94,
+      "line": 79,
+      "end_line": 95,
       "complexity": 5,
       "coverage": {
         "statements": 11,
@@ -1408,8 +1520,8 @@
       "id": "internal/cistac/sigurnost.go::OcistiPutanje",
       "file": "internal/cistac/sigurnost.go",
       "name": "OcistiPutanje",
-      "line": 97,
-      "end_line": 121,
+      "line": 98,
+      "end_line": 122,
       "complexity": 4,
       "coverage": {
         "statements": 16,
@@ -1424,8 +1536,8 @@
       "id": "internal/cistac/sigurnost.go::DeinstalirajAplikaciju",
       "file": "internal/cistac/sigurnost.go",
       "name": "DeinstalirajAplikaciju",
-      "line": 124,
-      "end_line": 137,
+      "line": 125,
+      "end_line": 138,
       "complexity": 2,
       "coverage": {
         "statements": 7,
@@ -1440,8 +1552,8 @@
       "id": "internal/cistac/sigurnost.go::jeValjanaPutanjaAplikacije",
       "file": "internal/cistac/sigurnost.go",
       "name": "jeValjanaPutanjaAplikacije",
-      "line": 139,
-      "end_line": 145,
+      "line": 140,
+      "end_line": 146,
       "complexity": 3,
       "coverage": {
         "statements": 4,
@@ -1553,23 +1665,23 @@
       "file": "internal/cistac/skener.go",
       "name": "SkenirajRazvojneAlate",
       "line": 127,
-      "end_line": 131,
+      "end_line": 133,
       "complexity": 1,
       "coverage": {
-        "statements": 3,
-        "covered": 3,
+        "statements": 5,
+        "covered": 5,
         "percent": 100
       },
       "crap": 1,
       "critical": true,
-      "tokens": 46
+      "tokens": 98
     },
     {
       "id": "internal/cistac/skener.go::fiksniRazvojniKandidati",
       "file": "internal/cistac/skener.go",
       "name": "fiksniRazvojniKandidati",
-      "line": 133,
-      "end_line": 156,
+      "line": 135,
+      "end_line": 158,
       "complexity": 1,
       "coverage": {
         "statements": 1,
@@ -1584,8 +1696,8 @@
       "id": "internal/cistac/skener.go::prikupiClaudeKandidate",
       "file": "internal/cistac/skener.go",
       "name": "prikupiClaudeKandidate",
-      "line": 158,
-      "end_line": 171,
+      "line": 160,
+      "end_line": 173,
       "complexity": 4,
       "coverage": {
         "statements": 9,
@@ -1600,8 +1712,8 @@
       "id": "internal/cistac/skener.go::claudeKandidatiProjekta",
       "file": "internal/cistac/skener.go",
       "name": "claudeKandidatiProjekta",
-      "line": 173,
-      "end_line": 187,
+      "line": 175,
+      "end_line": 189,
       "complexity": 5,
       "coverage": {
         "statements": 10,
@@ -1616,8 +1728,8 @@
       "id": "internal/cistac/skener.go::claudePodmapeSesije",
       "file": "internal/cistac/skener.go",
       "name": "claudePodmapeSesije",
-      "line": 189,
-      "end_line": 204,
+      "line": 191,
+      "end_line": 206,
       "complexity": 4,
       "coverage": {
         "statements": 6,
@@ -1632,8 +1744,8 @@
       "id": "internal/cistac/skener.go::izmjeriKandidate",
       "file": "internal/cistac/skener.go",
       "name": "izmjeriKandidate",
-      "line": 206,
-      "end_line": 238,
+      "line": 208,
+      "end_line": 240,
       "complexity": 3,
       "coverage": {
         "statements": 23,
@@ -1648,8 +1760,8 @@
       "id": "internal/cistac/skener.go::SkenirajKopijeIPrivike",
       "file": "internal/cistac/skener.go",
       "name": "SkenirajKopijeIPrivike",
-      "line": 241,
-      "end_line": 246,
+      "line": 243,
+      "end_line": 248,
       "complexity": 1,
       "coverage": {
         "statements": 4,
@@ -1664,8 +1776,8 @@
       "id": "internal/cistac/skener.go::prikupiKandidateIOSBackupova",
       "file": "internal/cistac/skener.go",
       "name": "prikupiKandidateIOSBackupova",
-      "line": 248,
-      "end_line": 267,
+      "line": 250,
+      "end_line": 269,
       "complexity": 5,
       "coverage": {
         "statements": 9,
@@ -1680,8 +1792,8 @@
       "id": "internal/cistac/skener.go::skratiIdentifikator",
       "file": "internal/cistac/skener.go",
       "name": "skratiIdentifikator",
-      "line": 269,
-      "end_line": 274,
+      "line": 271,
+      "end_line": 276,
       "complexity": 2,
       "coverage": {
         "statements": 3,
@@ -1696,8 +1808,8 @@
       "id": "internal/cistac/skener.go::prikupiKandidateMailDownloads",
       "file": "internal/cistac/skener.go",
       "name": "prikupiKandidateMailDownloads",
-      "line": 276,
-      "end_line": 295,
+      "line": 278,
+      "end_line": 297,
       "complexity": 4,
       "coverage": {
         "statements": 9,
@@ -1712,8 +1824,8 @@
       "id": "internal/cistac/skener.go::SkenirajSve",
       "file": "internal/cistac/skener.go",
       "name": "SkenirajSve",
-      "line": 298,
-      "end_line": 317,
+      "line": 300,
+      "end_line": 319,
       "complexity": 1,
       "coverage": {
         "statements": 24,
@@ -1728,8 +1840,8 @@
       "id": "internal/cistac/skener.go::zbrojiStavke",
       "file": "internal/cistac/skener.go",
       "name": "zbrojiStavke",
-      "line": 319,
-      "end_line": 327,
+      "line": 321,
+      "end_line": 329,
       "complexity": 3,
       "coverage": {
         "statements": 5,
@@ -2096,13 +2208,13 @@
   "exact_duplication": {
     "percent": 0,
     "duplicated_tokens": 0,
-    "total_tokens": 10116,
+    "total_tokens": 10758,
     "pairs": null
   },
   "fuzzy_duplication": {
     "percent": 0,
     "duplicated_tokens": 0,
-    "total_tokens": 10116,
+    "total_tokens": 10758,
     "pairs": null
   },
   "mutation_score": null,
