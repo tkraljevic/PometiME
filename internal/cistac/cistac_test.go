@@ -1,7 +1,12 @@
 package cistac
 
 import (
+	"archive/zip"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -356,6 +361,11 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	}
 
 	// Test optimizacije
+	vratiPokretac := PostaviPokretacNaredbiZaTest(func(name string, args ...string) error {
+		return nil
+	})
+	defer vratiPokretac()
+
 	if _, err := IzvrsiOptimizaciju(p, "dns"); err != nil {
 		t.Errorf("greška pri izvršavanju dns optimizacije: %v", err)
 	}
@@ -392,8 +402,6 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	}
 
 	// Test greške pri izvršavanju dns i snapshots optimizacije
-	staraNaredba := pokreniNaredbu
-	defer func() { pokreniNaredbu = staraNaredba }()
 	pokreniNaredbu = func(name string, args ...string) error {
 		return fmt.Errorf("simulirana greška")
 	}
@@ -467,5 +475,346 @@ func TestZracnePozadine(t *testing.T) {
 	}
 	if _, err := OcistiZracnePozadine(p); err == nil {
 		t.Errorf("očekivana greška pri odbijanju administratorske dozvole")
+	}
+}
+
+func TestUsporediInacice(t *testing.T) {
+	slucajevi := []struct {
+		trenutna  string
+		najnovija string
+		ocekivano bool
+	}{
+		{"1.0.0", "1.0.1", true},
+		{"1.0.0", "1.1.0", true},
+		{"1.0.0", "2.0.0", true},
+		{"1.0.0", "1.0.0", false},
+		{"1.0.1", "1.0.0", false},
+		{"v1.0.0", "v1.0.1", true},
+		{"v1.2.0", "1.1.9", false},
+		{"abc", "def", false},
+	}
+
+	for _, s := range slucajevi {
+		dobiveno := UsporediInacice(s.trenutna, s.najnovija)
+		if dobiveno != s.ocekivano {
+			t.Errorf("UsporediInacice(%q, %q) = %v; očekivano %v", s.trenutna, s.najnovija, dobiveno, s.ocekivano)
+		}
+	}
+}
+
+func TestProvjeriNadogradnju(t *testing.T) {
+	posluzitelj := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/error" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if r.URL.Path == "/neispravan-json" {
+			_, _ = w.Write([]byte("{neispravan"))
+			return
+		}
+
+		izdanje := githubRelease{
+			TagName: "v1.2.0",
+			Name:    "PometiME 1.2.0",
+			Body:    "Ispravci i poboljšanja",
+			HTMLURL: "https://github.com/tkraljevic/PometiME/releases/tag/v1.2.0",
+			Assets: []githubAsset{
+				{
+					Name:               "PometiME-macOS.zip",
+					Size:               7000000,
+					BrowserDownloadURL: "https://github.com/tkraljevic/PometiME/releases/download/v1.2.0/PometiME-macOS.zip",
+				},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(izdanje) // kodiranje mock odgovora
+	}))
+	defer posluzitelj.Close()
+
+	vrati := PostaviNadogradnjuZaTest(posluzitelj.URL, posluzitelj.Client())
+	defer vrati()
+
+	// 1. Uspješna provjera
+	info, err := ProvjeriNadogradnju()
+	if err != nil {
+		t.Fatalf("očekivana uspješna provjera, dobiveno: %v", err)
+	}
+	if !info.ImaNadogradnju {
+		t.Errorf("očekivano info.ImaNadogradnju == true")
+	}
+	if info.NajnovijaInacica != "1.2.0" {
+		t.Errorf("očekivana najnovija inačica 1.2.0, dobiveno %s", info.NajnovijaInacica)
+	}
+	if info.VelicinaBajta != 7000000 {
+		t.Errorf("očekivana veličina 7000000, dobiveno %d", info.VelicinaBajta)
+	}
+
+	// 2. Greška poslužitelja
+	_ = PostaviNadogradnjuZaTest(posluzitelj.URL+"/error", posluzitelj.Client())
+	if _, err := ProvjeriNadogradnju(); err == nil {
+		t.Errorf("očekivana greška za status 500")
+	}
+
+	// 3. Neispravan JSON
+	_ = PostaviNadogradnjuZaTest(posluzitelj.URL+"/neispravan-json", posluzitelj.Client())
+	if _, err := ProvjeriNadogradnju(); err == nil {
+		t.Errorf("očekivana greška za neispravan JSON")
+	}
+
+	// 4. Greška u URL-u / mreži
+	_ = PostaviNadogradnjuZaTest("http://127.0.0.1:0/nepostojece", posluzitelj.Client())
+	if _, err := ProvjeriNadogradnju(); err == nil {
+		t.Errorf("očekivana greška za nepostojeći host")
+	}
+}
+
+func stvoriTestniZipPaket(t *testing.T, sadrzajApp bool) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+
+	if sadrzajApp {
+		fDir, err := zw.Create("PometiME.app/")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = fDir
+
+		f1, err := zw.Create("PometiME.app/Contents/Info.plist")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f1.Write([]byte("<plist></plist>")); err != nil {
+			t.Fatal(err)
+		}
+
+		f2, err := zw.Create("PometiME.app/Contents/MacOS/PometiME")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f2.Write([]byte("dummy-bin")); err != nil {
+			t.Fatal(err)
+		}
+
+		fSkip, err := zw.Create("../opasno.txt")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := fSkip.Write([]byte("skip")); err != nil {
+			t.Fatal(err)
+		}
+
+		fAbs, err := zw.Create("/apsolutno.txt")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := fAbs.Write([]byte("abs")); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		f, err := zw.Create("obican.txt")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.Write([]byte("tekst")); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+func TestPrimijeniNadogradnju(t *testing.T) {
+	stariKlijent := klijentNadogradnje
+	defer func() {
+		klijentNadogradnje = stariKlijent
+	}()
+
+	zipIspravan := stvoriTestniZipPaket(t, true)
+	zipBezAppa := stvoriTestniZipPaket(t, false)
+
+	posluzitelj := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ok.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			_, _ = w.Write(zipIspravan)
+		case "/bez-appa.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			_, _ = w.Write(zipBezAppa)
+		case "/neispravan.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			_, _ = w.Write([]byte("nije zip datoteka"))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer posluzitelj.Close()
+
+	klijentNadogradnje = posluzitelj.Client()
+
+	privremenaMapa := t.TempDir()
+	odredisniApp := filepath.Join(privremenaMapa, "PometiME.app")
+	vratiPutanju := PostaviPutanjuAplikacijeZaTest(func() string {
+		return odredisniApp
+	})
+	defer vratiPutanju()
+
+	// 1. Prazna poveznica
+	if err := PrimijeniNadogradnju(""); err == nil {
+		t.Errorf("očekivana greška za prazan downloadURL")
+	}
+
+	// 2. 404 poslužitelj
+	if err := PrimijeniNadogradnju(posluzitelj.URL + "/nepostojece.zip"); err == nil {
+		t.Errorf("očekivana greška za status 404")
+	}
+
+	// 3. Neispravan zip
+	if err := PrimijeniNadogradnju(posluzitelj.URL + "/neispravan.zip"); err == nil {
+		t.Errorf("očekivana greška za oštećenu arhivu")
+	}
+
+	// 4. Zip bez PometiME.app
+	if err := PrimijeniNadogradnju(posluzitelj.URL + "/bez-appa.zip"); err == nil {
+		t.Errorf("očekivana greška za arhivu bez PometiME.app paketa")
+	}
+
+	// 5. Uspješna instalacija (ciljna aplikacija još ne postoji)
+	if err := PrimijeniNadogradnju(posluzitelj.URL + "/ok.zip"); err != nil {
+		t.Fatalf("očekivana uspješna instalacija, dobiveno: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(odredisniApp, "Contents", "Info.plist")); err != nil {
+		t.Errorf("instalirani paket ne sadrži Info.plist: %v", err)
+	}
+
+	// 6. Uspješna nadogradnja (postojeća aplikacija već postoji na disku)
+	if err := PrimijeniNadogradnju(posluzitelj.URL + "/ok.zip"); err != nil {
+		t.Fatalf("očekivana uspješna nadogradnja preko postojećeg paketa, dobiveno: %v", err)
+	}
+
+	// 7. Provjera pomoćne funkcije odrediPutanjuAplikacije
+	putanja := odrediPutanjuAplikacije()
+	if putanja == "" {
+		t.Errorf("odrediPutanjuAplikacije vratila prazan niz")
+	}
+
+	p1 := izracunajPutanjuAppa("/Applications/PometiME.app/Contents/MacOS/PometiME")
+	if p1 != "/Applications/PometiME.app" {
+		t.Errorf("očekivano /Applications/PometiME.app, dobiveno %s", p1)
+	}
+
+	p2 := izracunajPutanjuAppa("/usr/local/bin/pometime")
+	if p2 != "/Applications/PometiME.app" {
+		t.Errorf("očekivano /Applications/PometiME.app, dobiveno %s", p2)
+	}
+
+	// 8. Provjera pronadjiZipAsset s praznim ili nepodržanim formatima
+	urlAsset, vel := pronadjiZipAsset([]githubAsset{{Name: "paket.tar.gz", Size: 100}})
+	if urlAsset != "" || vel != 0 {
+		t.Errorf("očekivan prazan rezultat za nepodržani format, dobiveno %s, %d", urlAsset, vel)
+	}
+
+	// 9. Provjera pronadjiAppPaket u nepostojećoj mapi
+	if appPaket := pronadjiAppPaket(filepath.Join(privremenaMapa, "nepostoji")); appPaket != "" {
+		t.Errorf("očekivan prazan paket za nepostojeću mapu, dobiveno %s", appPaket)
+	}
+
+	// 10. Greška pri stvaranju privremene mape
+	stariStvoriDir := stvoriPrivremenuMapuFn
+	defer func() { stvoriPrivremenuMapuFn = stariStvoriDir }()
+	stvoriPrivremenuMapuFn = func() (string, error) {
+		return "", fmt.Errorf("greška privremene mape")
+	}
+	if err := PrimijeniNadogradnju("https://example.com/test.zip"); err == nil {
+		t.Errorf("očekivana greška pri neuspjehu stvaranja privremene mape")
+	}
+	stvoriPrivremenuMapuFn = stariStvoriDir
+
+	// 11. Greška pri dohvaćanju izvršne putanje
+	stariExec := executablePutanjaFn
+	defer func() { executablePutanjaFn = stariExec }()
+	executablePutanjaFn = func() (string, error) {
+		return "", fmt.Errorf("greška putanje")
+	}
+	if p := odrediPutanjuAplikacije(); p != "/Applications/PometiME.app" {
+		t.Errorf("očekivan fallback na /Applications/PometiME.app, dobiveno %s", p)
+	}
+	executablePutanjaFn = stariExec
+
+	// 12. Greška preuzimanja u nevažeću lokalnu datoteku i mrežna greška
+	if err := preuzmiDatoteku(posluzitelj.URL+"/ok.zip", filepath.Join(privremenaMapa, "nepostoji", "nemoguce.zip")); err == nil {
+		t.Errorf("očekivana greška za nemoguću lokalnu datoteku")
+	}
+	if err := preuzmiDatoteku("http://127.0.0.1:0/err", filepath.Join(privremenaMapa, "dummy.zip")); err == nil {
+		t.Errorf("očekivana mrežna greška za preuzmiDatoteku")
+	}
+
+	// 13. Greška raspakiravanja u blokiranu datoteku umjesto mape
+	blokiraniCilj := filepath.Join(privremenaMapa, "blokirano")
+	if err := os.WriteFile(blokiraniCilj, []byte("sadrzaj"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	zipPutanja := filepath.Join(privremenaMapa, "privremeni.zip")
+	if err := os.WriteFile(zipPutanja, zipIspravan, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := raspakirajZip(zipPutanja, blokiraniCilj); err == nil {
+		t.Errorf("očekivana greška pri raspakiravanju u datoteku umjesto mape")
+	}
+
+	// 14. Greška pri zamjeni na nevažeću lokaciju
+	_ = PostaviPutanjuAplikacijeZaTest(func() string {
+		return "/dev/null/nemoguce/PometiME.app"
+	})
+	if err := PrimijeniNadogradnju(posluzitelj.URL + "/ok.zip"); err == nil {
+		t.Errorf("očekivana greška pri instalaciji na nevažeću lokaciju")
+	}
+	if err := zamijeniAplikaciju(filepath.Join(privremenaMapa, "novi.app"), "/dev/null/nemoguce/PometiME.app"); err == nil {
+		t.Errorf("očekivana greška pri nemogućoj zamjeni aplikacije")
+	}
+
+	// 15. Rollback u zamijeniAplikaciju
+	postojeciAppZaRollback := filepath.Join(privremenaMapa, "ZaRollback.app")
+	if err := os.MkdirAll(postojeciAppZaRollback, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := zamijeniAplikaciju(filepath.Join(privremenaMapa, "nepostojeci-novi.app"), postojeciAppZaRollback); err == nil {
+		t.Errorf("očekivana greška pri zamjeni s nepostojećim novim appom")
+	}
+	if _, err := os.Stat(postojeciAppZaRollback); err != nil {
+		t.Errorf("očekivano da rollback vrati aplikaciju na izvorno mjesto: %v", err)
+	}
+
+	// 16. Greška pri otvaranju unosa s nepodržanom kompresijom
+	var bufBad bytes.Buffer
+	zwBad := zip.NewWriter(&bufBad)
+	wBad, err := zwBad.Create("nepodrzan.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := wBad.Write([]byte("podaci")); err != nil {
+		t.Fatal(err)
+	}
+	if err := zwBad.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	zipSirovo := bufBad.Bytes()
+	// Zamijeni metodu kompresije u centralnom direktoriju (PK\x01\x02) na nepoznatu metodu 999
+	for i := 0; i < len(zipSirovo)-4; i++ {
+		if zipSirovo[i] == 0x50 && zipSirovo[i+1] == 0x4b && zipSirovo[i+2] == 0x01 && zipSirovo[i+3] == 0x02 {
+			zipSirovo[i+10] = 0x99
+			zipSirovo[i+11] = 0x09
+		}
+	}
+
+	rBad, err := zip.NewReader(bytes.NewReader(zipSirovo), int64(len(zipSirovo)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := raspakirajJedanUnos(rBad.File[0], t.TempDir()); err == nil {
+		t.Errorf("očekivana greška za nepodržanu zip kompresiju")
 	}
 }

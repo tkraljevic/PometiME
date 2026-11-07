@@ -1,6 +1,7 @@
 package web
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -191,6 +192,11 @@ func TestAPIOcistiIDeinstaliraj(t *testing.T) {
 		t.Errorf("očekivan 400 za nepoznatu optimizaciju, dobiveno %d", odgNepoznataOpt.Code)
 	}
 
+	vratiNaredbu := cistac.PostaviPokretacNaredbiZaTest(func(name string, args ...string) error {
+		return nil
+	})
+	defer vratiNaredbu()
+
 	dnsOpt, _ := json.Marshal(zahtjevOptimizacije{Akcija: "dns"}) // poznata struktura bez mogućnosti greške serijalizacije
 	odgDnsOpt := httptest.NewRecorder()
 	pos.ServeHTTP(odgDnsOpt, httptest.NewRequest(http.MethodPost, "/api/optimiziraj", bytes.NewReader(dnsOpt)))
@@ -220,5 +226,97 @@ func TestAPIOcistiIDeinstaliraj(t *testing.T) {
 	var infoAer cistac.InformacijeZracnihPozadina
 	if err := json.Unmarshal(odgAer.Body.Bytes(), &infoAer); err != nil {
 		t.Errorf("greška pri dekodiranju /api/aerials: %v", err)
+	}
+}
+
+func TestAPINadogradnja(t *testing.T) {
+	pos, _, _ := postaviTestniPosluzitelj(t)
+
+	mockSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/release-ok" {
+			if err := json.NewEncoder(w).Encode(map[string]any{
+				"tag_name": "v1.1.0",
+				"name":     "PometiME 1.1.0",
+				"assets": []map[string]any{
+					{
+						"name":                 "PometiME-macOS.zip",
+						"size":                 100,
+						"browser_download_url": "http://" + r.Host + "/zip-ok",
+					},
+				},
+			}); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			return
+		}
+		if r.URL.Path == "/zip-ok" {
+			var buf bytes.Buffer
+			zw := zip.NewWriter(&buf)
+			f, err := zw.Create("PometiME.app/Contents/Info.plist")
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if _, err := f.Write([]byte("ok")); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			_ = zw.Close() // zatvaranje zip arhive u testu
+			_, _ = w.Write(buf.Bytes()) // slanje mock zip arhive
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer mockSrv.Close()
+
+	// 1. GET /api/nadogradnja - uspješna provjera
+	vratiNad := cistac.PostaviNadogradnjuZaTest(mockSrv.URL+"/release-ok", mockSrv.Client())
+	defer vratiNad()
+
+	zahNad := httptest.NewRequest(http.MethodGet, "/api/nadogradnja", nil)
+	odgNad := httptest.NewRecorder()
+	pos.ServeHTTP(odgNad, zahNad)
+	if odgNad.Code != http.StatusOK {
+		t.Errorf("očekivan status 200 za /api/nadogradnja, dobiveno %d", odgNad.Code)
+	}
+
+	// 2. GET /api/nadogradnja - neuspješno povezivanje
+	vratiErr := cistac.PostaviNadogradnjuZaTest(mockSrv.URL+"/error", mockSrv.Client())
+	odgNadErr := httptest.NewRecorder()
+	pos.ServeHTTP(odgNadErr, httptest.NewRequest(http.MethodGet, "/api/nadogradnja", nil))
+	if odgNadErr.Code != http.StatusBadGateway {
+		t.Errorf("očekivan status 502 za /api/nadogradnja, dobiveno %d", odgNadErr.Code)
+	}
+	vratiErr()
+
+	// 3. POST /api/nadogradnja/primijeni - neispravan JSON
+	zahNeispravan := httptest.NewRequest(http.MethodPost, "/api/nadogradnja/primijeni", bytes.NewReader([]byte("{neispravan-json")))
+	odgNeispravan := httptest.NewRecorder()
+	pos.ServeHTTP(odgNeispravan, zahNeispravan)
+	if odgNeispravan.Code != http.StatusBadRequest {
+		t.Errorf("očekivan status 400 za neispravan JSON, dobiveno %d", odgNeispravan.Code)
+	}
+
+	// 4. POST /api/nadogradnja/primijeni - prazna adresa
+	zahPrazno, _ := json.Marshal(map[string]string{"download_url": ""}) // jednostavna mapa bez greške
+	odgPrazno := httptest.NewRecorder()
+	pos.ServeHTTP(odgPrazno, httptest.NewRequest(http.MethodPost, "/api/nadogradnja/primijeni", bytes.NewReader(zahPrazno)))
+	if odgPrazno.Code != http.StatusInternalServerError {
+		t.Errorf("očekivan status 500 za prazan download_url, dobiveno %d", odgPrazno.Code)
+	}
+
+	// 5. POST /api/nadogradnja/primijeni - uspješna nadogradnja
+	privremenaMapa := t.TempDir()
+	vratiPutanju := cistac.PostaviPutanjuAplikacijeZaTest(func() string {
+		return filepath.Join(privremenaMapa, "PometiME.app")
+	})
+	defer vratiPutanju()
+
+	zahOk, _ := json.Marshal(map[string]string{"download_url": mockSrv.URL + "/zip-ok"}) // json za uspješnu primjenu
+	odgOk := httptest.NewRecorder()
+	pos.ServeHTTP(odgOk, httptest.NewRequest(http.MethodPost, "/api/nadogradnja/primijeni", bytes.NewReader(zahOk)))
+	if odgOk.Code != http.StatusOK {
+		t.Errorf("očekivan status 200 za uspješnu primjenu nadogradnje, dobiveno %d (%s)", odgOk.Code, odgOk.Body.String())
 	}
 }

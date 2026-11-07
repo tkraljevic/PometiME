@@ -566,6 +566,185 @@
       gap: 10px;
     }
 
+    .sidebar-update-box {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .version-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .badge-update {
+      background: #22c55e;
+      color: #ffffff;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-check-update {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border-subtle);
+      background-color: var(--surface-bg);
+      color: var(--text-secondary);
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-check-update:hover:not(:disabled) {
+      color: var(--text-primary);
+      border-color: var(--color-brand);
+    }
+
+    .dialog-header-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dialog-header-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(2, 132, 199, 0.12);
+      color: #0284c7;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .update-info-card {
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--surface-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .update-versions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .version-pill {
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .version-pill-new {
+      border-color: #0284c7;
+      background: rgba(2, 132, 199, 0.06);
+    }
+
+    .version-pill-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 600;
+    }
+
+    .version-pill-val {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .version-pill-new .version-pill-val {
+      color: #0284c7;
+    }
+
+    .update-notes-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .update-notes-header {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .update-notes-body {
+      max-height: 140px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      background: var(--surface-card);
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text-secondary);
+      font-family: inherit;
+    }
+
+    .status-box {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    .status-info {
+      background: rgba(2, 132, 199, 0.1);
+      border: 1px solid rgba(2, 132, 199, 0.25);
+      color: #0284c7;
+    }
+
+    .status-success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: #16a34a;
+    }
+
+    .status-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #dc2626;
+    }
+
+    @keyframes rotacija {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .rotiraj {
+      animation: rotacija 1s linear infinite;
+      display: inline-block;
+    }
+
     .empty-state {
       padding: 36px;
       text-align: center;
@@ -628,6 +807,19 @@
 
     <div class="sidebar-footer">
       Sve očišćene stavke idu u <strong>Koš za smeće</strong> (<code>~/.Trash</code>) i mogu se vratiti na izvorno mjesto čak i nakon ponovnog pokretanja macOS-a.
+    </div>
+
+    <div class="sidebar-update-box">
+      <div class="version-info">
+        <span class="version-name">PometiME <span id="oznaka-trenutne-verzije">v1.0.0</span></span>
+        <span id="badge-nadogradnja" class="badge-update hidden" title="Dostupna je nova inačica">Nova verzija</span>
+      </div>
+      <button type="button" class="btn-check-update" id="gumb-provjeri-nadogradnju">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
+          <path d="M224,128a96,96,0,0,1-96,96,95.27,95.27,0,0,1-67.88-28.12l-1.42-1.43V208a8,8,0,0,1-16,0V168a8,8,0,0,1,8-8h40a8,8,0,0,1,0,16H66.86A80,80,0,1,0,56.88,88.42a8,8,0,0,1-15-5.59A96,96,0,1,1,224,128Z"/>
+        </svg>
+        <span>Provjeri nadogradnju</span>
+      </button>
     </div>
   </aside>
 
@@ -693,6 +885,48 @@
         <button type="submit" class="btn btn-danger" value="confirm" id="potvrda-gumb-izvrsi">Pometi sada</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="nadogradnja-dijalog" aria-labelledby="nadogradnja-naslov">
+    <div class="dialog-body">
+      <div class="dialog-header-row">
+        <div class="dialog-header-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 256 256" fill="currentColor">
+            <path d="M224,128a96,96,0,0,1-96,96,95.27,95.27,0,0,1-67.88-28.12l-1.42-1.43V208a8,8,0,0,1-16,0V168a8,8,0,0,1,8-8h40a8,8,0,0,1,0,16H66.86A80,80,0,1,0,56.88,88.42a8,8,0,0,1-15-5.59A96,96,0,1,1,224,128Z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 id="nadogradnja-naslov">Provjera nadogradnje</h3>
+          <p id="nadogradnja-podnaslov">Povezivanje s GitHub repozitorijem...</p>
+        </div>
+      </div>
+
+      <div id="nadogradnja-kartica-info" class="update-info-card hidden">
+        <div class="update-versions-grid">
+          <div class="version-pill">
+            <span class="version-pill-label">Instalirana verzija</span>
+            <span id="prikaz-trenutne-verzije" class="version-pill-val">v1.0.0</span>
+          </div>
+          <div class="version-pill version-pill-new">
+            <span class="version-pill-label">Najnovija verzija</span>
+            <span id="prikaz-nove-verzije" class="version-pill-val">-</span>
+          </div>
+        </div>
+
+        <div id="nadogradnja-biljeske-blok" class="update-notes-block hidden">
+          <div class="update-notes-header">Novosti u ovom izdanju:</div>
+          <div id="nadogradnja-biljeske-tekst" class="update-notes-body"></div>
+        </div>
+      </div>
+
+      <div id="nadogradnja-poruka-statusa" class="status-box hidden"></div>
+    </div>
+
+    <div class="dialog-actions">
+      <button type="button" class="btn" id="nadogradnja-gumb-zatvori">Zatvori</button>
+      <a href="#" target="_blank" rel="noopener noreferrer" class="btn hidden" id="nadogradnja-link-github">Prikaži na GitHubu</a>
+      <button type="button" class="btn btn-primary hidden" id="nadogradnja-gumb-instaliraj">Ažuriraj odmah</button>
+    </div>
   </dialog>
 
   <script>
@@ -1541,6 +1775,156 @@
       );
     }
 
+    let podaciONadogradnji = null;
+
+    async function provjeriNadogradnju(rucno = false) {
+      const gumb = document.getElementById('gumb-provjeri-nadogradnju');
+      const ikona = gumb.querySelector('svg');
+      if (rucno) {
+        if (ikona) ikona.classList.add('rotiraj');
+        gumb.disabled = true;
+        otvoriDijalogNadogradnje();
+      }
+
+      try {
+        const odg = await fetch('/api/nadogradnja');
+        if (!odg.ok) {
+          const greska = await odg.json().catch(() => ({ error: 'Greška pri provjeri.' }));
+          throw new Error(greska.error || 'GitHub nije dostupan.');
+        }
+        podaciONadogradnji = await odg.json();
+        osvjeziPrikazNadogradnje(rucno);
+      } catch (err) {
+        if (rucno) {
+          prikaziGreskuNadogradnje(err.message);
+        } else {
+          console.warn('Automatska provjera nadogradnje nije uspjela:', err.message);
+        }
+      } finally {
+        if (ikona) ikona.classList.remove('rotiraj');
+        gumb.disabled = false;
+      }
+    }
+
+    function otvoriDijalogNadogradnje() {
+      const dijalog = document.getElementById('nadogradnja-dijalog');
+      document.getElementById('nadogradnja-naslov').textContent = 'Provjera nadogradnje';
+      document.getElementById('nadogradnja-podnaslov').textContent = 'Povezivanje s GitHub repozitorijem...';
+      document.getElementById('nadogradnja-kartica-info').classList.add('hidden');
+      document.getElementById('nadogradnja-poruka-statusa').classList.add('hidden');
+      document.getElementById('nadogradnja-link-github').classList.add('hidden');
+      document.getElementById('nadogradnja-gumb-instaliraj').classList.add('hidden');
+      dijalog.showModal();
+    }
+
+    function osvjeziPrikazNadogradnje(rucno) {
+      if (!podaciONadogradnji) return;
+
+      const badge = document.getElementById('badge-nadogradnja');
+      if (podaciONadogradnji.has_update) {
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      if (podaciONadogradnji.current_version) {
+        document.getElementById('oznaka-trenutne-verzije').textContent = 'v' + podaciONadogradnji.current_version;
+      }
+
+      if (!rucno) return;
+
+      document.getElementById('nadogradnja-kartica-info').classList.remove('hidden');
+      document.getElementById('prikaz-trenutne-verzije').textContent = 'v' + podaciONadogradnji.current_version;
+      document.getElementById('prikaz-nove-verzije').textContent = 'v' + podaciONadogradnji.latest_version;
+
+      const biljeskeBlok = document.getElementById('nadogradnja-biljeske-blok');
+      const biljeskeTekst = document.getElementById('nadogradnja-biljeske-tekst');
+      if (podaciONadogradnji.release_notes && podaciONadogradnji.release_notes.trim()) {
+        biljeskeTekst.textContent = podaciONadogradnji.release_notes;
+        biljeskeBlok.classList.remove('hidden');
+      } else {
+        biljeskeBlok.classList.add('hidden');
+      }
+
+      const linkGithub = document.getElementById('nadogradnja-link-github');
+      if (podaciONadogradnji.html_url) {
+        linkGithub.href = podaciONadogradnji.html_url;
+        linkGithub.classList.remove('hidden');
+      }
+
+      const statusBox = document.getElementById('nadogradnja-poruka-statusa');
+      const gumbInstaliraj = document.getElementById('nadogradnja-gumb-instaliraj');
+
+      if (podaciONadogradnji.has_update) {
+        document.getElementById('nadogradnja-naslov').textContent = 'Dostupna je nova verzija!';
+        document.getElementById('nadogradnja-podnaslov').textContent = podaciONadogradnji.release_name || 'Nova verzija programa PometiME je spremna za preuzimanje.';
+        gumbInstaliraj.classList.remove('hidden');
+        gumbInstaliraj.disabled = !podaciONadogradnji.download_url;
+        statusBox.classList.add('hidden');
+      } else {
+        document.getElementById('nadogradnja-naslov').textContent = 'PometiME je ažuran';
+        document.getElementById('nadogradnja-podnaslov').textContent = 'Već koristite najnoviju verziju aplikacije.';
+        gumbInstaliraj.classList.add('hidden');
+        statusBox.className = 'status-box status-success';
+        statusBox.textContent = 'Trenutno nema novijih inačica na GitHubu. Vaša verzija (v' + podaciONadogradnji.current_version + ') je najnovija.';
+        statusBox.classList.remove('hidden');
+      }
+    }
+
+    function prikaziGreskuNadogradnje(poruka) {
+      document.getElementById('nadogradnja-naslov').textContent = 'Greška pri provjeri';
+      document.getElementById('nadogradnja-podnaslov').textContent = 'Nije moguće dohvatiti podatke o novim izdanjima.';
+      const statusBox = document.getElementById('nadogradnja-poruka-statusa');
+      statusBox.className = 'status-box status-error';
+      statusBox.textContent = 'Došlo je do greške: ' + poruka + '. Provjerite internetsku vezu i pokušajte ponovno.';
+      statusBox.classList.remove('hidden');
+    }
+
+    async function primijeniNadogradnju() {
+      if (!podaciONadogradnji || !podaciONadogradnji.download_url) return;
+
+      const gumbInstaliraj = document.getElementById('nadogradnja-gumb-instaliraj');
+      const gumbZatvori = document.getElementById('nadogradnja-gumb-zatvori');
+      const statusBox = document.getElementById('nadogradnja-poruka-statusa');
+
+      gumbInstaliraj.disabled = true;
+      gumbZatvori.disabled = true;
+      statusBox.className = 'status-box status-info';
+      statusBox.innerHTML = '<span class="rotiraj inline-block">⏳</span> Preuzimanje nove verzije s GitHuba i ažuriranje aplikacije... Molimo pričekajte.';
+      statusBox.classList.remove('hidden');
+
+      try {
+        const odg = await fetch('/api/nadogradnja/primijeni', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ download_url: podaciONadogradnji.download_url })
+        });
+        const rez = await odg.json();
+        if (!odg.ok || !rez.success) {
+          throw new Error(rez.error || 'Instalacija nadogradnje nije uspjela.');
+        }
+
+        statusBox.className = 'status-box status-success';
+        statusBox.innerHTML = '🎉 <strong>Nadogradnja je uspješno instalirana!</strong><br>' + (rez.message || 'Pokrenite aplikaciju ponovno.');
+        gumbInstaliraj.classList.add('hidden');
+        document.getElementById('prikaz-trenutne-verzije').textContent = 'v' + podaciONadogradnji.latest_version;
+        document.getElementById('oznaka-trenutne-verzije').textContent = 'v' + podaciONadogradnji.latest_version;
+        document.getElementById('badge-nadogradnja').classList.add('hidden');
+      } catch (err) {
+        statusBox.className = 'status-box status-error';
+        statusBox.textContent = 'Neuspješna instalacija nadogradnje: ' + err.message;
+        gumbInstaliraj.disabled = false;
+      } finally {
+        gumbZatvori.disabled = false;
+      }
+    }
+
+    document.getElementById('gumb-provjeri-nadogradnju').addEventListener('click', () => provjeriNadogradnju(true));
+    document.getElementById('nadogradnja-gumb-zatvori').addEventListener('click', () => {
+      document.getElementById('nadogradnja-dijalog').close();
+    });
+    document.getElementById('nadogradnja-gumb-instaliraj').addEventListener('click', primijeniNadogradnju);
+
     document.getElementById('potvrda-dijalog').addEventListener('close', async (e) => {
       const dijalog = e.currentTarget;
       const odluka = dijalog.returnValue;
@@ -1616,6 +2000,7 @@
     ucitajPokretace();
     ucitajSnimke();
     ucitajAerials();
+    provjeriNadogradnju(false);
   </script>
 </body>
 </html>

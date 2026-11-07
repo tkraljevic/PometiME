@@ -31,6 +31,10 @@ type zahtjevOptimizacije struct {
 	Akcija string `json:"action"`
 }
 
+type zahtjevPrimjeneNadogradnje struct {
+	DownloadURL string `json:"download_url"`
+}
+
 type odgovorGreske struct {
 	Greska string `json:"error"`
 }
@@ -48,11 +52,13 @@ func NoviPosluzitelj(p cistac.Postavke) *Posluzitelj {
 	mux.HandleFunc("GET /api/pokretaci", pos.obradiPokretace)
 	mux.HandleFunc("GET /api/snimke", pos.obradiSnimke)
 	mux.HandleFunc("GET /api/aerials", pos.obradiAerials)
+	mux.HandleFunc("GET /api/nadogradnja", pos.obradiProvjeruNadogradnje)
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
 	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
 	mux.HandleFunc("POST /api/deinstaliraj", pos.obradiDeinstaliraj)
 	mux.HandleFunc("POST /api/optimiziraj", pos.obradiOptimiziraj)
+	mux.HandleFunc("POST /api/nadogradnja/primijeni", pos.obradiPrimjenuNadogradnje)
 	return pos
 }
 
@@ -146,6 +152,31 @@ func (p *Posluzitelj) obradiSnimke(w http.ResponseWriter, _ *http.Request) {
 func (p *Posluzitelj) obradiAerials(w http.ResponseWriter, _ *http.Request) {
 	info := cistac.SkenirajZracnePozadine(p.postavke)
 	posluziJSON(w, http.StatusOK, info)
+}
+
+func (p *Posluzitelj) obradiProvjeruNadogradnje(w http.ResponseWriter, _ *http.Request) {
+	info, err := cistac.ProvjeriNadogradnju()
+	if err != nil {
+		posluziJSON(w, http.StatusBadGateway, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, info)
+}
+
+func (p *Posluzitelj) obradiPrimjenuNadogradnje(w http.ResponseWriter, r *http.Request) {
+	var zah zahtjevPrimjeneNadogradnje
+	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za nadogradnju."})
+		return
+	}
+	if err := cistac.PrimijeniNadogradnju(zah.DownloadURL); err != nil {
+		posluziJSON(w, http.StatusInternalServerError, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "PometiME je uspješno ažuriran na najnoviju verziju. Pokrenite aplikaciju ponovno.",
+	})
 }
 
 func posluziJSON(w http.ResponseWriter, status int, podaci any) {

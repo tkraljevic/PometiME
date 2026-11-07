@@ -21,6 +21,15 @@ var (
 	}
 )
 
+// PostaviPokretacNaredbiZaTest omogućuje zamjenu izvršavanja sistemskih naredbi u testovima.
+func PostaviPokretacNaredbiZaTest(fn func(name string, args ...string) error) func() {
+	stara := pokreniNaredbu
+	pokreniNaredbu = fn
+	return func() {
+		pokreniNaredbu = stara
+	}
+}
+
 // SkenirajPokretace pronalazi LaunchAgente korisnika i sustava te provjerava postojanje njihovih programa.
 func SkenirajPokretace(p Postavke) []PokretacSustava {
 	var svi []PokretacSustava

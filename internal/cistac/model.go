@@ -113,6 +113,18 @@ type InformacijeZracnihPozadina struct {
 	PostojiMapa bool   `json:"folder_exists"`
 }
 
+// InformacijeONadogradnji opisuje stanje verzije i dostupnost novog izdanja na GitHubu.
+type InformacijeONadogradnji struct {
+	TrenutnaInacica      string `json:"current_version"`
+	NajnovijaInacica     string `json:"latest_version"`
+	ImaNadogradnju       bool   `json:"has_update"`
+	NazivIzdanja         string `json:"release_name"`
+	Biljeske             string `json:"release_notes"`
+	Poveznica            string `json:"html_url"`
+	PoveznicaPreuzimanja string `json:"download_url"`
+	VelicinaBajta        int64  `json:"download_size"`
+}
+
 // RezultatCiscenja opisuje ishod premještanja u Koš ili povrata odabranih putanja.
 type RezultatCiscenja struct {
 	ObrisanoStavki  int         `json:"removed_count"`
