@@ -113,23 +113,45 @@ func izdvojiNaziveSnimaka(tekst string) []string {
 }
 
 // IzvrsiOptimizaciju pokreće odabranu radnju održavanja i ubrzanja sustava macOS-a.
-func IzvrsiOptimizaciju(vrsta string) (string, error) {
+func IzvrsiOptimizaciju(p Postavke, vrsta string) (string, error) {
 	switch vrsta {
 	case "dns":
-		if err := pokreniNaredbu("dscacheutil", "-flushcache"); err != nil {
-			return "", fmt.Errorf("pražnjenje DNS predmemorije: %w", err)
-		}
-		return "DNS predmemorija je uspješno očišćena i osvježena.", nil
+		return izvrsiDnsOptimizaciju()
 	case "quicklook":
-		_ = pokreniNaredbu("qlmanage", "-r", "cache") // reset predmemorije pregleda ne ruši sustav
-		_ = pokreniNaredbu("qlmanage", "-r")          // ponovno pokretanje demona pregleda
-		return "QuickLook međuspremnik i ikone Finder-a su uspješno osvježeni.", nil
+		return izvrsiQuicklookOptimizaciju()
 	case "snapshots":
-		if err := pokreniNaredbu("tmutil", "thinlocalsnapshots", "/", "999999999999", "4"); err != nil {
-			return "", fmt.Errorf("oslobađanje Time Machine snimaka: %w", err)
-		}
-		return "Lokalne APFS Time Machine snimke su uspješno pročišćene i oslobođene.", nil
+		return izvrsiSnapshotsOptimizaciju()
+	case "aerials":
+		return OcistiZracnePozadine(p)
+	case "otvori_aerials":
+		return otvoriMapuAerials()
 	default:
 		return "", fmt.Errorf("nepoznata radnja optimizacije: %s", vrsta)
 	}
+}
+
+func izvrsiDnsOptimizaciju() (string, error) {
+	if err := pokreniNaredbu("dscacheutil", "-flushcache"); err != nil {
+		return "", fmt.Errorf("pražnjenje DNS predmemorije: %w", err)
+	}
+	return "DNS predmemorija je uspješno očišćena i osvježena.", nil
+}
+
+func izvrsiQuicklookOptimizaciju() (string, error) {
+	_ = pokreniNaredbu("qlmanage", "-r", "cache") // reset predmemorije pregleda ne ruši sustav
+	_ = pokreniNaredbu("qlmanage", "-r")          // ponovno pokretanje demona pregleda
+	return "QuickLook međuspremnik i ikone Finder-a su uspješno osvježeni.", nil
+}
+
+func izvrsiSnapshotsOptimizaciju() (string, error) {
+	if err := pokreniNaredbu("tmutil", "thinlocalsnapshots", "/", "999999999999", "4"); err != nil {
+		return "", fmt.Errorf("oslobađanje Time Machine snimaka: %w", err)
+	}
+	return "Lokalne APFS Time Machine snimke su uspješno pročišćene i oslobođene.", nil
+}
+
+func otvoriMapuAerials() (string, error) {
+	mapa := filepath.Join(korijenSustavskeKnjiznice, "Application Support", "com.apple.idleassetsd", "Customer")
+	_ = pokreniNaredbu("open", mapa) // otvaranje mape u Finderu
+	return "Mapa zračnih pozadina je otvorena u Finderu.", nil
 }

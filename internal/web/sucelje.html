@@ -702,6 +702,7 @@
       aplikacije: null,
       pokretaci: [],
       snimke: [],
+      aerials: null,
       kos: [],
       odabranePutanje: new Map(),
       filterTekst: '',
@@ -1158,7 +1159,52 @@
       });
       tmKarta.append(tmBody, tmGumb);
 
-      grid.append(dnsKarta, qlKarta, tmKarta);
+      // Kartica 4: 4K Zračne pozadine i čuvari zaslona (Aerials)
+      const aerKarta = document.createElement('div');
+      aerKarta.className = 'opt-card';
+      const aerBody = document.createElement('div');
+      aerBody.className = 'opt-card-body';
+      const aerNaslov = document.createElement('h4');
+      aerNaslov.textContent = '4K Zračne Pozadine i Čuvari (Aerials)';
+      const aerOpis = document.createElement('p');
+      aerOpis.textContent = 'macOS Sonoma i Sequoia preuzimaju 4K videozapise iz zraka (često 40+ GB) i ne čiste ih automatski. Ovdje možete osloboditi prostor.';
+      const aerInfo = document.createElement('div');
+      aerInfo.style.fontSize = '0.78rem';
+      aerInfo.style.color = 'var(--text-muted)';
+      aerInfo.style.marginTop = '6px';
+      const ae = stanje.aerials || { total_bytes: 0, video_count: 0 };
+      if (ae.total_bytes > 0 || ae.video_count > 0) {
+        aerInfo.textContent = 'Pronađeno: ' + uzBrojHR(ae.video_count, 'videozapis', 'videozapisa', 'videozapisa') +
+          ' (' + formatirajBajte(ae.total_bytes) + ')';
+      } else {
+        aerInfo.textContent = 'Pronađeno: 0 B (Nema preuzetih 4K snimaka)';
+      }
+      aerBody.append(aerNaslov, aerOpis, aerInfo);
+
+      const gumbiRed = document.createElement('div');
+      gumbiRed.style.display = 'flex';
+      gumbiRed.style.gap = '8px';
+      gumbiRed.style.flexWrap = 'wrap';
+
+      const gumbOcistiAer = document.createElement('button');
+      gumbOcistiAer.type = 'button';
+      gumbOcistiAer.className = 'btn btn-primary';
+      gumbOcistiAer.textContent = 'Očisti 4K pozadine';
+      gumbOcistiAer.addEventListener('click', async () => {
+        await pokreniOptimizaciju('aerials');
+        await ucitajAerials();
+      });
+
+      const gumbOtvoriAer = document.createElement('button');
+      gumbOtvoriAer.type = 'button';
+      gumbOtvoriAer.className = 'btn';
+      gumbOtvoriAer.textContent = 'Prikaži u Finderu';
+      gumbOtvoriAer.addEventListener('click', () => pokreniOptimizaciju('otvori_aerials'));
+
+      gumbiRed.append(gumbOcistiAer, gumbOtvoriAer);
+      aerKarta.append(aerBody, gumbiRed);
+
+      grid.append(dnsKarta, qlKarta, tmKarta, aerKarta);
       sekcijaOsvjezenje.appendChild(grid);
       spremnik.appendChild(sekcijaOsvjezenje);
 
@@ -1361,6 +1407,18 @@
       }
     }
 
+    async function ucitajAerials() {
+      try {
+        const odg = await fetch('/api/aerials');
+        stanje.aerials = await odg.json();
+        if (stanje.aktivniTab === 'optimizacija') {
+          iscrtajOptimizaciju();
+        }
+      } catch (err) {
+        prikaziPoruku('Greška pri dohvaćanju 4K pozadina: ' + err.message);
+      }
+    }
+
     async function pokreniOptimizaciju(akcija) {
       try {
         prikaziPoruku('Izvršavam optimizaciju: ' + akcija + '...');
@@ -1510,6 +1568,7 @@
             ucitajPokretace();
           }
           ucitajSnimke();
+          ucitajAerials();
         }
         iscrtajPogled();
       });
@@ -1526,6 +1585,7 @@
       ucitajKos();
       ucitajPokretace();
       ucitajSnimke();
+      ucitajAerials();
     });
 
     document.getElementById('gumb-oznaci-preporuceno').addEventListener('click', () => {
@@ -1555,6 +1615,7 @@
     ucitajKos();
     ucitajPokretace();
     ucitajSnimke();
+    ucitajAerials();
   </script>
 </body>
 </html>

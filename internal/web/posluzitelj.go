@@ -47,6 +47,7 @@ func NoviPosluzitelj(p cistac.Postavke) *Posluzitelj {
 	mux.HandleFunc("GET /api/aplikacije", pos.obradiAplikacije)
 	mux.HandleFunc("GET /api/pokretaci", pos.obradiPokretace)
 	mux.HandleFunc("GET /api/snimke", pos.obradiSnimke)
+	mux.HandleFunc("GET /api/aerials", pos.obradiAerials)
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
 	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
@@ -126,7 +127,7 @@ func (p *Posluzitelj) obradiOptimiziraj(w http.ResponseWriter, r *http.Request) 
 		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za optimizaciju."})
 		return
 	}
-	poruka, err := cistac.IzvrsiOptimizaciju(zah.Akcija)
+	poruka, err := cistac.IzvrsiOptimizaciju(p.postavke, zah.Akcija)
 	if err != nil {
 		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: err.Error()})
 		return
@@ -140,6 +141,11 @@ func (p *Posluzitelj) obradiSnimke(w http.ResponseWriter, _ *http.Request) {
 		snimke = []string{}
 	}
 	posluziJSON(w, http.StatusOK, snimke)
+}
+
+func (p *Posluzitelj) obradiAerials(w http.ResponseWriter, _ *http.Request) {
+	info := cistac.SkenirajZracnePozadine(p.postavke)
+	posluziJSON(w, http.StatusOK, info)
 }
 
 func posluziJSON(w http.ResponseWriter, status int, podaci any) {

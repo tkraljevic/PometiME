@@ -209,4 +209,16 @@ func TestAPIOcistiIDeinstaliraj(t *testing.T) {
 	if err := json.Unmarshal(odgSnimke.Body.Bytes(), &popisSnimaka); err != nil {
 		t.Errorf("greška pri dekodiranju /api/snimke: %v", err)
 	}
+
+	// Provjera /api/aerials
+	zahAer := httptest.NewRequest(http.MethodGet, "/api/aerials", nil)
+	odgAer := httptest.NewRecorder()
+	pos.ServeHTTP(odgAer, zahAer)
+	if odgAer.Code != http.StatusOK {
+		t.Errorf("očekivan 200 za /api/aerials, dobiveno %d", odgAer.Code)
+	}
+	var infoAer cistac.InformacijeZracnihPozadina
+	if err := json.Unmarshal(odgAer.Body.Bytes(), &infoAer); err != nil {
+		t.Errorf("greška pri dekodiranju /api/aerials: %v", err)
+	}
 }

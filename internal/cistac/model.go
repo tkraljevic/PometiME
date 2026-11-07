@@ -105,6 +105,14 @@ type RezultatOptimizacije struct {
 	Poruka string `json:"message"`
 }
 
+// InformacijeZracnihPozadina opisuje veličinu i broj preuzetih 4K video snimaka za pozadine i screensavere.
+type InformacijeZracnihPozadina struct {
+	UkupnoBajta int64  `json:"total_bytes"`
+	BrojVidea   int    `json:"video_count"`
+	Putanja     string `json:"path"`
+	PostojiMapa bool   `json:"folder_exists"`
+}
+
 // RezultatCiscenja opisuje ishod premještanja u Koš ili povrata odabranih putanja.
 type RezultatCiscenja struct {
 	ObrisanoStavki  int         `json:"removed_count"`

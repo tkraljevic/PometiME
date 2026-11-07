@@ -356,16 +356,19 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	}
 
 	// Test optimizacije
-	if _, err := IzvrsiOptimizaciju("dns"); err != nil {
+	if _, err := IzvrsiOptimizaciju(p, "dns"); err != nil {
 		t.Errorf("greška pri izvršavanju dns optimizacije: %v", err)
 	}
-	if _, err := IzvrsiOptimizaciju("quicklook"); err != nil {
+	if _, err := IzvrsiOptimizaciju(p, "quicklook"); err != nil {
 		t.Errorf("greška pri izvršavanju quicklook optimizacije: %v", err)
 	}
-	if _, err := IzvrsiOptimizaciju("snapshots"); err != nil {
+	if _, err := IzvrsiOptimizaciju(p, "snapshots"); err != nil {
 		t.Errorf("greška pri izvršavanju snapshots optimizacije: %v", err)
 	}
-	if _, err := IzvrsiOptimizaciju("nepoznato"); err == nil {
+	if _, err := IzvrsiOptimizaciju(p, "otvori_aerials"); err != nil {
+		t.Errorf("greška pri otvori_aerials optimizaciji: %v", err)
+	}
+	if _, err := IzvrsiOptimizaciju(p, "nepoznato"); err == nil {
 		t.Errorf("očekivana greška za nepoznatu optimizaciju")
 	}
 
@@ -394,10 +397,75 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	pokreniNaredbu = func(name string, args ...string) error {
 		return fmt.Errorf("simulirana greška")
 	}
-	if _, err := IzvrsiOptimizaciju("dns"); err == nil {
+	if _, err := IzvrsiOptimizaciju(p, "dns"); err == nil {
 		t.Errorf("očekivana greška pri simuliranom padu naredbe")
 	}
-	if _, err := IzvrsiOptimizaciju("snapshots"); err == nil {
+	if _, err := IzvrsiOptimizaciju(p, "snapshots"); err == nil {
 		t.Errorf("očekivana greška pri simuliranom padu snapshots naredbe")
+	}
+}
+
+func TestZracnePozadine(t *testing.T) {
+	dom := t.TempDir()
+	sysLib := t.TempDir()
+	stariSysLib := korijenSustavskeKnjiznice
+	korijenSustavskeKnjiznice = sysLib
+	defer func() { korijenSustavskeKnjiznice = stariSysLib }()
+
+	p := Postavke{KorijenKorisnika: dom, KorijenAplikacija: t.TempDir()}
+
+	// 1. Prazno stanje
+	infoPrazno := SkenirajZracnePozadine(p)
+	if infoPrazno.BrojVidea != 0 || infoPrazno.UkupnoBajta != 0 {
+		t.Errorf("očekivano 0 videa i 0 bajta, dobiveno %d (%d)", infoPrazno.BrojVidea, infoPrazno.UkupnoBajta)
+	}
+
+	porukaPrazno, err := OcistiZracnePozadine(p)
+	if err != nil || !strings.Contains(porukaPrazno, "Nema preuzetih") {
+		t.Errorf("očekivana poruka za prazno stanje, dobiveno %s (%v)", porukaPrazno, err)
+	}
+
+	// 2. Kreiranje datoteka u Customer mapi i korisničkoj mapi
+	mapaCustomer := filepath.Join(sysLib, "Application Support", "com.apple.idleassetsd", "Customer", "4KSDR240FPS")
+	video1 := filepath.Join(mapaCustomer, "video1.mov")
+	video2 := filepath.Join(mapaCustomer, "video2.MOV")
+	bundleTxt := filepath.Join(sysLib, "Application Support", "com.apple.idleassetsd", "Customer", "TVIdleScreenStrings.bundle", "strings.plist")
+	napraviDatoteku(t, video1, 1000)
+	napraviDatoteku(t, video2, 2000)
+	napraviDatoteku(t, bundleTxt, 500)
+
+	userCache := filepath.Join(dom, "Library", "Containers", "com.apple.wallpaper.agent", "Data", "Library", "Caches", "com.apple.wallpaper.caches", "cached.bin")
+	napraviDatoteku(t, userCache, 300)
+
+	infoPuno := SkenirajZracnePozadine(p)
+	if infoPuno.BrojVidea != 2 {
+		t.Errorf("očekivana 2 videa, dobiveno %d", infoPuno.BrojVidea)
+	}
+	if infoPuno.UkupnoBajta != 3300 {
+		t.Errorf("očekivano 3300 bajta (3000 videa + 300 user cache), dobiveno %d", infoPuno.UkupnoBajta)
+	}
+
+	// 3. Test čišćenja
+	porukaOcisceno, err := IzvrsiOptimizaciju(p, "aerials")
+	if err != nil || !strings.Contains(porukaOcisceno, "uspješno očišćeni") {
+		t.Errorf("očekivan uspjeh čišćenja aerials, dobiveno %s (%v)", porukaOcisceno, err)
+	}
+
+	// 4. Test greške pri administratorskom brisanju
+	napraviDatoteku(t, video1, 1000)
+	staraNaredba := pokreniNaredbu
+	defer func() { pokreniNaredbu = staraNaredba }()
+
+	// Simuliraj da os.Remove baci grešku tako da uđe u AppleScript granu
+	_ = os.Chmod(filepath.Dir(video1), 0o555) // simulacija nedostatka prava pisanja u testu
+	defer func() {
+		_ = os.Chmod(filepath.Dir(video1), 0o755) // vraćanje prava nakon testa
+	}()
+
+	pokreniNaredbu = func(name string, args ...string) error {
+		return fmt.Errorf("odbijena administratorska dozvola")
+	}
+	if _, err := OcistiZracnePozadine(p); err == nil {
+		t.Errorf("očekivana greška pri odbijanju administratorske dozvole")
 	}
 }
