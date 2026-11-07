@@ -294,34 +294,34 @@ func prikupiKandidateMailDownloads(mapaMail string) []kandidatCiscenja {
 	return izlaz
 }
 
-// SkenirajSve izvršava cjeloviti pregled diska, predmemorije, razvojnih alata i ostataka aplikacija.
+// SkenirajSve izvršava cjeloviti pregled diska, predmemorije, razvojnih alata, ostataka i instalacija.
 func SkenirajSve(p Postavke) IzvjestajSkeniranja {
 	disk := DohvatiStanjeDiska(p.KorijenKorisnika)
 	predmemorija := SkenirajPredmemoriju(p)
 	razvojni := SkenirajRazvojneAlate(p)
 	ostaci := SkenirajOstatke(p)
 	kopije := SkenirajKopijeIPrivike(p)
+	instalacije := SkenirajInstalacije(p)
 
-	var ukupno int64
-	for _, s := range predmemorija {
-		ukupno += s.VelicinaBajta
-	}
-	for _, s := range razvojni {
-		ukupno += s.VelicinaBajta
-	}
-	for _, s := range ostaci {
-		ukupno += s.VelicinaBajta
-	}
-	for _, s := range kopije {
-		ukupno += s.VelicinaBajta
-	}
+	ukupno := zbrojiStavke(predmemorija, razvojni, ostaci, kopije, instalacije)
 
 	return IzvjestajSkeniranja{
-		Disk:                disk,
-		PredmemorijaSustava: predmemorija,
-		RazvojniAlati:       razvojni,
-		OstaciAplikacija:    ostaci,
-		KopijeIPrivici:      kopije,
-		UkupnoZaOsloboditi:  ukupno,
+		Disk:                  disk,
+		PredmemorijaSustava:   predmemorija,
+		RazvojniAlati:         razvojni,
+		OstaciAplikacija:      ostaci,
+		KopijeIPrivici:        kopije,
+		InstalacijskeDatoteke: instalacije,
+		UkupnoZaOsloboditi:    ukupno,
 	}
+}
+
+func zbrojiStavke(liste ...[]StavkaCiscenja) int64 {
+	var ukupno int64
+	for _, lista := range liste {
+		for _, s := range lista {
+			ukupno += s.VelicinaBajta
+		}
+	}
+	return ukupno
 }

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestZadanePostavkeIModel(t *testing.T) {
@@ -20,6 +21,9 @@ func TestZadanePostavkeIModel(t *testing.T) {
 	}
 	if p.KorijenAplikacija != "/Applications" {
 		t.Fatalf("očekivan /Applications, dobiveno %s", p.KorijenAplikacija)
+	}
+	if p.NajmanjaVelicinaInstalacija != 1024*1024 {
+		t.Fatalf("očekivana najmanja veličina instalacija 1MB, dobiveno %d", p.NajmanjaVelicinaInstalacija)
 	}
 
 	slucajevi := []struct {
@@ -82,6 +86,7 @@ func TestJeSigurnaPutanja(t *testing.T) {
 		filepath.Join(dom, "Library", "Caches", "com.nekialat"),
 		filepath.Join(dom, "Library", "Logs", "nekialat.log"),
 		filepath.Join(dom, ".claude", "projects", "moj-projekt", "sesija-1", "subagents"),
+		filepath.Join(dom, "Downloads", "program.dmg"),
 		filepath.Join(apps, "NekaApp.app"),
 	}
 	for _, s := range sigurne {
@@ -98,6 +103,7 @@ func TestJeSigurnaPutanja(t *testing.T) {
 		dom,
 		apps,
 		filepath.Join(dom, "Library", "Caches"),
+		filepath.Join(dom, "Downloads"),
 		filepath.Join(dom, "Documents", "vazno.txt"),
 		filepath.Join(dom, ".claude", "projects", "moj-projekt", "memory"),
 		filepath.Join(dom, ".claude", "projects", "moj-projekt", "memory", "MEMORY.md"),
@@ -167,6 +173,7 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 		NajmanjaVelicinaRazvojnih:    100,
 		NajmanjaVelicinaOstataka:     100,
 		NajmanjaVelicinaKopija:       100,
+		NajmanjaVelicinaInstalacija:  100,
 	}
 
 	// 1. Predmemorija i logovi
@@ -211,6 +218,12 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Containers", "com.apple.mail", "Data", "Library", "Mail Downloads", "izvjestaj.pdf"), 750)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Containers", "com.apple.mail", "Data", "Library", "Mail Downloads", ".skriveni.pdf"), 750)
 
+	// 5. Stari instaleri u Downloads
+	installerPath := filepath.Join(dom, "Downloads", "program.dmg")
+	napraviDatoteku(t, installerPath, 850)
+	stariDatum := time.Now().Add(-10 * 24 * time.Hour)
+	_ = os.Chtimes(installerPath, stariDatum, stariDatum) // simulacija starosti datoteke
+
 	// Skeniranje nad nepostojećim mapama
 	_ = SkenirajSve(Postavke{KorijenKorisnika: filepath.Join(dom, "nepostoji"), KorijenAplikacija: filepath.Join(apps, "nepostoji")})
 
@@ -226,6 +239,9 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 	}
 	if len(izvj.KopijeIPrivici) != 2 {
 		t.Fatalf("očekivane 2 stavke kopija i privitaka, dobiveno %d", len(izvj.KopijeIPrivici))
+	}
+	if len(izvj.InstalacijskeDatoteke) != 1 {
+		t.Fatalf("očekivana 1 stavka instalacijskih datoteka, dobiveno %d", len(izvj.InstalacijskeDatoteke))
 	}
 	if skratiIdentifikator("kratko") != "kratko" {
 		t.Errorf("očekivan nepromijenjen kratki identifikator")
@@ -816,5 +832,96 @@ func TestPrimijeniNadogradnju(t *testing.T) {
 	}
 	if err := raspakirajJedanUnos(rBad.File[0], t.TempDir()); err == nil {
 		t.Errorf("očekivana greška za nepodržanu zip kompresiju")
+	}
+}
+
+func TestSkenirajInstalacije(t *testing.T) {
+	if !jeInstalacijskaDatoteka("program.dmg") || !jeInstalacijskaDatoteka("alat.pkg") ||
+		!jeInstalacijskaDatoteka("sustav.iso") || !jeInstalacijskaDatoteka("xcode.xip") {
+		t.Errorf("očekivano prepoznavanje instalacijskih formata")
+	}
+	if jeInstalacijskaDatoteka("dokument.pdf") || jeInstalacijskaDatoteka("slika.png") {
+		t.Errorf("neočekivano prepoznavanje neinstalacijskih formata")
+	}
+
+	opisDanas, recDanas := opisInstalacije("app.dmg", 0)
+	if recDanas || !strings.Contains(opisDanas, "danas") {
+		t.Errorf("neočekivan opis za današnju datoteku: %s, %v", opisDanas, recDanas)
+	}
+	opisJucer, recJucer := opisInstalacije("app.pkg", 2)
+	if recJucer || !strings.Contains(opisJucer, "prije 2 dana") {
+		t.Errorf("neočekivan opis za datoteku staru 2 dana: %s, %v", opisJucer, recJucer)
+	}
+	opisStara, recStara := opisInstalacije("app.iso", 14)
+	if !recStara || !strings.Contains(opisStara, "Preporučeno za uklanjanje") {
+		t.Errorf("neočekivan opis za staru datoteku: %s, %v", opisStara, recStara)
+	}
+
+	dom := t.TempDir()
+	p := Postavke{
+		KorijenKorisnika:            dom,
+		NajmanjaVelicinaInstalacija: 100,
+	}
+
+	if res := SkenirajInstalacije(p); res != nil {
+		t.Errorf("očekivan nil za nepostojeću Downloads mapu")
+	}
+
+	mapaDown := filepath.Join(dom, "Downloads")
+	stariDmg := filepath.Join(mapaDown, "stari.dmg")
+	noviPkg := filepath.Join(mapaDown, "novi.pkg")
+	maliIso := filepath.Join(mapaDown, "mali.iso")
+	skriveni := filepath.Join(mapaDown, ".skriveni.dmg")
+	podmapa := filepath.Join(mapaDown, "Podmapa.dmg")
+
+	napraviDatoteku(t, stariDmg, 500)
+	napraviDatoteku(t, noviPkg, 600)
+	napraviDatoteku(t, maliIso, 10) // premalo za prag od 100
+	napraviDatoteku(t, skriveni, 500)
+	if err := os.MkdirAll(podmapa, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	stariDatum := time.Now().Add(-14 * 24 * time.Hour)
+	_ = os.Chtimes(stariDmg, stariDatum, stariDatum) // postavljanje starog datuma
+
+	rez := SkenirajInstalacije(p)
+	if len(rez) != 2 {
+		t.Fatalf("očekivane 2 instalacijske stavke, dobiveno %d", len(rez))
+	}
+
+	var pronasaoStari, pronasaoNovi bool
+	for _, st := range rez {
+		if st.Putanja == stariDmg {
+			pronasaoStari = true
+			if !st.Preporuceno {
+				t.Errorf("stari .dmg trebao bi biti označen kao preporučen")
+			}
+		}
+		if st.Putanja == noviPkg {
+			pronasaoNovi = true
+			if st.Preporuceno {
+				t.Errorf("novi .pkg NE bi trebao biti označen kao preporučen")
+			}
+		}
+	}
+	if !pronasaoStari || !pronasaoNovi {
+		t.Errorf("nedostaje očekivana stavka među rezultatima: %+v", rez)
+	}
+
+	// 4. Test obradiUlazInstalacije kada je datoteka uklonjena prije dohvata Info
+	brisiDmg := filepath.Join(mapaDown, "brisi.dmg")
+	napraviDatoteku(t, brisiDmg, 100)
+	ulazi, err := os.ReadDir(mapaDown)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = os.Remove(brisiDmg) // simulacija uklanjanja datoteke u letu
+	for _, u := range ulazi {
+		if u.Name() == "brisi.dmg" {
+			if _, ok := obradiUlazInstalacije(mapaDown, u); ok {
+				t.Errorf("očekivano false za uklonjenu datoteku")
+			}
+		}
 	}
 }

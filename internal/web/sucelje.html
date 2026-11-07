@@ -842,6 +842,10 @@
         <span>Kopije i Privici</span>
         <span class="badge" id="badge-kopije">0 B</span>
       </button>
+      <button type="button" class="nav-btn" data-tab="instalacije">
+        <span>Stari Instaleri</span>
+        <span class="badge" id="badge-instalacije">0 B</span>
+      </button>
       <button type="button" class="nav-btn" data-tab="aplikacije">
         <span>Deinstalater Aplikacija</span>
         <span class="badge" id="badge-aplikacije">0</span>
@@ -1015,6 +1019,10 @@
         naslov: 'iOS Sigurnosne Kopije i Mail Privici',
         opis: 'Lokalne sigurnosne kopije iPhone/iPad uređaja (MobileSync/Backup) i lokalno preuzeti privici iz Apple Maila.'
       },
+      instalacije: {
+        naslov: 'Stari Instalacijski Paketi',
+        opis: 'Preuzeti .dmg, .pkg, .iso i .xip instaleri u mapi Preuzimanja (~/Downloads) koji više nisu potrebni.'
+      },
       aplikacije: {
         naslov: 'Deinstalater Aplikacija',
         opis: 'Potpuno premještanje aplikacija iz /Applications i ~/Applications zajedno s njihovim podacima u Koš za smeće.'
@@ -1060,7 +1068,8 @@
         ...(stanje.izvjestaj.system_caches || []),
         ...(stanje.izvjestaj.dev_ai_junk || []),
         ...(stanje.izvjestaj.leftovers || []),
-        ...(stanje.izvjestaj.backups_attachments || [])
+        ...(stanje.izvjestaj.backups_attachments || []),
+        ...(stanje.izvjestaj.installers || [])
       ];
     }
 
@@ -1077,6 +1086,8 @@
         izvor = stanje.izvjestaj.leftovers || [];
       } else if (stanje.aktivniTab === 'kopije') {
         izvor = stanje.izvjestaj.backups_attachments || [];
+      } else if (stanje.aktivniTab === 'instalacije') {
+        izvor = stanje.izvjestaj.installers || [];
       }
       const q = stanje.filterTekst.trim().toLowerCase();
       if (!q) return izvor;
@@ -1113,6 +1124,7 @@
         document.getElementById('badge-razvojni').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.dev_ai_junk));
         document.getElementById('badge-ostaci').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.leftovers));
         document.getElementById('badge-kopije').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.backups_attachments));
+        document.getElementById('badge-instalacije').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.installers));
       }
 
       if (stanje.pokretaci) {

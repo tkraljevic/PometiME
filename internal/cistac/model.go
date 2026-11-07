@@ -14,6 +14,7 @@ type Postavke struct {
 	NajmanjaVelicinaRazvojnih    int64
 	NajmanjaVelicinaOstataka     int64
 	NajmanjaVelicinaKopija       int64
+	NajmanjaVelicinaInstalacija  int64
 }
 
 // ZadanePostavke vraća standardne postavke za zadanu korisničku mapu na macOS-u.
@@ -25,6 +26,7 @@ func ZadanePostavke(korijenKorisnika string) Postavke {
 		NajmanjaVelicinaRazvojnih:    512 * 1024,
 		NajmanjaVelicinaOstataka:     256 * 1024,
 		NajmanjaVelicinaKopija:       512 * 1024,
+		NajmanjaVelicinaInstalacija:  1024 * 1024,
 	}
 }
 
@@ -69,12 +71,13 @@ type InstaliranaAplikacija struct {
 
 // IzvjestajSkeniranja objedinjuje stanje diska i sve pronađene kategorije za čišćenje.
 type IzvjestajSkeniranja struct {
-	Disk                StanjeDiska      `json:"disk"`
-	PredmemorijaSustava []StavkaCiscenja `json:"system_caches"`
-	RazvojniAlati       []StavkaCiscenja `json:"dev_ai_junk"`
-	OstaciAplikacija    []StavkaCiscenja `json:"leftovers"`
-	KopijeIPrivici      []StavkaCiscenja `json:"backups_attachments"`
-	UkupnoZaOsloboditi  int64            `json:"total_reclaimable_bytes"`
+	Disk                  StanjeDiska      `json:"disk"`
+	PredmemorijaSustava   []StavkaCiscenja `json:"system_caches"`
+	RazvojniAlati         []StavkaCiscenja `json:"dev_ai_junk"`
+	OstaciAplikacija      []StavkaCiscenja `json:"leftovers"`
+	KopijeIPrivici        []StavkaCiscenja `json:"backups_attachments"`
+	InstalacijskeDatoteke []StavkaCiscenja `json:"installers"`
+	UkupnoZaOsloboditi    int64            `json:"total_reclaimable_bytes"`
 }
 
 // StavkaKosa opisuje stavku premještenu u Koš za smeće s izvornom putanjom za povrat.
