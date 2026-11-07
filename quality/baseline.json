@@ -1,13 +1,13 @@
 {
   "schema": 1,
   "analyzer": "2",
-  "timestamp": "2026-11-07T18:48:41Z",
-  "commit": "18392ba36641be982706e71d4f6d704fb6d4a54f",
+  "timestamp": "2026-11-07T20:02:46Z",
+  "commit": "9a392d93b6404c3a34d717eaba2d725d0e89534b",
   "dirty": false,
   "platform": "darwin/arm64",
   "go_version": "go1.27.1",
   "config_hash": "02c8d8f5df86eef6e2af911baa2fdb4738957b0add91f83c8ad4c8d34e7b6f7a",
-  "source_hash": "cfa58e6adcafcd2169b8435307a3ec37321ae9ab8aa7540e3c17410df7359f07",
+  "source_hash": "ac1d5d9e9cf0922ddd9708be65e59bc716998a70072b03f718be1a64c87e20c3",
   "tests": "PASS",
   "race": "PASS",
   "measurements_status": "PASS",
@@ -19,14 +19,14 @@
     "findings": {}
   },
   "coverage": {
-    "statements": 644,
-    "covered": 619,
-    "percent": 96.11801242236025
+    "statements": 665,
+    "covered": 639,
+    "percent": 96.09022556390977
   },
   "critical_coverage": {
-    "statements": 530,
-    "covered": 514,
-    "percent": 96.98113207547169
+    "statements": 544,
+    "covered": 528,
+    "percent": 97.05882352941177
   },
   "packages": {
     "pometime/cmd/pometime": {
@@ -35,29 +35,29 @@
       "percent": 79.54545454545455
     },
     "pometime/internal/cistac": {
-      "statements": 531,
-      "covered": 515,
-      "percent": 96.98681732580037
+      "statements": 546,
+      "covered": 529,
+      "percent": 96.88644688644689
     },
     "pometime/internal/web": {
-      "statements": 69,
-      "covered": 69,
+      "statements": 75,
+      "covered": 75,
       "percent": 100
     }
   },
-  "average_crap": 2.904263065443186,
+  "average_crap": 2.907419228120883,
   "crap_distribution": {
     "median": 3,
     "p90": 5.018782870022539,
-    "p95": 5.1157407407407405,
-    "do_10": 88,
+    "p95": 5.150262960180315,
+    "do_10": 91,
     "od_10_do_30": 0,
     "od_30_do_100": 0,
     "preko_100": 0
   },
   "max_crap": 6.967930029154518,
   "worst_crap_function": "internal/cistac/kos.go::vratiJednuStavkuIzKosa",
-  "average_complexity": 2.8295454545454546,
+  "average_complexity": 2.8351648351648353,
   "max_complexity": 6,
   "functions": [
     {
@@ -784,8 +784,8 @@
       "id": "internal/cistac/pokretaci.go::SkenirajPokretace",
       "file": "internal/cistac/pokretaci.go",
       "name": "SkenirajPokretace",
-      "line": 22,
-      "end_line": 34,
+      "line": 25,
+      "end_line": 37,
       "complexity": 2,
       "coverage": {
         "statements": 12,
@@ -800,8 +800,8 @@
       "id": "internal/cistac/pokretaci.go::prikupiPokretaceIzMape",
       "file": "internal/cistac/pokretaci.go",
       "name": "prikupiPokretaceIzMape",
-      "line": 36,
-      "end_line": 50,
+      "line": 39,
+      "end_line": 53,
       "complexity": 4,
       "coverage": {
         "statements": 10,
@@ -816,8 +816,8 @@
       "id": "internal/cistac/pokretaci.go::obradiJedanPokretac",
       "file": "internal/cistac/pokretaci.go",
       "name": "obradiJedanPokretac",
-      "line": 52,
-      "end_line": 69,
+      "line": 55,
+      "end_line": 72,
       "complexity": 2,
       "coverage": {
         "statements": 6,
@@ -832,8 +832,8 @@
       "id": "internal/cistac/pokretaci.go::izvuciIzvrsnuPutanju",
       "file": "internal/cistac/pokretaci.go",
       "name": "izvuciIzvrsnuPutanju",
-      "line": 71,
-      "end_line": 79,
+      "line": 74,
+      "end_line": 82,
       "complexity": 3,
       "coverage": {
         "statements": 5,
@@ -848,8 +848,8 @@
       "id": "internal/cistac/pokretaci.go::odrediStatusPokretaca",
       "file": "internal/cistac/pokretaci.go",
       "name": "odrediStatusPokretaca",
-      "line": 81,
-      "end_line": 89,
+      "line": 84,
+      "end_line": 92,
       "complexity": 3,
       "coverage": {
         "statements": 5,
@@ -861,20 +861,52 @@
       "tokens": 49
     },
     {
+      "id": "internal/cistac/pokretaci.go::PopisLokalnihSnimaka",
+      "file": "internal/cistac/pokretaci.go",
+      "name": "PopisLokalnihSnimaka",
+      "line": 95,
+      "end_line": 101,
+      "complexity": 2,
+      "coverage": {
+        "statements": 4,
+        "covered": 4,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": true,
+      "tokens": 35
+    },
+    {
+      "id": "internal/cistac/pokretaci.go::izdvojiNaziveSnimaka",
+      "file": "internal/cistac/pokretaci.go",
+      "name": "izdvojiNaziveSnimaka",
+      "line": 103,
+      "end_line": 113,
+      "complexity": 3,
+      "coverage": {
+        "statements": 7,
+        "covered": 7,
+        "percent": 100
+      },
+      "crap": 3,
+      "critical": true,
+      "tokens": 63
+    },
+    {
       "id": "internal/cistac/pokretaci.go::IzvrsiOptimizaciju",
       "file": "internal/cistac/pokretaci.go",
       "name": "IzvrsiOptimizaciju",
-      "line": 92,
-      "end_line": 106,
-      "complexity": 4,
+      "line": 116,
+      "end_line": 135,
+      "complexity": 6,
       "coverage": {
-        "statements": 8,
-        "covered": 8,
+        "statements": 11,
+        "covered": 11,
         "percent": 100
       },
-      "crap": 4,
+      "crap": 6,
       "critical": true,
-      "tokens": 86
+      "tokens": 128
     },
     {
       "id": "internal/cistac/sigurnost.go::DozvoljeniKorijeni",
@@ -1281,23 +1313,23 @@
       "file": "internal/web/posluzitelj.go",
       "name": "NoviPosluzitelj",
       "line": 39,
-      "end_line": 55,
+      "end_line": 56,
       "complexity": 1,
       "coverage": {
-        "statements": 24,
-        "covered": 24,
+        "statements": 26,
+        "covered": 26,
         "percent": 100
       },
       "crap": 1,
       "critical": false,
-      "tokens": 128
+      "tokens": 139
     },
     {
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).ServeHTTP",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).ServeHTTP",
-      "line": 58,
-      "end_line": 60,
+      "line": 59,
+      "end_line": 61,
       "complexity": 1,
       "coverage": {
         "statements": 1,
@@ -1312,8 +1344,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).posluziSucelje",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).posluziSucelje",
-      "line": 62,
-      "end_line": 70,
+      "line": 63,
+      "end_line": 71,
       "complexity": 2,
       "coverage": {
         "statements": 6,
@@ -1328,8 +1360,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiSkeniraj",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiSkeniraj",
-      "line": 72,
-      "end_line": 75,
+      "line": 73,
+      "end_line": 76,
       "complexity": 1,
       "coverage": {
         "statements": 2,
@@ -1344,8 +1376,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiAplikacije",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiAplikacije",
-      "line": 77,
-      "end_line": 80,
+      "line": 78,
+      "end_line": 81,
       "complexity": 1,
       "coverage": {
         "statements": 2,
@@ -1360,8 +1392,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiPokretace",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiPokretace",
-      "line": 82,
-      "end_line": 85,
+      "line": 83,
+      "end_line": 86,
       "complexity": 1,
       "coverage": {
         "statements": 2,
@@ -1376,8 +1408,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiKos",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiKos",
-      "line": 87,
-      "end_line": 90,
+      "line": 88,
+      "end_line": 91,
       "complexity": 1,
       "coverage": {
         "statements": 2,
@@ -1392,8 +1424,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiOcisti",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiOcisti",
-      "line": 92,
-      "end_line": 100,
+      "line": 93,
+      "end_line": 101,
       "complexity": 2,
       "coverage": {
         "statements": 6,
@@ -1408,8 +1440,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiVrati",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiVrati",
-      "line": 102,
-      "end_line": 110,
+      "line": 103,
+      "end_line": 111,
       "complexity": 2,
       "coverage": {
         "statements": 6,
@@ -1424,8 +1456,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiDeinstaliraj",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiDeinstaliraj",
-      "line": 112,
-      "end_line": 120,
+      "line": 113,
+      "end_line": 121,
       "complexity": 2,
       "coverage": {
         "statements": 6,
@@ -1440,8 +1472,8 @@
       "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiOptimiziraj",
       "file": "internal/web/posluzitelj.go",
       "name": "(*Posluzitelj).obradiOptimiziraj",
-      "line": 122,
-      "end_line": 134,
+      "line": 123,
+      "end_line": 135,
       "complexity": 3,
       "coverage": {
         "statements": 9,
@@ -1453,11 +1485,27 @@
       "tokens": 113
     },
     {
+      "id": "internal/web/posluzitelj.go::(*Posluzitelj).obradiSnimke",
+      "file": "internal/web/posluzitelj.go",
+      "name": "(*Posluzitelj).obradiSnimke",
+      "line": 137,
+      "end_line": 143,
+      "complexity": 2,
+      "coverage": {
+        "statements": 4,
+        "covered": 4,
+        "percent": 100
+      },
+      "crap": 2,
+      "critical": false,
+      "tokens": 37
+    },
+    {
       "id": "internal/web/posluzitelj.go::posluziJSON",
       "file": "internal/web/posluzitelj.go",
       "name": "posluziJSON",
-      "line": 136,
-      "end_line": 140,
+      "line": 145,
+      "end_line": 149,
       "complexity": 1,
       "coverage": {
         "statements": 3,
@@ -1472,13 +1520,13 @@
   "exact_duplication": {
     "percent": 0,
     "duplicated_tokens": 0,
-    "total_tokens": 7342,
+    "total_tokens": 7530,
     "pairs": null
   },
   "fuzzy_duplication": {
     "percent": 0,
     "duplicated_tokens": 0,
-    "total_tokens": 7342,
+    "total_tokens": 7530,
     "pairs": null
   },
   "mutation_score": null,
