@@ -4,6 +4,8 @@
 
 **PometiME** je nativna macOS aplikacija napisana u Go-u i Cocoa/WebKit-u za sigurno čišćenje diska, razvojnih i AI predmemorija te potpunu deinstalaciju aplikacija s njihovim ostacima u `~/Library`.
 
+![PometiME macOS Sučelje](docs/screenshot.png)
+
 ## Značajke
 
 - **Pregled i Brzo Čišćenje:** Prikaz slobodnog prostora na disku i preporučene stavke za sigurno oslobađanje prostora.
