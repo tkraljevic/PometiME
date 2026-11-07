@@ -1,13 +1,13 @@
 {
   "schema": 1,
   "analyzer": "2",
-  "timestamp": "2026-11-07T22:08:43Z",
-  "commit": "6e43ab2f114f600e6a182d4b8f1e6dc990c2a7a0",
+  "timestamp": "2026-11-07T22:25:53Z",
+  "commit": "2b162e2152fe3cf0c7286e30116d9d121b95f688",
   "dirty": false,
   "platform": "darwin/arm64",
   "go_version": "go1.27.1",
   "config_hash": "02c8d8f5df86eef6e2af911baa2fdb4738957b0add91f83c8ad4c8d34e7b6f7a",
-  "source_hash": "172c9fc9bfa368c3fcae2f960352981c3afcc9fff879dd047218dfd08e0f4a05",
+  "source_hash": "a8c3e6e65579397f89efe2b4e4cff7c48bebb7aaa7d67134bdb010858c0e5a2f",
   "tests": "PASS",
   "race": "PASS",
   "measurements_status": "PASS",
@@ -19,14 +19,14 @@
     "findings": {}
   },
   "coverage": {
-    "statements": 903,
-    "covered": 874,
-    "percent": 96.78848283499447
+    "statements": 939,
+    "covered": 910,
+    "percent": 96.91160809371672
   },
   "critical_coverage": {
-    "statements": 760,
-    "covered": 742,
-    "percent": 97.63157894736842
+    "statements": 796,
+    "covered": 778,
+    "percent": 97.73869346733669
   },
   "packages": {
     "pometime/cmd/pometime": {
@@ -35,9 +35,9 @@
       "percent": 79.54545454545455
     },
     "pometime/internal/cistac": {
-      "statements": 763,
-      "covered": 743,
-      "percent": 97.37876802096986
+      "statements": 799,
+      "covered": 779,
+      "percent": 97.49687108886107
     },
     "pometime/internal/web": {
       "statements": 96,
@@ -45,19 +45,19 @@
       "percent": 100
     }
   },
-  "average_crap": 2.963161489280266,
+  "average_crap": 2.9336958953829284,
   "crap_distribution": {
     "median": 3,
     "p90": 5.025,
     "p95": 6,
-    "do_10": 120,
+    "do_10": 127,
     "od_10_do_30": 0,
     "od_30_do_100": 0,
     "preko_100": 0
   },
   "max_crap": 7,
   "worst_crap_function": "internal/cistac/zracne_pozadine.go::OcistiZracnePozadine",
-  "average_complexity": 2.908333333333333,
+  "average_complexity": 2.8818897637795278,
   "max_complexity": 7,
   "functions": [
     {
@@ -525,6 +525,102 @@
       "tokens": 55
     },
     {
+      "id": "internal/cistac/instalacije.go::SkenirajInstalacije",
+      "file": "internal/cistac/instalacije.go",
+      "name": "SkenirajInstalacije",
+      "line": 12,
+      "end_line": 16,
+      "complexity": 1,
+      "coverage": {
+        "statements": 3,
+        "covered": 3,
+        "percent": 100
+      },
+      "crap": 1,
+      "critical": true,
+      "tokens": 33
+    },
+    {
+      "id": "internal/cistac/instalacije.go::prikupiKandidateInstalacija",
+      "file": "internal/cistac/instalacije.go",
+      "name": "prikupiKandidateInstalacija",
+      "line": 18,
+      "end_line": 30,
+      "complexity": 4,
+      "coverage": {
+        "statements": 8,
+        "covered": 8,
+        "percent": 100
+      },
+      "crap": 4,
+      "critical": true,
+      "tokens": 68
+    },
+    {
+      "id": "internal/cistac/instalacije.go::obradiUlazInstalacije",
+      "file": "internal/cistac/instalacije.go",
+      "name": "obradiUlazInstalacije",
+      "line": 32,
+      "end_line": 41,
+      "complexity": 5,
+      "coverage": {
+        "statements": 6,
+        "covered": 6,
+        "percent": 100
+      },
+      "crap": 5,
+      "critical": true,
+      "tokens": 82
+    },
+    {
+      "id": "internal/cistac/instalacije.go::jeInstalacijskaDatoteka",
+      "file": "internal/cistac/instalacije.go",
+      "name": "jeInstalacijskaDatoteka",
+      "line": 43,
+      "end_line": 46,
+      "complexity": 4,
+      "coverage": {
+        "statements": 2,
+        "covered": 2,
+        "percent": 100
+      },
+      "crap": 4,
+      "critical": true,
+      "tokens": 34
+    },
+    {
+      "id": "internal/cistac/instalacije.go::stvoriKandidataInstalacije",
+      "file": "internal/cistac/instalacije.go",
+      "name": "stvoriKandidataInstalacije",
+      "line": 48,
+      "end_line": 58,
+      "complexity": 1,
+      "coverage": {
+        "statements": 3,
+        "covered": 3,
+        "percent": 100
+      },
+      "crap": 1,
+      "critical": true,
+      "tokens": 70
+    },
+    {
+      "id": "internal/cistac/instalacije.go::opisInstalacije",
+      "file": "internal/cistac/instalacije.go",
+      "name": "opisInstalacije",
+      "line": 60,
+      "end_line": 70,
+      "complexity": 3,
+      "coverage": {
+        "statements": 7,
+        "covered": 7,
+        "percent": 100
+      },
+      "crap": 3,
+      "critical": true,
+      "tokens": 91
+    },
+    {
       "id": "internal/cistac/kos.go::mapaKosa",
       "file": "internal/cistac/kos.go",
       "name": "mapaKosa",
@@ -688,8 +784,8 @@
       "id": "internal/cistac/model.go::ZadanePostavke",
       "file": "internal/cistac/model.go",
       "name": "ZadanePostavke",
-      "line": 20,
-      "end_line": 29,
+      "line": 21,
+      "end_line": 31,
       "complexity": 1,
       "coverage": {
         "statements": 1,
@@ -698,14 +794,14 @@
       },
       "crap": 1,
       "critical": true,
-      "tokens": 47
+      "tokens": 53
     },
     {
       "id": "internal/cistac/model.go::UzBrojHR",
       "file": "internal/cistac/model.go",
       "name": "UzBrojHR",
-      "line": 138,
-      "end_line": 148,
+      "line": 141,
+      "end_line": 151,
       "complexity": 4,
       "coverage": {
         "statements": 7,
@@ -720,8 +816,8 @@
       "id": "internal/cistac/model.go::oblikPremaZadnjojZnamenci",
       "file": "internal/cistac/model.go",
       "name": "oblikPremaZadnjojZnamenci",
-      "line": 150,
-      "end_line": 158,
+      "line": 153,
+      "end_line": 161,
       "complexity": 4,
       "coverage": {
         "statements": 5,
@@ -736,8 +832,8 @@
       "id": "internal/cistac/model.go::PorukaRezultata",
       "file": "internal/cistac/model.go",
       "name": "PorukaRezultata",
-      "line": 161,
-      "end_line": 168,
+      "line": 164,
+      "end_line": 171,
       "complexity": 2,
       "coverage": {
         "statements": 5,
@@ -752,8 +848,8 @@
       "id": "internal/cistac/model.go::PorukaPovrata",
       "file": "internal/cistac/model.go",
       "name": "PorukaPovrata",
-      "line": 171,
-      "end_line": 178,
+      "line": 174,
+      "end_line": 181,
       "complexity": 2,
       "coverage": {
         "statements": 5,
@@ -768,8 +864,8 @@
       "id": "internal/cistac/model.go::FormatirajBajte",
       "file": "internal/cistac/model.go",
       "name": "FormatirajBajte",
-      "line": 181,
-      "end_line": 197,
+      "line": 184,
+      "end_line": 200,
       "complexity": 4,
       "coverage": {
         "statements": 8,
@@ -1233,7 +1329,7 @@
       "file": "internal/cistac/sigurnost.go",
       "name": "DozvoljeniKorijeni",
       "line": 11,
-      "end_line": 37,
+      "end_line": 38,
       "complexity": 1,
       "coverage": {
         "statements": 3,
@@ -1242,14 +1338,14 @@
       },
       "crap": 1,
       "critical": true,
-      "tokens": 258
+      "tokens": 267
     },
     {
       "id": "internal/cistac/sigurnost.go::JeUnutarKorijena",
       "file": "internal/cistac/sigurnost.go",
       "name": "JeUnutarKorijena",
-      "line": 40,
-      "end_line": 47,
+      "line": 41,
+      "end_line": 48,
       "complexity": 4,
       "coverage": {
         "statements": 5,
@@ -1264,8 +1360,8 @@
       "id": "internal/cistac/sigurnost.go::jeZasticenaClaudeMemorija",
       "file": "internal/cistac/sigurnost.go",
       "name": "jeZasticenaClaudeMemorija",
-      "line": 50,
-      "end_line": 57,
+      "line": 51,
+      "end_line": 58,
       "complexity": 3,
       "coverage": {
         "statements": 5,
@@ -1280,8 +1376,8 @@
       "id": "internal/cistac/sigurnost.go::JeSigurnaPutanja",
       "file": "internal/cistac/sigurnost.go",
       "name": "JeSigurnaPutanja",
-      "line": 60,
-      "end_line": 74,
+      "line": 61,
+      "end_line": 75,
       "complexity": 6,
       "coverage": {
         "statements": 9,
@@ -1296,8 +1392,8 @@
       "id": "internal/cistac/sigurnost.go::obrisiJednuStavku",
       "file": "internal/cistac/sigurnost.go",
       "name": "obrisiJednuStavku",
-      "line": 77,
-      "end_line": 93,
+      "line": 78,
+      "end_line": 94,
       "complexity": 5,
       "coverage": {
         "statements": 11,
@@ -1312,8 +1408,8 @@
       "id": "internal/cistac/sigurnost.go::OcistiPutanje",
       "file": "internal/cistac/sigurnost.go",
       "name": "OcistiPutanje",
-      "line": 96,
-      "end_line": 120,
+      "line": 97,
+      "end_line": 121,
       "complexity": 4,
       "coverage": {
         "statements": 16,
@@ -1328,8 +1424,8 @@
       "id": "internal/cistac/sigurnost.go::DeinstalirajAplikaciju",
       "file": "internal/cistac/sigurnost.go",
       "name": "DeinstalirajAplikaciju",
-      "line": 123,
-      "end_line": 136,
+      "line": 124,
+      "end_line": 137,
       "complexity": 2,
       "coverage": {
         "statements": 7,
@@ -1344,8 +1440,8 @@
       "id": "internal/cistac/sigurnost.go::jeValjanaPutanjaAplikacije",
       "file": "internal/cistac/sigurnost.go",
       "name": "jeValjanaPutanjaAplikacije",
-      "line": 138,
-      "end_line": 144,
+      "line": 139,
+      "end_line": 145,
       "complexity": 3,
       "coverage": {
         "statements": 4,
@@ -1617,16 +1713,32 @@
       "file": "internal/cistac/skener.go",
       "name": "SkenirajSve",
       "line": 298,
-      "end_line": 327,
-      "complexity": 5,
+      "end_line": 317,
+      "complexity": 1,
       "coverage": {
-        "statements": 22,
-        "covered": 22,
+        "statements": 24,
+        "covered": 24,
         "percent": 100
       },
-      "crap": 5,
+      "crap": 1,
       "critical": true,
-      "tokens": 137
+      "tokens": 95
+    },
+    {
+      "id": "internal/cistac/skener.go::zbrojiStavke",
+      "file": "internal/cistac/skener.go",
+      "name": "zbrojiStavke",
+      "line": 319,
+      "end_line": 327,
+      "complexity": 3,
+      "coverage": {
+        "statements": 5,
+        "covered": 5,
+        "percent": 100
+      },
+      "crap": 3,
+      "critical": true,
+      "tokens": 36
     },
     {
       "id": "internal/cistac/zracne_pozadine.go::SkenirajZracnePozadine",
@@ -1984,13 +2096,13 @@
   "exact_duplication": {
     "percent": 0,
     "duplicated_tokens": 0,
-    "total_tokens": 9729,
+    "total_tokens": 10116,
     "pairs": null
   },
   "fuzzy_duplication": {
     "percent": 0,
     "duplicated_tokens": 0,
-    "total_tokens": 9729,
+    "total_tokens": 10116,
     "pairs": null
   },
   "mutation_score": null,
