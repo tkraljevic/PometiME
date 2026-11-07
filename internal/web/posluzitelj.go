@@ -46,6 +46,7 @@ func NoviPosluzitelj(p cistac.Postavke) *Posluzitelj {
 	mux.HandleFunc("GET /api/skeniraj", pos.obradiSkeniraj)
 	mux.HandleFunc("GET /api/aplikacije", pos.obradiAplikacije)
 	mux.HandleFunc("GET /api/pokretaci", pos.obradiPokretace)
+	mux.HandleFunc("GET /api/snimke", pos.obradiSnimke)
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
 	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
@@ -131,6 +132,14 @@ func (p *Posluzitelj) obradiOptimiziraj(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	posluziJSON(w, http.StatusOK, cistac.RezultatOptimizacije{Uspjeh: true, Poruka: poruka})
+}
+
+func (p *Posluzitelj) obradiSnimke(w http.ResponseWriter, _ *http.Request) {
+	snimke := cistac.PopisLokalnihSnimaka()
+	if snimke == nil {
+		snimke = []string{}
+	}
+	posluziJSON(w, http.StatusOK, snimke)
 }
 
 func posluziJSON(w http.ResponseWriter, status int, podaci any) {

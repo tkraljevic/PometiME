@@ -701,6 +701,7 @@
       izvjestaj: null,
       aplikacije: null,
       pokretaci: [],
+      snimke: [],
       kos: [],
       odabranePutanje: new Map(),
       filterTekst: '',
@@ -1130,7 +1131,34 @@
       qlGumb.addEventListener('click', () => pokreniOptimizaciju('quicklook'));
       qlKarta.append(qlBody, qlGumb);
 
-      grid.append(dnsKarta, qlKarta);
+      // Kartica 3: APFS Time Machine snimke
+      const tmKarta = document.createElement('div');
+      tmKarta.className = 'opt-card';
+      const tmBody = document.createElement('div');
+      tmBody.className = 'opt-card-body';
+      const tmNaslov = document.createElement('h4');
+      tmNaslov.textContent = 'Oslobodi APFS snimke (Time Machine)';
+      const tmOpis = document.createElement('p');
+      tmOpis.textContent = 'Proređuje i oslobađa lokalne APFS snimke (tmutil thinlocalsnapshots /). Vraća prostor koji macOS prikazuje pod Purgeable / System Data.';
+      const tmInfo = document.createElement('div');
+      tmInfo.style.fontSize = '0.78rem';
+      tmInfo.style.color = 'var(--text-muted)';
+      tmInfo.style.marginTop = '6px';
+      const brSnimaka = (stanje.snimke || []).length;
+      tmInfo.textContent = 'Pronađeno: ' + uzBrojHR(brSnimaka, 'lokalna APFS snimka', 'lokalne APFS snimke', 'lokalnih APFS snimaka');
+      tmBody.append(tmNaslov, tmOpis, tmInfo);
+
+      const tmGumb = document.createElement('button');
+      tmGumb.type = 'button';
+      tmGumb.className = 'btn btn-primary';
+      tmGumb.textContent = 'Oslobodi snimke';
+      tmGumb.addEventListener('click', async () => {
+        await pokreniOptimizaciju('snapshots');
+        await ucitajSnimke();
+      });
+      tmKarta.append(tmBody, tmGumb);
+
+      grid.append(dnsKarta, qlKarta, tmKarta);
       sekcijaOsvjezenje.appendChild(grid);
       spremnik.appendChild(sekcijaOsvjezenje);
 
@@ -1321,6 +1349,18 @@
       }
     }
 
+    async function ucitajSnimke() {
+      try {
+        const odg = await fetch('/api/snimke');
+        stanje.snimke = await odg.json();
+        if (stanje.aktivniTab === 'optimizacija') {
+          iscrtajOptimizaciju();
+        }
+      } catch (err) {
+        prikaziPoruku('Greška pri dohvaćanju snimaka: ' + err.message);
+      }
+    }
+
     async function pokreniOptimizaciju(akcija) {
       try {
         prikaziPoruku('Izvršavam optimizaciju: ' + akcija + '...');
@@ -1465,8 +1505,11 @@
         if (stanje.aktivniTab === 'kos') {
           ucitajKos();
         }
-        if (stanje.aktivniTab === 'optimizacija' && (!stanje.pokretaci || stanje.pokretaci.length === 0)) {
-          ucitajPokretace();
+        if (stanje.aktivniTab === 'optimizacija') {
+          if (!stanje.pokretaci || stanje.pokretaci.length === 0) {
+            ucitajPokretace();
+          }
+          ucitajSnimke();
         }
         iscrtajPogled();
       });
@@ -1482,6 +1525,7 @@
       ucitajAplikacije();
       ucitajKos();
       ucitajPokretace();
+      ucitajSnimke();
     });
 
     document.getElementById('gumb-oznaci-preporuceno').addEventListener('click', () => {
@@ -1510,6 +1554,7 @@
     ucitajAplikacije();
     ucitajKos();
     ucitajPokretace();
+    ucitajSnimke();
   </script>
 </body>
 </html>

@@ -362,11 +362,33 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	if _, err := IzvrsiOptimizaciju("quicklook"); err != nil {
 		t.Errorf("greška pri izvršavanju quicklook optimizacije: %v", err)
 	}
+	if _, err := IzvrsiOptimizaciju("snapshots"); err != nil {
+		t.Errorf("greška pri izvršavanju snapshots optimizacije: %v", err)
+	}
 	if _, err := IzvrsiOptimizaciju("nepoznato"); err == nil {
 		t.Errorf("očekivana greška za nepoznatu optimizaciju")
 	}
 
-	// Test greške pri izvršavanju dns optimizacije
+	// Test PopisLokalnihSnimaka
+	stariIzlaz := pokreniIzlazNaredbe
+	defer func() { pokreniIzlazNaredbe = stariIzlaz }()
+	pokreniIzlazNaredbe = func(name string, args ...string) ([]byte, error) {
+		return []byte("Snapshots for volume group '/':\ncom.apple.TimeMachine.2026-11-05-143021.local\ncom.apple.TimeMachine.2026-11-06-184512.local\n"), nil
+	}
+	snimke := PopisLokalnihSnimaka()
+	if len(snimke) != 2 {
+		t.Fatalf("očekivane 2 snimke, dobiveno %d", len(snimke))
+	}
+
+	// Test greške pri dohvatu snimaka
+	pokreniIzlazNaredbe = func(name string, args ...string) ([]byte, error) {
+		return nil, fmt.Errorf("simulirani pad naredbe")
+	}
+	if sn := PopisLokalnihSnimaka(); sn != nil {
+		t.Errorf("očekivan nil pri grešci naredbe, dobiveno %v", sn)
+	}
+
+	// Test greške pri izvršavanju dns i snapshots optimizacije
 	staraNaredba := pokreniNaredbu
 	defer func() { pokreniNaredbu = staraNaredba }()
 	pokreniNaredbu = func(name string, args ...string) error {
@@ -374,5 +396,8 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	}
 	if _, err := IzvrsiOptimizaciju("dns"); err == nil {
 		t.Errorf("očekivana greška pri simuliranom padu naredbe")
+	}
+	if _, err := IzvrsiOptimizaciju("snapshots"); err == nil {
+		t.Errorf("očekivana greška pri simuliranom padu snapshots naredbe")
 	}
 }

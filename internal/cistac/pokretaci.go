@@ -11,10 +11,13 @@ import (
 )
 
 var (
-	uzorakProgram   = regexp.MustCompile(`(?s)<key>Program</key>\s*<string>\s*([^<]+?)\s*</string>`)
-	uzorakArgumenti = regexp.MustCompile(`(?s)<key>ProgramArguments</key>\s*<array>\s*<string>\s*([^<]+?)\s*</string>`)
-	pokreniNaredbu  = func(name string, args ...string) error {
+	uzorakProgram       = regexp.MustCompile(`(?s)<key>Program</key>\s*<string>\s*([^<]+?)\s*</string>`)
+	uzorakArgumenti     = regexp.MustCompile(`(?s)<key>ProgramArguments</key>\s*<array>\s*<string>\s*([^<]+?)\s*</string>`)
+	pokreniNaredbu      = func(name string, args ...string) error {
 		return exec.Command(name, args...).Run()
+	}
+	pokreniIzlazNaredbe = func(name string, args ...string) ([]byte, error) {
+		return exec.Command(name, args...).Output()
 	}
 )
 
@@ -88,6 +91,27 @@ func odrediStatusPokretaca(izvrsna string) (bool, string, string) {
 	return false, "siroce", "Program je uklonjen s diska; preporučeno premjestiti u Koš."
 }
 
+// PopisLokalnihSnimaka dohvaća popis lokalnih Time Machine APFS snimaka.
+func PopisLokalnihSnimaka() []string {
+	izlaz, err := pokreniIzlazNaredbe("tmutil", "listlocalsnapshots", "/")
+	if err != nil {
+		return nil
+	}
+	return izdvojiNaziveSnimaka(string(izlaz))
+}
+
+func izdvojiNaziveSnimaka(tekst string) []string {
+	var snimke []string
+	linije := strings.Split(tekst, "\n")
+	for _, l := range linije {
+		l = strings.TrimSpace(l)
+		if strings.HasPrefix(l, "com.apple.TimeMachine.") {
+			snimke = append(snimke, l)
+		}
+	}
+	return snimke
+}
+
 // IzvrsiOptimizaciju pokreće odabranu radnju održavanja i ubrzanja sustava macOS-a.
 func IzvrsiOptimizaciju(vrsta string) (string, error) {
 	switch vrsta {
@@ -100,6 +124,11 @@ func IzvrsiOptimizaciju(vrsta string) (string, error) {
 		_ = pokreniNaredbu("qlmanage", "-r", "cache") // reset predmemorije pregleda ne ruši sustav
 		_ = pokreniNaredbu("qlmanage", "-r")          // ponovno pokretanje demona pregleda
 		return "QuickLook međuspremnik i ikone Finder-a su uspješno osvježeni.", nil
+	case "snapshots":
+		if err := pokreniNaredbu("tmutil", "thinlocalsnapshots", "/", "999999999999", "4"); err != nil {
+			return "", fmt.Errorf("oslobađanje Time Machine snimaka: %w", err)
+		}
+		return "Lokalne APFS Time Machine snimke su uspješno pročišćene i oslobođene.", nil
 	default:
 		return "", fmt.Errorf("nepoznata radnja optimizacije: %s", vrsta)
 	}

@@ -197,4 +197,16 @@ func TestAPIOcistiIDeinstaliraj(t *testing.T) {
 	if odgDnsOpt.Code != http.StatusOK {
 		t.Errorf("očekivan 200 za optimizaciju dns, dobiveno %d", odgDnsOpt.Code)
 	}
+
+	// Provjera /api/snimke
+	zahSnimke := httptest.NewRequest(http.MethodGet, "/api/snimke", nil)
+	odgSnimke := httptest.NewRecorder()
+	pos.ServeHTTP(odgSnimke, zahSnimke)
+	if odgSnimke.Code != http.StatusOK {
+		t.Errorf("očekivan 200 za /api/snimke, dobiveno %d", odgSnimke.Code)
+	}
+	var popisSnimaka []string
+	if err := json.Unmarshal(odgSnimke.Body.Bytes(), &popisSnimaka); err != nil {
+		t.Errorf("greška pri dekodiranju /api/snimke: %v", err)
+	}
 }
