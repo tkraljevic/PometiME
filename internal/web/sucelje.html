@@ -412,28 +412,30 @@
       gap: 14px;
     }
 
-    .disk-header {
+    .disk-card {
       display: flex;
-      justify-content: space-between;
-      align-items: baseline;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .disk-name {
-      font-size: 0.92rem;
-      font-weight: 600;
+      font-size: 0.88rem;
+      font-weight: 500;
       color: var(--text-muted);
+    }
+
+    .disk-value {
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
     }
 
     .disk-total {
       font-size: 0.84rem;
       color: var(--text-muted);
-    }
-
-    .disk-value {
-      font-size: 1.85rem;
-      font-weight: 700;
-      color: var(--text-main);
-      letter-spacing: -0.02em;
+      margin-bottom: 8px;
     }
 
     .disk-bar-container {
@@ -1104,40 +1106,35 @@
       </div>
     </div>
 
-    <!-- Navigacija: 5 zadanih odjeljaka -->
+    <!-- Navigacija: 5 zadanih odjeljaka prema FigCraftu -->
     <ul class="nav-list" role="navigation" aria-label="Glavna navigacija">
       <li>
         <button type="button" class="nav-btn active" data-tab="pregled">
-          <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           <span class="nav-title">Pregled</span>
         </button>
       </li>
       <li>
         <button type="button" class="nav-btn" data-tab="ciscenje">
-          <svg class="nav-icon" viewBox="0 0 24 24"><path d="m14 4 6 6-10 10H4v-6L14 4z"/><path d="m18 8-4-4"/></svg>
           <span class="nav-title">Čišćenje</span>
-          <span class="nav-badge" id="badge-ciscenje">0</span>
+          <span class="nav-badge" id="badge-ciscenje" style="display: none;">0</span>
         </button>
       </li>
       <li>
         <button type="button" class="nav-btn" data-tab="aplikacije">
-          <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span class="nav-title">Aplikacije</span>
-          <span class="nav-badge" id="badge-aplikacije">0</span>
+          <span class="nav-badge" id="badge-aplikacije" style="display: none;">0</span>
         </button>
       </li>
       <li>
         <button type="button" class="nav-btn" data-tab="napredni">
-          <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span class="nav-title">Napredni alati</span>
-          <span class="nav-badge" id="badge-napredni">0</span>
+          <span class="nav-badge" id="badge-napredni" style="display: none;">0</span>
         </button>
       </li>
       <li>
         <button type="button" class="nav-btn" data-tab="kos">
-          <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           <span class="nav-title">Koš i povrat</span>
-          <span class="nav-badge" id="badge-kos">0</span>
+          <span class="nav-badge" id="badge-kos" style="display: none;">0</span>
         </button>
       </li>
     </ul>
@@ -1179,29 +1176,22 @@
       </div>
       <div class="divider-line"></div>
 
-      <!-- Karta diska (Macintosh HD) -->
+      <!-- Karta diska (Macintosh HD) prema FigCraftu -->
       <div class="card disk-card">
-        <div class="disk-header">
-          <span class="disk-name" id="disk-naziv">Macintosh HD</span>
-          <span class="disk-total" id="disk-ukupno">od ukupno 0 B</span>
-        </div>
-        <div class="disk-value" id="disk-slobodno">0 B slobodno</div>
+        <div class="disk-name" id="disk-naziv">Macintosh HD</div>
+        <div class="disk-value" id="disk-slobodno">Učitavanje diska...</div>
+        <div class="disk-total" id="disk-ukupno">od ukupno...</div>
         <div class="disk-bar-container" role="progressbar" aria-label="Iskorištenost diska">
           <div class="disk-bar-used" id="disk-bar-used" style="width: 0%;"></div>
           <div class="disk-bar-recoverable" id="disk-bar-recoverable" style="width: 0%;"></div>
           <div class="disk-bar-free"></div>
         </div>
-        <div class="disk-legend">
-          <div class="legend-item"><span class="legend-dot" style="background: #9caec9;"></span><span>Zauzeto</span></div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--primary);"></span><span>Može se očistiti</span></div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--border-subtle); border: 1px solid var(--border);"></span><span>Slobodno</span></div>
-        </div>
       </div>
 
-      <!-- Hero karta (Spremno za pregled) -->
+      <!-- Hero karta (Spremno za pregled) prema FigCraftu -->
       <div class="card hero-card">
         <span class="hero-eyebrow">SPREMNO ZA PREGLED</span>
-        <div class="hero-value" id="hero-velicina">0 B možete osloboditi</div>
+        <div class="hero-value" id="hero-velicina">Skeniranje u tijeku...</div>
         <p class="hero-desc">Pregledajte pronađene stavke i sami odaberite što želite očistiti.</p>
         <div class="hero-actions">
           <button type="button" class="btn btn-primary" id="hero-gumb-pregled">Pregledaj stavke &rarr;</button>
@@ -1661,8 +1651,9 @@
       const d = stanje.izvjestaj.disk || stanje.izvjestaj.disk_info;
       if (d) {
         const slobodno = d.avail_bytes !== undefined ? d.avail_bytes : (d.free_bytes !== undefined ? d.free_bytes : 0);
+        const pctSlobodno = d.total_bytes > 0 ? Math.round((slobodno / d.total_bytes) * 100) : 0;
         document.getElementById('disk-slobodno').textContent = formatirajBajte(slobodno) + ' slobodno';
-        document.getElementById('disk-ukupno').textContent = 'od ukupno ' + formatirajBajte(d.total_bytes);
+        document.getElementById('disk-ukupno').textContent = 'od ukupno ' + formatirajBajte(d.total_bytes) + ' (' + pctSlobodno + '% slobodno)';
         
         let preporucenoBajta = 0;
         const sveKategorije = [
@@ -2528,7 +2519,7 @@
         // Ažuriraj badge za čišćenje
         let brCiscenja = 0;
         for (const st of sve) if (st.recommended) brCiscenja++;
-        document.getElementById('badge-ciscenje').textContent = String(brCiscenja);
+        postaviBadge('badge-ciscenje', brCiscenja);
 
         iscrtajPregled();
         if (stanje.aktivniTab === 'ciscenje') iscrtajCiscenje();
@@ -2540,11 +2531,18 @@
       }
     }
 
+    function postaviBadge(id, broj) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = String(broj);
+      el.style.display = broj > 0 ? 'inline-block' : 'none';
+    }
+
     async function ucitajAplikacije() {
       try {
         const odg = await fetch('/api/aplikacije');
         stanje.aplikacije = await odg.json();
-        document.getElementById('badge-aplikacije').textContent = String((stanje.aplikacije || []).length);
+        postaviBadge('badge-aplikacije', (stanje.aplikacije || []).length);
         if (stanje.aktivniTab === 'aplikacije') iscrtajAplikacije();
       } catch (err) {
         console.warn('Greška pri dohvatu aplikacija:', err);
@@ -2555,7 +2553,7 @@
       try {
         const odg = await fetch('/api/kos');
         stanje.kos = await odg.json();
-        document.getElementById('badge-kos').textContent = String((stanje.kos || []).length);
+        postaviBadge('badge-kos', (stanje.kos || []).length);
         if (stanje.aktivniTab === 'kos') iscrtajKos();
       } catch (err) {
         console.warn('Greška pri dohvatu Koša:', err);
@@ -2567,7 +2565,7 @@
         const odg = await fetch('/api/pokretaci');
         stanje.pokretaci = await odg.json();
         const brSirocadi = (stanje.pokretaci || []).filter(p => p.status === 'siroce').length;
-        document.getElementById('badge-napredni').textContent = String(brSirocadi);
+        postaviBadge('badge-napredni', brSirocadi);
         if (stanje.aktivniTab === 'napredni' && stanje.aktivniNapredniAlat === 'sustav') {
           iscrtajNapredneAlate();
         }
