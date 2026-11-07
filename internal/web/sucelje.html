@@ -1114,7 +1114,7 @@
       </li>
       <li>
         <button type="button" class="nav-btn" data-tab="ciscenje">
-          <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <svg class="nav-icon" viewBox="0 0 24 24"><path d="m14 4 6 6-10 10H4v-6L14 4z"/><path d="m18 8-4-4"/></svg>
           <span class="nav-title">Čišćenje</span>
           <span class="nav-badge" id="badge-ciscenje">0</span>
         </button>
@@ -1560,7 +1560,13 @@
             izlaz.push('</ul>');
             uListi = false;
           }
-          if (linija.trim()) izlaz.push('<p>' + linija + '</p>');
+          if (linija.trim()) {
+            if (/^<h[1-6]>/.test(linija.trim())) {
+              izlaz.push(linija.trim());
+            } else {
+              izlaz.push('<p>' + linija.trim() + '</p>');
+            }
+          }
         }
       }
       if (uListi) izlaz.push('</ul>');
@@ -1652,19 +1658,19 @@
     // 1. ISCRTAVANJE: PREGLED
     function iscrtajPregled() {
       if (!stanje.izvjestaj) return;
-      const d = stanje.izvjestaj.disk_info;
+      const d = stanje.izvjestaj.disk || stanje.izvjestaj.disk_info;
       if (d) {
-        document.getElementById('disk-slobodno').textContent = formatirajBajte(d.free_bytes) + ' slobodno';
+        const slobodno = d.avail_bytes !== undefined ? d.avail_bytes : (d.free_bytes !== undefined ? d.free_bytes : 0);
+        document.getElementById('disk-slobodno').textContent = formatirajBajte(slobodno) + ' slobodno';
         document.getElementById('disk-ukupno').textContent = 'od ukupno ' + formatirajBajte(d.total_bytes);
         
         let preporucenoBajta = 0;
         const sveKategorije = [
-          ...(stanje.izvjestaj.system_cache || []),
-          ...(stanje.izvjestaj.app_cache || []),
+          ...(stanje.izvjestaj.system_caches || stanje.izvjestaj.system_cache || []),
           ...(stanje.izvjestaj.dev_ai_junk || []),
-          ...(stanje.izvjestaj.app_leftovers || []),
+          ...(stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers || []),
           ...(stanje.izvjestaj.backups_attachments || []),
-          ...(stanje.izvjestaj.installer_files || [])
+          ...(stanje.izvjestaj.installers || stanje.izvjestaj.installer_files || [])
         ];
         for (const s of sveKategorije) {
           if (s.recommended) preporucenoBajta += s.size_bytes;
@@ -1697,12 +1703,11 @@
       }
 
       const kategorije = [
-        { kljuc: 'system_cache', naziv: 'Predmemorija sustava', opis: 'Sustavski zapisnici i privremeni podaci macOS-a.', stavke: stanje.izvjestaj.system_cache || [] },
-        { kljuc: 'app_cache', naziv: 'Privremene datoteke aplikacija', opis: 'Aplikacije će ih po potrebi ponovno izraditi.', stavke: stanje.izvjestaj.app_cache || [] },
-        { kljuc: 'dev_ai_junk', naziv: 'Razvojna i AI predmemorija', opis: 'Preuzeti paketi alata i završene sesije. Memorija je sačuvana.', stavke: stanje.izvjestaj.dev_ai_junk || [] },
-        { kljuc: 'app_leftovers', naziv: 'Ostaci uklonjenih aplikacija', opis: 'Podaci aplikacija koje više nisu instalirane na Macu.', stavke: stanje.izvjestaj.app_leftovers || [] },
-        { kljuc: 'backups_attachments', naziv: 'Sigurnosne kopije i privici', opis: 'Stare iOS sigurnosne kopije i preuzeti Mail privici.', stavke: stanje.izvjestaj.backups_attachments || [] },
-        { kljuc: 'installer_files', naziv: 'Stare instalacijske datoteke', opis: 'Preuzeti instaleri (.dmg, .pkg, .iso) u mapi Preuzimanja.', stavke: stanje.izvjestaj.installer_files || [] }
+        { kljuc: 'system_caches', naziv: 'Predmemorija sustava', opis: 'Sustavski zapisnici i privremeni podaci macOS-a.', stavke: (stanje.izvjestaj.system_caches || stanje.izvjestaj.system_cache || []) },
+        { kljuc: 'dev_ai_junk', naziv: 'Razvojna i AI predmemorija', opis: 'Preuzeti paketi alata, simulatori i završene AI sesije.', stavke: (stanje.izvjestaj.dev_ai_junk || []) },
+        { kljuc: 'leftovers', naziv: 'Ostaci uklonjenih aplikacija', opis: 'Podaci aplikacija koje više nisu instalirane na Macu.', stavke: (stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers || []) },
+        { kljuc: 'backups_attachments', naziv: 'Sigurnosne kopije i privici', opis: 'Stare iOS sigurnosne kopije i preuzeti Mail privici.', stavke: (stanje.izvjestaj.backups_attachments || []) },
+        { kljuc: 'installers', naziv: 'Stare instalacijske datoteke', opis: 'Preuzeti instaleri (.dmg, .pkg, .iso) u mapi Preuzimanja.', stavke: (stanje.izvjestaj.installers || stanje.izvjestaj.installer_files || []) }
       ];
 
       let ukupnoPreporucenih = 0;
@@ -1860,9 +1865,9 @@
       // Izračunaj veličine za glavne kartice
       if (stanje.izvjestaj) {
         let velDev = 0; for (const s of (stanje.izvjestaj.dev_ai_junk || [])) velDev += s.size_bytes;
-        let velOst = 0; for (const s of (stanje.izvjestaj.app_leftovers || [])) velOst += s.size_bytes;
+        let velOst = 0; for (const s of (stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers || [])) velOst += s.size_bytes;
         let velKop = 0; for (const s of (stanje.izvjestaj.backups_attachments || [])) velKop += s.size_bytes;
-        let velIns = 0; for (const s of (stanje.izvjestaj.installer_files || [])) velIns += s.size_bytes;
+        let velIns = 0; for (const s of (stanje.izvjestaj.installers || stanje.izvjestaj.installer_files || [])) velIns += s.size_bytes;
         document.getElementById('velicina-napredni-dev').textContent = formatirajBajte(velDev);
         document.getElementById('velicina-napredni-ostaci').textContent = formatirajBajte(velOst);
         document.getElementById('velicina-napredni-kopije').textContent = formatirajBajte(velKop);
@@ -1897,9 +1902,9 @@
     function iscrtajAlatStavke(alatKljuc, spremnik) {
       const mapaNaziva = {
         dev_ai: { naslov: 'Razvojni i AI alati', opis: 'Međuspremnici programskih jezika, simulatori i Claude radne sesije.', stavke: (stanje.izvjestaj && stanje.izvjestaj.dev_ai_junk) || [] },
-        ostaci: { naslov: 'Ostaci uklonjenih aplikacija', opis: 'Zaostale mape aplikacija koje su uklonjene iz mape Applications.', stavke: (stanje.izvjestaj && stanje.izvjestaj.app_leftovers) || [] },
+        ostaci: { naslov: 'Ostaci uklonjenih aplikacija', opis: 'Zaostale mape aplikacija koje su uklonjene iz mape Applications.', stavke: (stanje.izvjestaj && (stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers)) || [] },
         kopije: { naslov: 'Kopije i privici', opis: 'Stare lokalne iOS sigurnosne kopije i Mail privici.', stavke: (stanje.izvjestaj && stanje.izvjestaj.backups_attachments) || [] },
-        instaleri: { naslov: 'Stari instaleri u Preuzimanjima', opis: 'Instalacijske datoteke (.dmg, .pkg, .iso, .xip) u ~/Downloads.', stavke: (stanje.izvjestaj && stanje.izvjestaj.installer_files) || [] }
+        instaleri: { naslov: 'Stari instaleri u Preuzimanjima', opis: 'Instalacijske datoteke (.dmg, .pkg, .iso, .xip) u ~/Downloads.', stavke: (stanje.izvjestaj && (stanje.izvjestaj.installers || stanje.izvjestaj.installer_files)) || [] }
       };
 
       const meta = mapaNaziva[alatKljuc];
@@ -2144,7 +2149,8 @@
 
         const opis = document.createElement('span');
         opis.className = 'item-desc';
-        opis.textContent = (st.moved_at ? st.moved_at + ' \u00B7 ' : '') + 'Izvorna lokacija: ' + (st.original_path || 'nepoznato');
+        const datum = st.deleted_at || st.moved_at;
+        opis.textContent = (datum ? datum + ' \u00B7 ' : '') + 'Izvorna lokacija: ' + (st.original_path || 'nepoznato');
 
         tijelo.append(naslov, opis);
 
@@ -2509,12 +2515,11 @@
         // Početni odabir: označi preporučene stavke
         stanje.odabranePutanje.clear();
         const sve = [
-          ...(stanje.izvjestaj.system_cache || []),
-          ...(stanje.izvjestaj.app_cache || []),
+          ...(stanje.izvjestaj.system_caches || stanje.izvjestaj.system_cache || []),
           ...(stanje.izvjestaj.dev_ai_junk || []),
-          ...(stanje.izvjestaj.app_leftovers || []),
+          ...(stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers || []),
           ...(stanje.izvjestaj.backups_attachments || []),
-          ...(stanje.izvjestaj.installer_files || [])
+          ...(stanje.izvjestaj.installers || stanje.izvjestaj.installer_files || [])
         ];
         for (const st of sve) {
           if (st.recommended) stanje.odabranePutanje.set(st.path, st.size_bytes);
