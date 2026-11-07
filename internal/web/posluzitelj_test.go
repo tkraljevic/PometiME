@@ -168,4 +168,33 @@ func TestAPIOcistiIDeinstaliraj(t *testing.T) {
 	if odgDobarVrati.Code != http.StatusOK {
 		t.Errorf("očekivan 200 za /api/vrati, dobiveno %d", odgDobarVrati.Code)
 	}
+
+	// Provjera /api/pokretaci i /api/optimiziraj
+	zahPok := httptest.NewRequest(http.MethodGet, "/api/pokretaci", nil)
+	odgPok := httptest.NewRecorder()
+	pos.ServeHTTP(odgPok, zahPok)
+	if odgPok.Code != http.StatusOK {
+		t.Errorf("očekivan 200 za /api/pokretaci, dobiveno %d", odgPok.Code)
+	}
+
+	losOpt := httptest.NewRequest(http.MethodPost, "/api/optimiziraj", bytes.NewBufferString("{neispravno"))
+	odgLosOpt := httptest.NewRecorder()
+	pos.ServeHTTP(odgLosOpt, losOpt)
+	if odgLosOpt.Code != http.StatusBadRequest {
+		t.Errorf("očekivan 400 za neispravan JSON u /api/optimiziraj, dobiveno %d", odgLosOpt.Code)
+	}
+
+	nepoznataOpt, _ := json.Marshal(zahtjevOptimizacije{Akcija: "nepoznato"}) // poznata struktura bez mogućnosti greške serijalizacije
+	odgNepoznataOpt := httptest.NewRecorder()
+	pos.ServeHTTP(odgNepoznataOpt, httptest.NewRequest(http.MethodPost, "/api/optimiziraj", bytes.NewReader(nepoznataOpt)))
+	if odgNepoznataOpt.Code != http.StatusBadRequest {
+		t.Errorf("očekivan 400 za nepoznatu optimizaciju, dobiveno %d", odgNepoznataOpt.Code)
+	}
+
+	dnsOpt, _ := json.Marshal(zahtjevOptimizacije{Akcija: "dns"}) // poznata struktura bez mogućnosti greške serijalizacije
+	odgDnsOpt := httptest.NewRecorder()
+	pos.ServeHTTP(odgDnsOpt, httptest.NewRequest(http.MethodPost, "/api/optimiziraj", bytes.NewReader(dnsOpt)))
+	if odgDnsOpt.Code != http.StatusOK {
+		t.Errorf("očekivan 200 za optimizaciju dns, dobiveno %d", odgDnsOpt.Code)
+	}
 }

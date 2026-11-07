@@ -439,6 +439,64 @@
       color: var(--text-muted);
     }
 
+    .tag-warn {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background-color: rgba(239, 68, 68, 0.15);
+      color: var(--color-danger);
+      font-weight: 600;
+    }
+
+    .opt-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .opt-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .opt-section-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .opt-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .opt-card {
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .opt-card-body h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .opt-card-body p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
     footer.actionbar {
       padding: 14px 26px;
       border-top: 1px solid var(--border-subtle);
@@ -558,6 +616,10 @@
         <span>Deinstalater Aplikacija</span>
         <span class="badge" id="badge-aplikacije">0</span>
       </button>
+      <button type="button" class="nav-btn" data-tab="optimizacija">
+        <span>Optimizacija Sustava</span>
+        <span class="badge" id="badge-optimizacija">0</span>
+      </button>
       <button type="button" class="nav-btn" data-tab="kos">
         <span>Koš i Povrat</span>
         <span class="badge" id="badge-kos">0</span>
@@ -638,6 +700,7 @@
       aktivniTab: 'pregled',
       izvjestaj: null,
       aplikacije: null,
+      pokretaci: [],
       kos: [],
       odabranePutanje: new Map(),
       filterTekst: '',
@@ -668,6 +731,10 @@
       aplikacije: {
         naslov: 'Deinstalater Aplikacija',
         opis: 'Potpuno premještanje aplikacija iz /Applications i ~/Applications zajedno s njihovim podacima u Koš za smeće.'
+      },
+      optimizacija: {
+        naslov: 'Optimizacija i Ubrzanje Sustava',
+        opis: 'Uklanjanje zaostalih pokretača (LaunchAgents) bez instaliranog programa te brzo osvježavanje sistemske predmemorije.'
       },
       kos: {
         naslov: 'Koš za smeće i Povrat (Undo)',
@@ -759,6 +826,17 @@
         document.getElementById('badge-razvojni').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.dev_ai_junk));
         document.getElementById('badge-ostaci').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.leftovers));
         document.getElementById('badge-kopije').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.backups_attachments));
+      }
+
+      if (stanje.pokretaci) {
+        const brojSirocadi = stanje.pokretaci.filter(p => p.orphaned).length;
+        document.getElementById('badge-optimizacija').textContent = String(brojSirocadi);
+      }
+      if (stanje.aplikacije) {
+        document.getElementById('badge-aplikacije').textContent = String(stanje.aplikacije.length);
+      }
+      if (stanje.kos) {
+        document.getElementById('badge-kos').textContent = String(stanje.kos.length);
       }
 
       let ukupnoOdabranoBajta = 0;
@@ -1000,12 +1078,174 @@
       }
     }
 
+    function iscrtajOptimizaciju() {
+      const spremnik = document.getElementById('popis-stavki');
+      spremnik.replaceChildren();
+
+      // Sekcija 1: Brzo osvježavanje predmemorije
+      const sekcijaOsvjezenje = document.createElement('div');
+      sekcijaOsvjezenje.className = 'opt-section';
+
+      const naslovOsvjezenje = document.createElement('div');
+      naslovOsvjezenje.className = 'opt-section-title';
+      naslovOsvjezenje.textContent = 'Brzo održavanje i osvježavanje predmemorije sustava';
+      sekcijaOsvjezenje.appendChild(naslovOsvjezenje);
+
+      const grid = document.createElement('div');
+      grid.className = 'opt-grid';
+
+      // Kartica 1: DNS
+      const dnsKarta = document.createElement('div');
+      dnsKarta.className = 'opt-card';
+      const dnsBody = document.createElement('div');
+      dnsBody.className = 'opt-card-body';
+      const dnsNaslov = document.createElement('h4');
+      dnsNaslov.textContent = 'Osvježi mrežni DNS (Flush DNS)';
+      const dnsOpis = document.createElement('p');
+      dnsOpis.textContent = 'Prazni macOS mrežni DNS međuspremnik (dscacheutil -flushcache). Rješava probleme sa zastarjelim IP adresama i nedostupnim web stranicama.';
+      dnsBody.append(dnsNaslov, dnsOpis);
+
+      const dnsGumb = document.createElement('button');
+      dnsGumb.type = 'button';
+      dnsGumb.className = 'btn btn-primary';
+      dnsGumb.textContent = 'Isprazni DNS';
+      dnsGumb.addEventListener('click', () => pokreniOptimizaciju('dns'));
+      dnsKarta.append(dnsBody, dnsGumb);
+
+      // Kartica 2: QuickLook & ikone
+      const qlKarta = document.createElement('div');
+      qlKarta.className = 'opt-card';
+      const qlBody = document.createElement('div');
+      qlBody.className = 'opt-card-body';
+      const qlNaslov = document.createElement('h4');
+      qlNaslov.textContent = 'Osvježi QuickLook i ikone Finder-a';
+      const qlOpis = document.createElement('p');
+      qlOpis.textContent = 'Resetira predmemoriju QuickLook preglednika i ikona datoteka (qlmanage -r cache && qlmanage -r). Ubrzava prikaz u Finderu i ispravlja neispravne sličice.';
+      qlBody.append(qlNaslov, qlOpis);
+
+      const qlGumb = document.createElement('button');
+      qlGumb.type = 'button';
+      qlGumb.className = 'btn btn-primary';
+      qlGumb.textContent = 'Osvježi QuickLook';
+      qlGumb.addEventListener('click', () => pokreniOptimizaciju('quicklook'));
+      qlKarta.append(qlBody, qlGumb);
+
+      grid.append(dnsKarta, qlKarta);
+      sekcijaOsvjezenje.appendChild(grid);
+      spremnik.appendChild(sekcijaOsvjezenje);
+
+      // Sekcija 2: Pokretači sustava (LaunchAgents)
+      const sekcijaPokretaci = document.createElement('div');
+      sekcijaPokretaci.className = 'opt-section';
+      sekcijaPokretaci.style.marginTop = '20px';
+
+      const q = stanje.filterTekst.trim().toLowerCase();
+      const filtrirani = (stanje.pokretaci || []).filter(p =>
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        p.label.toLowerCase().includes(q) ||
+        p.plist_path.toLowerCase().includes(q) ||
+        (p.program_path && p.program_path.toLowerCase().includes(q))
+      );
+
+      const sirocad = filtrirani.filter(p => p.orphaned);
+
+      const zaglavljePokretaca = document.createElement('div');
+      zaglavljePokretaca.className = 'opt-section-header';
+
+      const naslovPokretaca = document.createElement('div');
+      naslovPokretaca.className = 'opt-section-title';
+      naslovPokretaca.textContent = 'Korisnički pokretači sustava (~/Library/LaunchAgents)';
+      zaglavljePokretaca.appendChild(naslovPokretaca);
+
+      if (sirocad.length > 0) {
+        const gumbSvaSirocad = document.createElement('button');
+        gumbSvaSirocad.type = 'button';
+        gumbSvaSirocad.className = 'btn btn-danger';
+        gumbSvaSirocad.textContent = 'Premjesti sva siročad u Koš (' + sirocad.length + ')';
+        gumbSvaSirocad.addEventListener('click', () => zatraziPotvrduUklanjanjaSvihSirocadi(sirocad));
+        zaglavljePokretaca.appendChild(gumbSvaSirocad);
+      }
+      sekcijaPokretaci.appendChild(zaglavljePokretaca);
+
+      if (filtrirani.length === 0) {
+        const prazno = document.createElement('div');
+        prazno.className = 'empty-state';
+        prazno.textContent = 'Nema pronađenih pokretača u ~/Library/LaunchAgents.';
+        sekcijaPokretaci.appendChild(prazno);
+      } else {
+        const lista = document.createElement('div');
+        lista.className = 'item-list';
+
+        for (const p of filtrirani) {
+          const red = document.createElement('div');
+          red.className = 'item-row';
+
+          const lijevo = document.createElement('div');
+          lijevo.className = 'item-details';
+
+          const naslov = document.createElement('div');
+          naslov.className = 'item-title';
+          naslov.textContent = p.name;
+
+          const statusZastavica = document.createElement('span');
+          if (p.orphaned) {
+            statusZastavica.className = 'tag-warn';
+            statusZastavica.textContent = 'Siroče (Izvršni program ne postoji)';
+          } else {
+            statusZastavica.className = 'tag-rec';
+            statusZastavica.textContent = 'Aktivan';
+          }
+          naslov.appendChild(statusZastavica);
+
+          const opis = document.createElement('div');
+          opis.className = 'item-desc';
+          const infoIzvrsni = p.program_path
+            ? p.program_path + (p.program_exists ? '' : ' (nedostaje na disku)')
+            : 'Nije specificirano';
+          opis.textContent = 'Oznaka: ' + (p.label || p.name) + ' | Program: ' + infoIzvrsni;
+
+          const putanja = document.createElement('div');
+          putanja.className = 'item-path';
+          putanja.textContent = p.plist_path;
+
+          lijevo.append(naslov, opis, putanja);
+
+          const desno = document.createElement('div');
+          desno.style.display = 'flex';
+          desno.style.alignItems = 'center';
+          desno.style.gap = '12px';
+
+          if (p.orphaned) {
+            const gumbUkloni = document.createElement('button');
+            gumbUkloni.type = 'button';
+            gumbUkloni.className = 'btn btn-danger';
+            gumbUkloni.textContent = 'Premjesti u Koš';
+            gumbUkloni.addEventListener('click', () => zatraziPotvrduUklanjanjaPokretaca(p));
+            desno.appendChild(gumbUkloni);
+          } else {
+            const sigurno = document.createElement('span');
+            sigurno.style.fontSize = '0.8rem';
+            sigurno.style.color = 'var(--text-muted)';
+            sigurno.textContent = 'Uredan pokretač';
+            desno.appendChild(sigurno);
+          }
+
+          red.append(lijevo, desno);
+          lista.appendChild(red);
+        }
+        sekcijaPokretaci.appendChild(lista);
+      }
+
+      spremnik.appendChild(sekcijaPokretaci);
+    }
+
     function iscrtajPogled() {
       const info = opisiTabova[stanje.aktivniTab];
       document.getElementById('naslov-pogleda').textContent = info.naslov;
       document.getElementById('opis-pogleda').textContent = info.opis;
 
-      const bezOdabira = stanje.aktivniTab === 'aplikacije' || stanje.aktivniTab === 'kos';
+      const bezOdabira = stanje.aktivniTab === 'aplikacije' || stanje.aktivniTab === 'kos' || stanje.aktivniTab === 'optimizacija';
       document.getElementById('alatna-traka-odabira').style.display = bezOdabira ? 'none' : 'flex';
       document.getElementById('podnozje-akcije').style.display = bezOdabira ? 'none' : 'flex';
 
@@ -1013,6 +1253,8 @@
         iscrtajAplikacije();
       } else if (stanje.aktivniTab === 'kos') {
         iscrtajKos();
+      } else if (stanje.aktivniTab === 'optimizacija') {
+        iscrtajOptimizaciju();
       } else {
         iscrtajStavkeCiscenja();
       }
@@ -1065,6 +1307,35 @@
       }
     }
 
+    async function ucitajPokretace() {
+      try {
+        const odg = await fetch('/api/pokretaci');
+        stanje.pokretaci = await odg.json();
+        const brojSirocadi = (stanje.pokretaci || []).filter(p => p.orphaned).length;
+        document.getElementById('badge-optimizacija').textContent = String(brojSirocadi);
+        if (stanje.aktivniTab === 'optimizacija') {
+          iscrtajOptimizaciju();
+        }
+      } catch (err) {
+        prikaziPoruku('Greška pri učitavanju pokretača: ' + err.message);
+      }
+    }
+
+    async function pokreniOptimizaciju(akcija) {
+      try {
+        prikaziPoruku('Izvršavam optimizaciju: ' + akcija + '...');
+        const odg = await fetch('/api/optimiziraj', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: akcija })
+        });
+        const rez = await odg.json();
+        prikaziPoruku(rez.message || 'Optimizacija uspješno izvršena.');
+      } catch (err) {
+        prikaziPoruku('Greška pri optimizaciji: ' + err.message);
+      }
+    }
+
     async function vratiStavkeIzKosa(putanjeUKosu) {
       try {
         const odg = await fetch('/api/vrati', {
@@ -1074,7 +1345,7 @@
         });
         const rez = await odg.json();
         prikaziPoruku(rez.message || 'Stavke su vraćene na izvorno mjesto.');
-        await Promise.all([ucitajSkeniranje(), ucitajAplikacije(), ucitajKos()]);
+        await Promise.all([ucitajSkeniranje(), ucitajAplikacije(), ucitajKos(), ucitajPokretace()]);
       } catch (err) {
         prikaziPoruku('Greška pri povratu iz Koša: ' + err.message);
       }
@@ -1134,6 +1405,44 @@
       );
     }
 
+    function zatraziPotvrduUklanjanjaPokretaca(p) {
+      otvoriDijalogPotvrde(
+        'Uklanjanje zaostalog pokretača: ' + p.name,
+        'Premjestit će se konfiguracijska datoteka pokretača (' + p.plist_path + ') u Koš za smeće (~/.Trash).',
+        'Premjesti u Koš',
+        async () => {
+          const odg = await fetch('/api/ocisti', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: [p.plist_path] })
+          });
+          const rez = await odg.json();
+          prikaziPoruku(rez.message || 'Pokretač je premješten u Koš.');
+          await Promise.all([ucitajPokretace(), ucitajKos()]);
+        }
+      );
+    }
+
+    function zatraziPotvrduUklanjanjaSvihSirocadi(sirocad) {
+      const putanje = sirocad.map(s => s.plist_path);
+      const brojTekst = uzBrojHR(putanje.length, 'zaostali pokretač', 'zaostala pokretača', 'zaostalih pokretača');
+      otvoriDijalogPotvrde(
+        'Uklanjanje zaostalih pokretača',
+        'Premjestit ćete ' + brojTekst + ' u Koš za smeće (~/.Trash). Programi kojima su pripadali više ne postoje na disku.',
+        'Premjesti u Koš',
+        async () => {
+          const odg = await fetch('/api/ocisti', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: putanje })
+          });
+          const rez = await odg.json();
+          prikaziPoruku(rez.message || 'Zaostali pokretači su premješteni u Koš.');
+          await Promise.all([ucitajPokretace(), ucitajKos()]);
+        }
+      );
+    }
+
     document.getElementById('potvrda-dijalog').addEventListener('close', async (e) => {
       const dijalog = e.currentTarget;
       const odluka = dijalog.returnValue;
@@ -1156,6 +1465,9 @@
         if (stanje.aktivniTab === 'kos') {
           ucitajKos();
         }
+        if (stanje.aktivniTab === 'optimizacija' && (!stanje.pokretaci || stanje.pokretaci.length === 0)) {
+          ucitajPokretace();
+        }
         iscrtajPogled();
       });
     });
@@ -1169,6 +1481,7 @@
       ucitajSkeniranje();
       ucitajAplikacije();
       ucitajKos();
+      ucitajPokretace();
     });
 
     document.getElementById('gumb-oznaci-preporuceno').addEventListener('click', () => {
@@ -1196,6 +1509,7 @@
     ucitajSkeniranje();
     ucitajAplikacije();
     ucitajKos();
+    ucitajPokretace();
   </script>
 </body>
 </html>

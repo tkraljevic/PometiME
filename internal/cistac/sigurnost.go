@@ -20,6 +20,7 @@ func DozvoljeniKorijeni(p Postavke) []string {
 		filepath.Join(k, "Library", "HTTPStorages"),
 		filepath.Join(k, "Library", "Preferences"),
 		filepath.Join(k, "Library", "Containers"),
+		filepath.Join(k, "Library", "LaunchAgents"),
 		filepath.Join(k, "Library", "Developer", "CoreSimulator"),
 		filepath.Join(k, "Library", "Developer", "Xcode"),
 		filepath.Join(k, "Library", "pnpm"),

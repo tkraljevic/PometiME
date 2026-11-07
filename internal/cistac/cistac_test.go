@@ -1,6 +1,7 @@
 package cistac
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -296,5 +297,82 @@ func TestSkenirajIDeinstalirajAplikacije(t *testing.T) {
 	prazanPovrat := VratiIzKosa(p, []string{"/nepostojeca/u/kosu"})
 	if !strings.Contains(prazanPovrat.Poruka, "Nijedna stavka") {
 		t.Errorf("neočekivana poruka za prazan povrat: %s", prazanPovrat.Poruka)
+	}
+}
+
+func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
+	dom := t.TempDir()
+	p := Postavke{KorijenKorisnika: dom, KorijenAplikacija: t.TempDir()}
+
+	// Nepostojeća mapa
+	if res := SkenirajPokretace(Postavke{KorijenKorisnika: filepath.Join(dom, "nepostoji")}); len(res) != 0 {
+		t.Errorf("očekivano 0 pokretača za nepostojeću mapu")
+	}
+
+	mapaAg := filepath.Join(dom, "Library", "LaunchAgents")
+	postojeciBin := filepath.Join(dom, "bin", "moj-alat")
+	napraviDatoteku(t, postojeciBin, 100)
+
+	// 1. Aktivan s Program ključem
+	aktivanPlist := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>Program</key><string>%s</string>
+</dict></plist>`, postojeciBin)
+	napraviDatoteku(t, filepath.Join(mapaAg, "hr.aktivan.plist"), len(aktivanPlist))
+	_ = os.WriteFile(filepath.Join(mapaAg, "hr.aktivan.plist"), []byte(aktivanPlist), 0o600) // testni plist pokretača
+
+	// 2. Siroče s ProgramArguments ključem koji cilja nepostojeći program
+	sirocePlist := `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>ProgramArguments</key><array><string>/Applications/Obrisana.app/Contents/MacOS/bin</string></array>
+</dict></plist>`
+	napraviDatoteku(t, filepath.Join(mapaAg, "hr.siroce.plist"), len(sirocePlist))
+	_ = os.WriteFile(filepath.Join(mapaAg, "hr.siroce.plist"), []byte(sirocePlist), 0o600) // testni plist siročeta
+
+	// 3. Pokretač bez program ključa (fallback)
+	prazanPlist := `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>Label</key><string>hr.prazan</string>
+</dict></plist>`
+	napraviDatoteku(t, filepath.Join(mapaAg, "hr.prazan.plist"), len(prazanPlist))
+	_ = os.WriteFile(filepath.Join(mapaAg, "hr.prazan.plist"), []byte(prazanPlist), 0o600) // testni prazni plist
+
+	// Datoteka koja nije plist
+	napraviDatoteku(t, filepath.Join(mapaAg, "README.txt"), 10)
+
+	pokretaci := SkenirajPokretace(p)
+	if len(pokretaci) != 3 {
+		t.Fatalf("očekivana 3 pokretača, dobiveno %d", len(pokretaci))
+	}
+	// Prvi mora biti siroče zbog sortiranja
+	if pokretaci[0].Status != "siroce" {
+		t.Errorf("očekivano da siroče bude prvo na popisu, dobiveno %s", pokretaci[0].Status)
+	}
+
+	// Test nečitljivog pokretača
+	necitljiv := obradiJedanPokretac(filepath.Join(dom, "nepostojeci.plist"), "nepostojeci.plist", true)
+	if necitljiv.Status != "nepoznato" {
+		t.Errorf("očekivan status nepoznato za nepostojeću datoteku, dobiveno %s", necitljiv.Status)
+	}
+
+	// Test optimizacije
+	if _, err := IzvrsiOptimizaciju("dns"); err != nil {
+		t.Errorf("greška pri izvršavanju dns optimizacije: %v", err)
+	}
+	if _, err := IzvrsiOptimizaciju("quicklook"); err != nil {
+		t.Errorf("greška pri izvršavanju quicklook optimizacije: %v", err)
+	}
+	if _, err := IzvrsiOptimizaciju("nepoznato"); err == nil {
+		t.Errorf("očekivana greška za nepoznatu optimizaciju")
+	}
+
+	// Test greške pri izvršavanju dns optimizacije
+	staraNaredba := pokreniNaredbu
+	defer func() { pokreniNaredbu = staraNaredba }()
+	pokreniNaredbu = func(name string, args ...string) error {
+		return fmt.Errorf("simulirana greška")
+	}
+	if _, err := IzvrsiOptimizaciju("dns"); err == nil {
+		t.Errorf("očekivana greška pri simuliranom padu naredbe")
 	}
 }

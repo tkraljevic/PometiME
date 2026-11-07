@@ -27,6 +27,10 @@ type zahtjevDeinstalacije struct {
 	PovezanePutanje   []string `json:"related_paths"`
 }
 
+type zahtjevOptimizacije struct {
+	Akcija string `json:"action"`
+}
+
 type odgovorGreske struct {
 	Greska string `json:"error"`
 }
@@ -41,10 +45,12 @@ func NoviPosluzitelj(p cistac.Postavke) *Posluzitelj {
 	mux.HandleFunc("GET /", pos.posluziSucelje)
 	mux.HandleFunc("GET /api/skeniraj", pos.obradiSkeniraj)
 	mux.HandleFunc("GET /api/aplikacije", pos.obradiAplikacije)
+	mux.HandleFunc("GET /api/pokretaci", pos.obradiPokretace)
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
 	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
 	mux.HandleFunc("POST /api/deinstaliraj", pos.obradiDeinstaliraj)
+	mux.HandleFunc("POST /api/optimiziraj", pos.obradiOptimiziraj)
 	return pos
 }
 
@@ -71,6 +77,11 @@ func (p *Posluzitelj) obradiSkeniraj(w http.ResponseWriter, _ *http.Request) {
 func (p *Posluzitelj) obradiAplikacije(w http.ResponseWriter, _ *http.Request) {
 	aplikacije := cistac.SkenirajAplikacije(p.postavke)
 	posluziJSON(w, http.StatusOK, aplikacije)
+}
+
+func (p *Posluzitelj) obradiPokretace(w http.ResponseWriter, _ *http.Request) {
+	pokretaci := cistac.SkenirajPokretace(p.postavke)
+	posluziJSON(w, http.StatusOK, pokretaci)
 }
 
 func (p *Posluzitelj) obradiKos(w http.ResponseWriter, _ *http.Request) {
@@ -106,6 +117,20 @@ func (p *Posluzitelj) obradiDeinstaliraj(w http.ResponseWriter, r *http.Request)
 	}
 	rezultat := cistac.DeinstalirajAplikaciju(p.postavke, zah.PutanjaAplikacije, zah.PovezanePutanje)
 	posluziJSON(w, http.StatusOK, rezultat)
+}
+
+func (p *Posluzitelj) obradiOptimiziraj(w http.ResponseWriter, r *http.Request) {
+	var zah zahtjevOptimizacije
+	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za optimizaciju."})
+		return
+	}
+	poruka, err := cistac.IzvrsiOptimizaciju(zah.Akcija)
+	if err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, cistac.RezultatOptimizacije{Uspjeh: true, Poruka: poruka})
 }
 
 func posluziJSON(w http.ResponseWriter, status int, podaci any) {

@@ -87,6 +87,24 @@ type StavkaKosa struct {
 	VrijemeBrisanja string `json:"deleted_at"`
 }
 
+// PokretacSustava opisuje stavku iz LaunchAgents koja se pokreće sa sustavom ili prijavom.
+type PokretacSustava struct {
+	ID             string `json:"id"`
+	Naziv          string `json:"name"`
+	Putanja        string `json:"path"`
+	PutanjaIzvrsne string `json:"executable_path"`
+	PostojiIzvrsna bool   `json:"executable_exists"`
+	JeKorisnicki   bool   `json:"is_user"`
+	Status         string `json:"status"`
+	Opis           string `json:"description"`
+}
+
+// RezultatOptimizacije opisuje ishod akcije održavanja sustava (npr. DNS, QuickLook).
+type RezultatOptimizacije struct {
+	Uspjeh bool   `json:"success"`
+	Poruka string `json:"message"`
+}
+
 // RezultatCiscenja opisuje ishod premještanja u Koš ili povrata odabranih putanja.
 type RezultatCiscenja struct {
 	ObrisanoStavki  int         `json:"removed_count"`
