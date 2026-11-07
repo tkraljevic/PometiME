@@ -16,6 +16,7 @@ app: build
 	clang -fobjc-arc -framework Cocoa -framework WebKit -O2 build/macos_webview.m -o dist/PometiME.app/Contents/MacOS/PometiME
 	cp build/Info.plist dist/PometiME.app/Contents/Info.plist
 	cp build/AppIcon.icns dist/PometiME.app/Contents/Resources/AppIcon.icns
+	cp LICENSE dist/PometiME.app/Contents/Resources/LICENSE
 	codesign --force --deep --sign - dist/PometiME.app
 	ditto -c -k --sequesterRsrc --keepParent dist/PometiME.app dist/PometiME-macOS.zip
 
