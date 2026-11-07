@@ -1,5 +1,7 @@
 # PometiME
 
+[![License: EUPL v1.2](https://img.shields.io/badge/License-EUPL%20v1.2-blue.svg)](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
+
 **PometiME** je nativna macOS aplikacija napisana u Go-u i Cocoa/WebKit-u za sigurno čišćenje diska, razvojnih i AI predmemorija te potpunu deinstalaciju aplikacija s njihovim ostacima u `~/Library`.
 
 ## Značajke
@@ -25,3 +27,8 @@ open dist/PometiME.app
 # Provjera kvalitete koda (STATUS: HEALTHY)
 make quality
 ```
+
+## Licenca
+
+Ovaj projekt licenciran je pod uvjetima **European Union Public Licence v. 1.2 (EUPL-1.2)**.
+Pojedinosti pročitajte u datoteci [LICENSE](LICENSE).
