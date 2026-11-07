@@ -5,10 +5,13 @@
 ## Značajke
 
 - **Pregled i Brzo Čišćenje:** Prikaz slobodnog prostora na disku i preporučene stavke za sigurno oslobađanje prostora.
+- **Koš za smeće i Povrat (Undo):** Sve obrisane stavke premještaju se u `~/.Trash` uz evidenciju u `~/.pometime_trash.json`. Jednim klikom moguće je vratiti bilo koju stavku natrag na izvorno mjesto.
 - **Predmemorija i Zapisnici:** Čišćenje `~/Library/Caches` i `~/Library/Logs` uz automatsku zaštitu osjetljivih sustavskih mapa (`com.apple.*`, `CloudKit`).
 - **Razvojni i AI Alati:** Čišćenje predmemorija za Go, Homebrew, NPM, Python Pip, Rust Cargo i završenih Claude Code sesija (`subagents`, `tool-results`) uz trajnu zaštitu mape `memory`.
 - **Ostaci Aplikacija:** Pronalazak zaboravljenih mapa u `~/Library/Application Support`, `Saved Application State`, `WebKit` i `HTTPStorages` koje ne pripadaju nijednoj instaliranoj aplikaciji.
-- **Deinstalater Aplikacija:** Potpuno uklanjanje `.app` paketa iz `/Applications` zajedno sa svim pripadajućim podacima u `~/Library`.
+- **Deinstalater Aplikacija:** Potpuno uklanjanje `.app` paketa iz `/Applications` i `~/Applications` zajedno sa svim pripadajućim podacima u `~/Library`.
+- **Kopije i Privici:** Otkrivanje i čišćenje starih iOS sigurnosnih kopija (`MobileSync/Backup`) te keširanih privitaka aplikacije Mail (`Mail Downloads`).
+- **Optimizacija i Ubrzanje Sustava:** Detekcija zaostalih pokretača (LaunchAgents) bez instaliranog programa te brzo osvježavanje sistemske predmemorije (pražnjenje DNS-a i reset QuickLook međuspremnika/ikona).
 
 ## Izgradnja i pokretanje
 
