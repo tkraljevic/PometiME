@@ -14,7 +14,7 @@ import (
 )
 
 // TrenutnaInacica definira ugrađenu verziju programa PometiME.
-const TrenutnaInacica = "1.0.1"
+const TrenutnaInacica = "1.0.2"
 
 var (
 	urlGitHubReleases         = "https://api.github.com/repos/tkraljevic/PometiME/releases/latest"

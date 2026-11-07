@@ -1153,7 +1153,7 @@
     <!-- Kartica verzije i nadogradnje -->
     <div class="side-update-box">
       <div class="side-update-ver">
-        <span id="prikaz-trenutne-verzije">PometiME 1.0.1</span>
+        <span id="prikaz-trenutne-verzije">PometiME 1.0.2</span>
         <span id="indikator-nove-verzije" class="side-update-badge" style="display: none;">● Nova</span>
       </div>
       <button type="button" class="side-update-btn" id="gumb-provjeri-nadogradnju">
@@ -1451,7 +1451,7 @@
       <div class="update-versions-grid" id="nadogradnja-kartice-verzija">
         <div class="update-ver-card">
           <div class="update-ver-label">Instalirana verzija</div>
-          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.1</div>
+          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.2</div>
         </div>
         <div class="update-ver-card">
           <div class="update-ver-label">Dostupna verzija</div>
@@ -2379,8 +2379,8 @@
           simbol.textContent = '\u2193';
           naslov.textContent = 'Nova verzija je spremna.';
           podnaslov.textContent = 'Pregledajte novosti i ažurirajte PometiME.';
-          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.trenutna_verzija || '1.0.1';
-          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.najnovija_verzija || '1.0.2';
+          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.trenutna_verzija || '1.0.2';
+          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.najnovija_verzija || '1.0.3';
           karticeVerzija.style.display = 'grid';
 
           const biljeske = podaci.opis_izdanja ? renderirajMarkdown(podaci.opis_izdanja) : '<p>Bilješke uz izdanje trenutačno nisu dostupne. Više informacija potražite na stranici izdanja.</p>';
@@ -2399,7 +2399,7 @@
           simbol.textContent = '\u2713';
           naslov.textContent = 'Sve je ažurno.';
           podnaslov.textContent = 'Već koristite najnoviju verziju PometiME.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.trenutna_verzija || '1.0.1');
+          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.trenutna_verzija || '1.0.2');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           break;
