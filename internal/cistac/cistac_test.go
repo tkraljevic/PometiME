@@ -160,6 +160,7 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 		NajmanjaVelicinaPredmemorije: 100,
 		NajmanjaVelicinaRazvojnih:    100,
 		NajmanjaVelicinaOstataka:     100,
+		NajmanjaVelicinaKopija:       100,
 	}
 
 	// 1. Predmemorija i logovi
@@ -198,6 +199,12 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "com.google.Chrome", "c.db"), 450)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "StaraObrisanaApp", "old.db"), 900)
 
+	// 4. iOS Backupi i Mail preuzimanja
+	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "MobileSync", "Backup", "00008101-001234567890ABCD", "Manifest.db"), 600)
+	napraviDatoteku(t, filepath.Join(dom, "Library", "Application Support", "MobileSync", "Backup", ".skriveni", "s.db"), 600)
+	napraviDatoteku(t, filepath.Join(dom, "Library", "Containers", "com.apple.mail", "Data", "Library", "Mail Downloads", "izvjestaj.pdf"), 750)
+	napraviDatoteku(t, filepath.Join(dom, "Library", "Containers", "com.apple.mail", "Data", "Library", "Mail Downloads", ".skriveni.pdf"), 750)
+
 	// Skeniranje nad nepostojećim mapama
 	_ = SkenirajSve(Postavke{KorijenKorisnika: filepath.Join(dom, "nepostoji"), KorijenAplikacija: filepath.Join(apps, "nepostoji")})
 
@@ -210,6 +217,12 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 	}
 	if len(izvj.OstaciAplikacija) != 1 {
 		t.Fatalf("očekivan 1 ostatak aplikacije, dobiveno %d", len(izvj.OstaciAplikacija))
+	}
+	if len(izvj.KopijeIPrivici) != 2 {
+		t.Fatalf("očekivane 2 stavke kopija i privitaka, dobiveno %d", len(izvj.KopijeIPrivici))
+	}
+	if skratiIdentifikator("kratko") != "kratko" {
+		t.Errorf("očekivan nepromijenjen kratki identifikator")
 	}
 
 	// Test čišćenja u Koš i povrata iz Koša

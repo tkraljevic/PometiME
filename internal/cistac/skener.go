@@ -237,12 +237,70 @@ func izmjeriKandidate(kandidati []kandidatCiscenja, najmanjaVelicina int64) []St
 	return stavke
 }
 
+// SkenirajKopijeIPrivike pronalazi iOS sigurnosne kopije i privremena preuzimanja Maila.
+func SkenirajKopijeIPrivike(p Postavke) []StavkaCiscenja {
+	var kandidati []kandidatCiscenja
+	kandidati = append(kandidati, prikupiKandidateIOSBackupova(filepath.Join(p.KorijenKorisnika, "Library", "Application Support", "MobileSync", "Backup"))...)
+	kandidati = append(kandidati, prikupiKandidateMailDownloads(filepath.Join(p.KorijenKorisnika, "Library", "Containers", "com.apple.mail", "Data", "Library", "Mail Downloads"))...)
+	return izmjeriKandidate(kandidati, p.NajmanjaVelicinaKopija)
+}
+
+func prikupiKandidateIOSBackupova(mapaBackup string) []kandidatCiscenja {
+	ulazi, err := os.ReadDir(mapaBackup)
+	if err != nil {
+		return nil
+	}
+	var izlaz []kandidatCiscenja
+	for _, u := range ulazi {
+		if !u.IsDir() || strings.HasPrefix(u.Name(), ".") {
+			continue
+		}
+		izlaz = append(izlaz, kandidatCiscenja{
+			putanja:     filepath.Join(mapaBackup, u.Name()),
+			naziv:       "iOS Sigurnosna Kopija: " + skratiIdentifikator(u.Name()),
+			kategorija:  "backups_attachments",
+			opis:        "Lokalna sigurnosna kopija iPhone ili iPad uređaja.",
+			preporuceno: false,
+		})
+	}
+	return izlaz
+}
+
+func skratiIdentifikator(id string) string {
+	if len(id) > 16 {
+		return id[:12] + "…"
+	}
+	return id
+}
+
+func prikupiKandidateMailDownloads(mapaMail string) []kandidatCiscenja {
+	ulazi, err := os.ReadDir(mapaMail)
+	if err != nil {
+		return nil
+	}
+	var izlaz []kandidatCiscenja
+	for _, u := range ulazi {
+		if strings.HasPrefix(u.Name(), ".") {
+			continue
+		}
+		izlaz = append(izlaz, kandidatCiscenja{
+			putanja:     filepath.Join(mapaMail, u.Name()),
+			naziv:       "Mail Privitak: " + u.Name(),
+			kategorija:  "backups_attachments",
+			opis:        "Lokalna kopija privitaka preuzetih unutar aplikacije Apple Mail.",
+			preporuceno: true,
+		})
+	}
+	return izlaz
+}
+
 // SkenirajSve izvršava cjeloviti pregled diska, predmemorije, razvojnih alata i ostataka aplikacija.
 func SkenirajSve(p Postavke) IzvjestajSkeniranja {
 	disk := DohvatiStanjeDiska(p.KorijenKorisnika)
 	predmemorija := SkenirajPredmemoriju(p)
 	razvojni := SkenirajRazvojneAlate(p)
 	ostaci := SkenirajOstatke(p)
+	kopije := SkenirajKopijeIPrivike(p)
 
 	var ukupno int64
 	for _, s := range predmemorija {
@@ -254,12 +312,16 @@ func SkenirajSve(p Postavke) IzvjestajSkeniranja {
 	for _, s := range ostaci {
 		ukupno += s.VelicinaBajta
 	}
+	for _, s := range kopije {
+		ukupno += s.VelicinaBajta
+	}
 
 	return IzvjestajSkeniranja{
 		Disk:                disk,
 		PredmemorijaSustava: predmemorija,
 		RazvojniAlati:       razvojni,
 		OstaciAplikacija:    ostaci,
+		KopijeIPrivici:      kopije,
 		UkupnoZaOsloboditi:  ukupno,
 	}
 }

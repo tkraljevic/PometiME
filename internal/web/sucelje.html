@@ -550,6 +550,10 @@
         <span>Ostaci Aplikacija</span>
         <span class="badge" id="badge-ostaci">0 B</span>
       </button>
+      <button type="button" class="nav-btn" data-tab="kopije">
+        <span>Kopije i Privici</span>
+        <span class="badge" id="badge-kopije">0 B</span>
+      </button>
       <button type="button" class="nav-btn" data-tab="aplikacije">
         <span>Deinstalater Aplikacija</span>
         <span class="badge" id="badge-aplikacije">0</span>
@@ -657,6 +661,10 @@
         naslov: 'Ostaci Aplikacija',
         opis: 'Mape u ~/Library koje ne pripadaju nijednoj instaliranoj aplikaciji niti aktivnom CLI alatu.'
       },
+      kopije: {
+        naslov: 'iOS Sigurnosne Kopije i Mail Privici',
+        opis: 'Lokalne sigurnosne kopije iPhone/iPad uređaja (MobileSync/Backup) i lokalno preuzeti privici iz Apple Maila.'
+      },
       aplikacije: {
         naslov: 'Deinstalater Aplikacija',
         opis: 'Potpuno premještanje aplikacija iz /Applications i ~/Applications zajedno s njihovim podacima u Koš za smeće.'
@@ -697,7 +705,8 @@
       return [
         ...(stanje.izvjestaj.system_caches || []),
         ...(stanje.izvjestaj.dev_ai_junk || []),
-        ...(stanje.izvjestaj.leftovers || [])
+        ...(stanje.izvjestaj.leftovers || []),
+        ...(stanje.izvjestaj.backups_attachments || [])
       ];
     }
 
@@ -712,6 +721,8 @@
         izvor = stanje.izvjestaj.dev_ai_junk || [];
       } else if (stanje.aktivniTab === 'ostaci') {
         izvor = stanje.izvjestaj.leftovers || [];
+      } else if (stanje.aktivniTab === 'kopije') {
+        izvor = stanje.izvjestaj.backups_attachments || [];
       }
       const q = stanje.filterTekst.trim().toLowerCase();
       if (!q) return izvor;
@@ -747,6 +758,7 @@
         document.getElementById('badge-predmemorija').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.system_caches));
         document.getElementById('badge-razvojni').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.dev_ai_junk));
         document.getElementById('badge-ostaci').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.leftovers));
+        document.getElementById('badge-kopije').textContent = formatirajBajte(zbrojiStavke(stanje.izvjestaj.backups_attachments));
       }
 
       let ukupnoOdabranoBajta = 0;

@@ -212,6 +212,7 @@ var zasticeniProizvodaci = map[string]bool{
 	"askpermissiond": true, "familycircled": true, "networkserviceproxy": true,
 	"syncservices": true, "animoji": true, "passkit": true, "gamekit": true,
 	"siritts": true, "biome": true, "replaykit": true, "fileprovider": true,
+	"mobilesync": true,
 }
 
 func izgradiSkupPoznatih(mete []metaAplikacije) map[string]bool {

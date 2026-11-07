@@ -13,6 +13,7 @@ type Postavke struct {
 	NajmanjaVelicinaPredmemorije int64
 	NajmanjaVelicinaRazvojnih    int64
 	NajmanjaVelicinaOstataka     int64
+	NajmanjaVelicinaKopija       int64
 }
 
 // ZadanePostavke vraća standardne postavke za zadanu korisničku mapu na macOS-u.
@@ -23,6 +24,7 @@ func ZadanePostavke(korijenKorisnika string) Postavke {
 		NajmanjaVelicinaPredmemorije: 2 * 1024 * 1024,
 		NajmanjaVelicinaRazvojnih:    512 * 1024,
 		NajmanjaVelicinaOstataka:     256 * 1024,
+		NajmanjaVelicinaKopija:       512 * 1024,
 	}
 }
 
@@ -71,6 +73,7 @@ type IzvjestajSkeniranja struct {
 	PredmemorijaSustava []StavkaCiscenja `json:"system_caches"`
 	RazvojniAlati       []StavkaCiscenja `json:"dev_ai_junk"`
 	OstaciAplikacija    []StavkaCiscenja `json:"leftovers"`
+	KopijeIPrivici      []StavkaCiscenja `json:"backups_attachments"`
 	UkupnoZaOsloboditi  int64            `json:"total_reclaimable_bytes"`
 }
 
