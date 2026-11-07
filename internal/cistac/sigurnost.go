@@ -30,6 +30,7 @@ func DozvoljeniKorijeni(p Postavke) []string {
 		filepath.Join(k, ".m2", "repository"),
 		filepath.Join(k, ".cargo", "registry", "cache"),
 		filepath.Join(k, ".claude", "projects"),
+		filepath.Join(k, ".android", "avd"),
 		filepath.Join(k, "go", "pkg", "mod", "cache"),
 		filepath.Join(k, "Downloads"),
 		filepath.Join(k, "Applications"),

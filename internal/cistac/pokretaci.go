@@ -134,6 +134,8 @@ func IzvrsiOptimizaciju(p Postavke, vrsta string) (string, error) {
 		return OcistiZracnePozadine(p)
 	case "otvori_aerials":
 		return otvoriMapuAerials()
+	case "simulators":
+		return izvrsiSimulatorsOptimizaciju()
 	default:
 		return "", fmt.Errorf("nepoznata radnja optimizacije: %s", vrsta)
 	}
@@ -163,4 +165,11 @@ func otvoriMapuAerials() (string, error) {
 	mapa := filepath.Join(korijenSustavskeKnjiznice, "Application Support", "com.apple.idleassetsd", "Customer")
 	_ = pokreniNaredbu("open", mapa) // otvaranje mape u Finderu
 	return "Mapa zračnih pozadina je otvorena u Finderu.", nil
+}
+
+func izvrsiSimulatorsOptimizaciju() (string, error) {
+	if err := pokreniNaredbu("xcrun", "simctl", "delete", "unavailable"); err != nil {
+		return "", fmt.Errorf("čišćenje nedostupnih simulatora nije uspjelo (provjerite je li Xcode instaliran): %w", err)
+	}
+	return "Nedostupni iOS simulatori su uspješno očišćeni.", nil
 }

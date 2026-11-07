@@ -394,6 +394,9 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	if _, err := IzvrsiOptimizaciju(p, "otvori_aerials"); err != nil {
 		t.Errorf("greška pri otvori_aerials optimizaciji: %v", err)
 	}
+	if _, err := IzvrsiOptimizaciju(p, "simulators"); err != nil {
+		t.Errorf("greška pri izvršavanju simulators optimizacije: %v", err)
+	}
 	if _, err := IzvrsiOptimizaciju(p, "nepoznato"); err == nil {
 		t.Errorf("očekivana greška za nepoznatu optimizaciju")
 	}
@@ -417,7 +420,7 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 		t.Errorf("očekivan nil pri grešci naredbe, dobiveno %v", sn)
 	}
 
-	// Test greške pri izvršavanju dns i snapshots optimizacije
+	// Test greške pri izvršavanju dns, snapshots i simulators optimizacije
 	pokreniNaredbu = func(name string, args ...string) error {
 		return fmt.Errorf("simulirana greška")
 	}
@@ -426,6 +429,9 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	}
 	if _, err := IzvrsiOptimizaciju(p, "snapshots"); err == nil {
 		t.Errorf("očekivana greška pri simuliranom padu snapshots naredbe")
+	}
+	if _, err := IzvrsiOptimizaciju(p, "simulators"); err == nil {
+		t.Errorf("očekivana greška pri simuliranom padu simulators naredbe")
 	}
 }
 
@@ -923,5 +929,93 @@ func TestSkenirajInstalacije(t *testing.T) {
 				t.Errorf("očekivano false za uklonjenu datoteku")
 			}
 		}
+	}
+}
+
+func TestSimulatoriIAvd(t *testing.T) {
+	dom := t.TempDir()
+	p := Postavke{
+		KorijenKorisnika:          dom,
+		NajmanjaVelicinaRazvojnih: 10,
+	}
+
+	// 1. Nepostojeće mape
+	if k := prikupiSimulatorKandidate(filepath.Join(dom, "nepostoji")); k != nil {
+		t.Errorf("očekivan nil za nepostojeću mapu simulatora")
+	}
+	if k := prikupiAvdKandidate(filepath.Join(dom, "nepostoji")); k != nil {
+		t.Errorf("očekivan nil za nepostojeću mapu avd-a")
+	}
+
+	// 2. iOS simulatori
+	simBaza := filepath.Join(dom, "Library", "Developer", "CoreSimulator", "Devices")
+	sim1 := filepath.Join(simBaza, "UUID-1111")
+	plist1 := `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>name</key><string>iPad Air 13-inch (M3)</string>
+<key>runtime</key><string>com.apple.CoreSimulator.SimRuntime.iOS-18-4</string>
+</dict></plist>`
+	napraviDatoteku(t, filepath.Join(sim1, "device.plist"), len(plist1))
+	if err := os.WriteFile(filepath.Join(sim1, "device.plist"), []byte(plist1), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	napraviDatoteku(t, filepath.Join(sim1, "data", "app.bin"), 200)
+
+	sim2 := filepath.Join(simBaza, "UUID-2222")
+	plist2 := `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>name</key><string>iPhone 16</string>
+</dict></plist>`
+	napraviDatoteku(t, filepath.Join(sim2, "device.plist"), len(plist2))
+	if err := os.WriteFile(filepath.Join(sim2, "device.plist"), []byte(plist2), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	napraviDatoteku(t, filepath.Join(sim2, "data.bin"), 300)
+
+	sim3 := filepath.Join(simBaza, "UUID-3333")
+	napraviDatoteku(t, filepath.Join(sim3, "data.bin"), 400)
+
+	napraviDatoteku(t, filepath.Join(simBaza, "device_set.plist"), 100)
+
+	simKandidati := prikupiSimulatorKandidate(simBaza)
+	if len(simKandidati) != 3 {
+		t.Fatalf("očekivana 3 kandidata simulatora, dobiveno %d", len(simKandidati))
+	}
+
+	// 3. Android AVD-ovi
+	avdBaza := filepath.Join(dom, ".android", "avd")
+	avd1 := filepath.Join(avdBaza, "Pixel_7_API_34.avd")
+	napraviDatoteku(t, filepath.Join(avd1, "userdata.img"), 500)
+	napraviDatoteku(t, filepath.Join(avdBaza, "nije-avd", "test.txt"), 100)
+	napraviDatoteku(t, filepath.Join(avdBaza, "Pixel_7_API_34.ini"), 50)
+
+	avdKandidati := prikupiAvdKandidate(avdBaza)
+	if len(avdKandidati) != 1 {
+		t.Fatalf("očekivan 1 avd kandidat, dobiveno %d", len(avdKandidati))
+	}
+	if avdKandidati[0].naziv != "Android Emulator (AVD): Pixel_7_API_34" {
+		t.Errorf("neočekivan naziv avd kandidata: %s", avdKandidati[0].naziv)
+	}
+
+	// 4. Provjera sigurnosti putanja
+	if !JeSigurnaPutanja(p, sim1) {
+		t.Errorf("putanja simulatora mora biti sigurna: %s", sim1)
+	}
+	if !JeSigurnaPutanja(p, avd1) {
+		t.Errorf("putanja android avd mora biti sigurna: %s", avd1)
+	}
+
+	// 5. Test urediSimulatorRuntime
+	if urediSimulatorRuntime("com.apple.CoreSimulator.SimRuntime.watchOS-10-0") != "watchOS 10.0" {
+		t.Errorf("neočekivano formatiranje watchOS runtimea")
+	}
+	if urediSimulatorRuntime("tvOS") != "tvOS" {
+		t.Errorf("neočekivano formatiranje tvOS bez verzije")
+	}
+
+	// 6. Integracija u SkenirajRazvojneAlate
+	stavke := SkenirajRazvojneAlate(p)
+	if len(stavke) != 4 {
+		t.Fatalf("očekivane 4 stavke u SkenirajRazvojneAlate, dobiveno %d", len(stavke))
 	}
 }

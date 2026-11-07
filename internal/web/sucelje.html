@@ -1501,7 +1501,28 @@
       gumbiRed.append(gumbOcistiAer, gumbOtvoriAer);
       aerKarta.append(aerBody, gumbiRed);
 
-      grid.append(dnsKarta, qlKarta, tmKarta, aerKarta);
+      // Kartica 5: iOS Simulatori
+      const simKarta = document.createElement('div');
+      simKarta.className = 'opt-card';
+      const simBody = document.createElement('div');
+      simBody.className = 'opt-card-body';
+      const simNaslov = document.createElement('h4');
+      simNaslov.textContent = 'iOS Simulatori (simctl)';
+      const simOpis = document.createElement('p');
+      simOpis.textContent = 'Briše stare i nedostupne iOS/watchOS/tvOS simulatore koji više nemaju instaliran odgovarajući runtime u Xcodeu (xcrun simctl delete unavailable).';
+      simBody.append(simNaslov, simOpis);
+
+      const simGumb = document.createElement('button');
+      simGumb.type = 'button';
+      simGumb.className = 'btn btn-primary';
+      simGumb.textContent = 'Očisti nedostupne';
+      simGumb.addEventListener('click', async () => {
+        await pokreniOptimizaciju('simulators');
+        await ucitajSkeniranje();
+      });
+      simKarta.append(simBody, simGumb);
+
+      grid.append(dnsKarta, qlKarta, tmKarta, aerKarta, simKarta);
       sekcijaOsvjezenje.appendChild(grid);
       spremnik.appendChild(sekcijaOsvjezenje);
 

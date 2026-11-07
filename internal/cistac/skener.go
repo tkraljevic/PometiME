@@ -127,6 +127,8 @@ func prikupiKandidateLogova(mapaLogova string) []kandidatCiscenja {
 func SkenirajRazvojneAlate(p Postavke) []StavkaCiscenja {
 	kandidati := fiksniRazvojniKandidati(p.KorijenKorisnika)
 	kandidati = append(kandidati, prikupiClaudeKandidate(filepath.Join(p.KorijenKorisnika, ".claude", "projects"))...)
+	kandidati = append(kandidati, prikupiSimulatorKandidate(filepath.Join(p.KorijenKorisnika, "Library", "Developer", "CoreSimulator", "Devices"))...)
+	kandidati = append(kandidati, prikupiAvdKandidate(filepath.Join(p.KorijenKorisnika, ".android", "avd"))...)
 	return izmjeriKandidate(kandidati, p.NajmanjaVelicinaRazvojnih)
 }
 
