@@ -40,6 +40,8 @@ Sučelje koristi plave naglaske, izvornu ikonicu četke i usklađene SVG ikonice
 
 Najnoviju verziju možete preuzeti na stranici [GitHub Izdanja](https://github.com/tkraljevic/PometiME/releases).
 
+**Prijelaz s verzija 1.0.2–1.0.5:** zbog greške u starom sučelju nadogradnje potrebno je jednom ručno preuzeti verziju 1.0.6 ili noviju, zatvoriti PometiME i zamijeniti aplikaciju u mapi Aplikacije. U novijem izdanju ispravljeno je prepoznavanje dostupne nadogradnje i slanje zahtjeva za instalaciju.
+
 Ako želite sami izgraditi aplikaciju iz koda:
 
 ```bash
@@ -51,6 +53,9 @@ open dist/PometiME.app
 
 # Provjera kvalitete koda (STATUS: HEALTHY)
 make quality
+
+# Regresijski testovi sučelja nadogradnje (Node.js)
+node --test dev/ui/nadogradnja.test.cjs
 ```
 
 ## Licenca
