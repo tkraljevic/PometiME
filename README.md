@@ -6,7 +6,9 @@
 
 Sve što se očisti prvo ide u **Koš za smeće** (`~/.Trash`), pa ako vam bilo što ikad ponovno zatreba, možete to vratiti jednim klikom.
 
-![PometiME — Pregled diska](docs/screenshot.png)
+![PometiME — najnovije sučelje aplikacije, pregled diska i preporučeno čišćenje](docs/screenshot.png)
+
+*Snimka pokrenute aplikacije od 8. studenoga 2026. Prikazane veličine ovise o stanju diska.*
 
 ## Kako radi
 
@@ -14,7 +16,7 @@ Sučelje je podijeljeno na pet jednostavnih cjelina:
 
 1. **Pregled** — Brzi uvid u stanje diska (Macintosh HD) i preporuka koliko prostora možete odmah osloboditi.
 2. **Čišćenje** — Popis privremenih datoteka, predmemorije aplikacija i sustava. Preporučene stavke već su označene, a prije čišćenja možete pregledati svaku pojedinost.
-3. **Aplikacije** — Jednostavan pregled instaliranih programa. Kada uklanjate aplikaciju, PometiME pronalazi i sve njezine skrivene datoteke u mapi `~/Library` kako ništa ne bi ostalo zaboravljeno.
+3. **Aplikacije** — Pregled instaliranih programa s njihovim izvornim macOS ikonicama. Ikonice se učitavaju lokalno iz aplikacijskih paketa ili preko sistemskog servisa, uz zamjensku ikonicu ako dohvat nije moguć. Prije uklanjanja možete pregledati pripadajuće podatke pronađene u mapi `~/Library`.
 4. **Napredni alati** — Dodatno održavanje kada vam zatreba:
    - *Razvojni i AI alati*: čišćenje međuspremnika za Xcode, Go, Rust Cargo, NPM, Python, kao i zaostalih iOS simulatora, Android emulatora i Claude Code sesija (uz trajnu zaštitu memorije).
    - *Ostaci aplikacija*: brisanje mapa programa koje ste ranije deinstalirali.
@@ -22,6 +24,10 @@ Sučelje je podijeljeno na pet jednostavnih cjelina:
    - *Stari instaleri*: preuzete `.dmg` i `.pkg` datoteke u mapi Preuzimanja.
    - *Održavanje sustava*: pražnjenje DNS-a, osvježavanje QuickLooka, proređivanje Time Machine snimaka i čišćenje 4K pozadina.
 5. **Koš i povrat** — Popis svih stavki koje je PometiME premjestio u Koš. Jedan klik na *Vrati odabrano* vraća datoteke točno tamo gdje su bile.
+
+Sučelje koristi plave naglaske, izvornu ikonicu četke i usklađene SVG ikonice naprednih alata. Podržava svijetli i tamni izgled te kratke prijelaze uz postavke smanjenog kretanja i prozirnosti.
+
+![PometiME — instalirane aplikacije s izvornim macOS ikonicama](docs/redizajn_aplikacije.png)
 
 ## Sigurnost na prvom mjestu
 

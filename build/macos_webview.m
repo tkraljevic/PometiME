@@ -1,6 +1,84 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
+// WebKit učitava samo ikonice instaliranih aplikacija, bez izlaganja datoteka HTTP poslužitelju.
+@interface PometiIconHandler : NSObject <WKURLSchemeHandler>
+@end
+
+@implementation PometiIconHandler
+
+- (void)webView:(WKWebView *)webView startURLSchemeTask:(id<WKURLSchemeTask>)task {
+    NSURLComponents *components = [NSURLComponents componentsWithURL:task.request.URL resolvingAgainstBaseURL:NO];
+    NSString *path = nil;
+    for (NSURLQueryItem *item in components.queryItems) {
+        if ([item.name isEqualToString:@"path"]) {
+            path = item.value;
+            break;
+        }
+    }
+    NSString *resolved = [[path stringByStandardizingPath] stringByResolvingSymlinksInPath];
+    BOOL allowed = NO;
+    for (NSString *root in @[@"/Applications", [NSHomeDirectory() stringByAppendingPathComponent:@"Applications"]]) {
+        NSString *prefix = [[[root stringByStandardizingPath] stringByResolvingSymlinksInPath] stringByAppendingString:@"/"];
+        if ([resolved hasPrefix:prefix]) allowed = YES;
+    }
+    BOOL directory = NO;
+    if (![components.host isEqualToString:@"application"] || !path.isAbsolutePath || !allowed ||
+        ![[resolved pathExtension] isEqualToString:@"app"] ||
+        ![[NSFileManager defaultManager] fileExistsAtPath:resolved isDirectory:&directory] || !directory) {
+        [task didFailWithError:[NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorFileDoesNotExist userInfo:nil]];
+        return;
+    }
+
+    NSBundle *bundle = [NSBundle bundleWithPath:resolved];
+    NSString *infoPath = [resolved stringByAppendingPathComponent:@"Contents/Info.plist"];
+    NSData *infoData = [NSData dataWithContentsOfFile:infoPath];
+    id metadata = infoData ? [NSPropertyListSerialization propertyListWithData:infoData options:NSPropertyListImmutable format:NULL error:nil] : nil;
+    NSDictionary *info = [metadata isKindOfClass:NSDictionary.class] ? metadata : @{};
+    NSImage *icon = nil;
+    for (NSString *key in @[@"CFBundleIconFile", @"CFBundleIconName"]) {
+        id value = info[key];
+        if (![value isKindOfClass:NSString.class] || ![value length]) continue;
+        NSString *name = value;
+        NSString *file = name.pathExtension.length ? name : [name stringByAppendingPathExtension:@"icns"];
+        NSString *resources = [resolved stringByAppendingPathComponent:@"Contents/Resources"];
+        NSString *iconPath = [[resources stringByAppendingPathComponent:file] stringByResolvingSymlinksInPath];
+        if ([iconPath hasPrefix:[resources stringByAppendingString:@"/"]]) {
+            icon = [[NSImage alloc] initWithContentsOfFile:iconPath];
+        }
+        if (!icon) icon = [bundle imageForResource:name];
+        if (icon) break;
+    }
+    if (!icon) icon = [[NSWorkspace sharedWorkspace] iconForFile:resolved];
+    NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
+        pixelsWide:80 pixelsHigh:80 bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES
+        isPlanar:NO colorSpaceName:NSCalibratedRGBColorSpace bytesPerRow:0 bitsPerPixel:0];
+    NSGraphicsContext *context = [NSGraphicsContext graphicsContextWithBitmapImageRep:bitmap];
+    NSRect bounds = NSMakeRect(0, 0, 80, 80);
+    CGImageRef image = [icon CGImageForProposedRect:&bounds context:context hints:nil];
+    if (!image) {
+        [task didFailWithError:[NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorCannotDecodeContentData userInfo:nil]];
+        return;
+    }
+    CGContextDrawImage(context.CGContext, CGRectMake(0, 0, 80, 80), image);
+    NSData *png = [bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+    if (!png) {
+        [task didFailWithError:[NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorCannotDecodeContentData userInfo:nil]];
+        return;
+    }
+    NSURLResponse *response = [[NSURLResponse alloc] initWithURL:task.request.URL MIMEType:@"image/png"
+        expectedContentLength:png.length textEncodingName:nil];
+    [task didReceiveResponse:response];
+    [task didReceiveData:png];
+    [task didFinish];
+}
+
+- (void)webView:(WKWebView *)webView stopURLSchemeTask:(id<WKURLSchemeTask>)task {
+    // Dohvat završava sinkrono; nema preostalih zadataka za prekid.
+}
+
+@end
+
 @interface PometiAppDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
 @property (strong, nonatomic) NSWindow *window;
 @property (strong, nonatomic) WKWebView *webView;
@@ -77,6 +155,7 @@
     [self.window setDelegate:self];
 
     WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
+    [config setURLSchemeHandler:[[PometiIconHandler alloc] init] forURLScheme:@"pometime-icon"];
     self.webView = [[WKWebView alloc] initWithFrame:[[self.window contentView] bounds]
                                       configuration:config];
     [self.webView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
