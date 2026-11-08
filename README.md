@@ -6,9 +6,9 @@
 
 Sve što se očisti prvo ide u **Koš za smeće** (`~/.Trash`), pa ako vam bilo što ikad ponovno zatreba, možete to vratiti jednim klikom.
 
-![PometiME — najnovije sučelje aplikacije, pregled diska i preporučeno čišćenje](docs/screenshot.png)
+![PometiME 1.0.8 — pregled diska i preporučeno čišćenje](docs/screenshot.png)
 
-*Snimka pokrenute aplikacije od 8. studenoga 2026. Prikazane veličine ovise o stanju diska.*
+*Snimka pokrenute aplikacije PometiME 1.0.8 od 8. studenoga 2026. Prikazane veličine ovise o stanju diska.*
 
 ## Kako radi
 
@@ -27,7 +27,7 @@ Sučelje je podijeljeno na pet jednostavnih cjelina:
 
 Sučelje koristi plave naglaske, izvornu ikonicu četke i usklađene SVG ikonice naprednih alata. Podržava svijetli i tamni izgled te kratke prijelaze uz postavke smanjenog kretanja i prozirnosti.
 
-![PometiME — instalirane aplikacije s izvornim macOS ikonicama](docs/redizajn_aplikacije.png)
+![PometiME 1.0.8 — izvorne ikonice aplikacija, gumb Ukloni i pregled pripadajućih podataka](docs/redizajn_aplikacije.png)
 
 ## Sigurnost na prvom mjestu
 
