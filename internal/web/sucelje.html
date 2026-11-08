@@ -1189,6 +1189,32 @@
       border: 1px dashed var(--border);
       border-radius: var(--radius-card);
     }
+    .loading-card {
+      display: flex; align-items: center; gap: 24px; padding: 26px 28px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-card);
+      position: relative; min-height: 128px;
+    }
+    .loading-card::before { content: ''; position: absolute; left: 0; top: 24px; bottom: 24px; width: 3px; border-radius: 3px; background: var(--primary); }
+    .loading-brush { width: 48px; height: 48px; flex-shrink: 0; transform-origin: 50% 80%; animation: loading-sweep 1.4s ease-in-out infinite; }
+    .loading-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main); }
+    .loading-description { font-size: 0.84rem; color: var(--text-muted); line-height: 1.5; }
+    .loading-rows { display: grid; gap: 12px; }
+    .loading-row { display: flex; align-items: center; gap: 20px; min-height: 88px; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--bg-card); }
+    .loading-avatar, .loading-lines > div, .loading-size { background: var(--bg-card-subtle); animation: loading-breathe 1.8s ease-in-out infinite; }
+    .loading-avatar { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; }
+    .loading-lines { flex: 1; display: grid; gap: 12px; }
+    .loading-lines > div { width: 48%; height: 11px; border-radius: 6px; }
+    .loading-lines > div + div { width: 72%; height: 8px; }
+    .loading-size { width: 78px; height: 9px; border-radius: 6px; }
+    .loading-row:nth-child(2) .loading-lines > div { width: 42%; }
+    .loading-row:nth-child(2) .loading-lines > div + div { width: 65%; }
+    .loading-row:nth-child(2) .loading-avatar, .loading-row:nth-child(2) .loading-lines > div, .loading-row:nth-child(2) .loading-size { animation-delay: 150ms; }
+    .loading-row:nth-child(3) .loading-avatar, .loading-row:nth-child(3) .loading-lines > div, .loading-row:nth-child(3) .loading-size { animation-delay: 300ms; }
+    .loading-still { animation: none; }
+    @keyframes loading-sweep { 0%,100% { transform: translateX(-5px) rotate(-8deg); } 50% { transform: translateX(5px) rotate(8deg); } }
+    @keyframes loading-breathe { 0%,100% { opacity: .55; } 50% { opacity: .9; } }
+    @media (prefers-reduced-motion: reduce) { .loading-brush, .loading-avatar, .loading-lines > div, .loading-size { animation: none !important; } }
+    @media (max-width: 600px) { .loading-card { gap: 16px; padding: 22px 18px; } .loading-size { display: none; } }
   </style>
 </head>
 <body>
@@ -1267,7 +1293,7 @@
     <!-- Kartica verzije i nadogradnje -->
     <div class="side-update-box">
       <div class="side-update-ver">
-        <span id="prikaz-trenutne-verzije">PometiME 1.0.6</span>
+        <span id="prikaz-trenutne-verzije">PometiME 1.0.7</span>
         <span id="indikator-nove-verzije" class="side-update-badge" style="display: none;">● Nova</span>
       </div>
       <button type="button" class="side-update-btn" id="gumb-provjeri-nadogradnju">
@@ -1573,11 +1599,11 @@
       <div class="update-versions-grid" id="nadogradnja-kartice-verzija">
         <div class="update-ver-card">
           <div class="update-ver-label">Instalirana verzija</div>
-          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.6</div>
+          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.7</div>
         </div>
         <div class="update-ver-card">
           <div class="update-ver-label">Dostupna verzija</div>
-          <div class="update-ver-value" id="nadogradnja-nova-verzija">1.0.6</div>
+          <div class="update-ver-value" id="nadogradnja-nova-verzija">1.0.7</div>
         </div>
       </div>
 
@@ -1624,6 +1650,115 @@
       tekstPretrageApp: '',
       potvrdaAkcija: null
     };
+
+    // Učitavanje popisa: kratki zahtjevi ne prikazuju loader, a pogreška nije prazan popis.
+    const ucitavanja = {};
+    const prikaziUcitavanja = {
+      aplikacije: { naslov: 'Učitavam aplikacije…', opis: 'Prikupljam popis, ikonice i podatke o zauzeću.', iscrtaj: () => iscrtajAplikacije(), ponovi: () => ucitajAplikacije() },
+      ciscenje: { naslov: 'Pregledavam disk…', opis: 'Tražim stavke koje možete očistiti.', iscrtaj: () => { iscrtajCiscenje(); if (stanje.aktivniTab === 'napredni') iscrtajNapredneAlate(); }, ponovi: () => ucitajSkeniranje() },
+      kos: { naslov: 'Učitavam Koš i povrat…', opis: 'Provjeravam stavke koje možete vratiti.', iscrtaj: () => iscrtajKos(), ponovi: () => ucitajKos() }
+    };
+
+    function zapocniUcitavanje(vrsta) {
+      const prethodno = ucitavanja[vrsta];
+      if (prethodno) { clearTimeout(prethodno.odgoda); clearTimeout(prethodno.dugo); }
+      const unos = { aktivno: true, vidljivo: false, dulje: false, greska: '', zahtjev: null };
+      ucitavanja[vrsta] = unos;
+      unos.odgoda = setTimeout(() => {
+        unos.vidljivo = true;
+        prikaziUcitavanja[vrsta].iscrtaj();
+      }, 180);
+      unos.dugo = setTimeout(() => {
+        unos.dulje = true;
+        prikaziUcitavanja[vrsta].iscrtaj();
+      }, 8000);
+      prikaziUcitavanja[vrsta].iscrtaj();
+      osvjeziDonjuTraku();
+      return unos;
+    }
+
+    function zavrsiUcitavanje(vrsta, unos, greska = '') {
+      clearTimeout(unos.odgoda);
+      clearTimeout(unos.dugo);
+      if (ucitavanja[vrsta] !== unos) return;
+      unos.aktivno = false;
+      unos.greska = greska;
+      prikaziUcitavanja[vrsta].iscrtaj();
+      osvjeziDonjuTraku();
+    }
+
+    function prikaziLoader(vrsta, spremnik) {
+      const unos = ucitavanja[vrsta];
+      spremnik.setAttribute('aria-busy', String(!!unos?.aktivno));
+      if (!unos || (!unos.aktivno && !unos.greska)) return false;
+      if (vrsta === 'aplikacije') document.getElementById('broj-aplikacija-tekst').textContent = unos.aktivno ? 'Učitavanje…' : 'Popis nije učitan';
+      if (unos.aktivno && !unos.vidljivo) return true;
+      spremnik.replaceChildren();
+      const kartica = document.createElement('div');
+      kartica.className = 'loading-card';
+      kartica.setAttribute('role', 'status');
+      kartica.setAttribute('aria-live', 'polite');
+      const cetka = document.querySelector('.brand-logo svg').cloneNode(true);
+      // Svaki loader koristi vlastite gradijente, bez ponavljanja SVG ID-jeva.
+      cetka.querySelectorAll('[id]').forEach(el => {
+        const stariID = el.id;
+        const noviID = stariID + '-loader-' + vrsta;
+        cetka.querySelectorAll('[fill]').forEach(p => { if (p.getAttribute('fill') === 'url(#' + stariID + ')') p.setAttribute('fill', 'url(#' + noviID + ')'); });
+        el.id = noviID;
+      });
+      cetka.classList.add('loading-brush');
+      cetka.setAttribute('aria-hidden', 'true');
+      const tekst = document.createElement('div');
+      const naslov = document.createElement('div');
+      naslov.className = 'loading-title';
+      naslov.textContent = unos.greska ? 'Učitavanje nije uspjelo.' : prikaziUcitavanja[vrsta].naslov;
+      const opis = document.createElement('div');
+      opis.className = 'loading-description';
+      opis.textContent = unos.greska || prikaziUcitavanja[vrsta].opis;
+      tekst.append(naslov, opis);
+      kartica.append(cetka, tekst);
+      spremnik.append(kartica);
+      if (unos.greska) {
+        cetka.classList.add('loading-still');
+        const gumb = document.createElement('button');
+        gumb.type = 'button';
+        gumb.className = 'btn';
+        gumb.textContent = 'Pokušaj ponovno';
+        gumb.addEventListener('click', prikaziUcitavanja[vrsta].ponovi);
+        spremnik.append(gumb);
+      } else {
+        const obrisi = document.createElement('div');
+        obrisi.className = 'loading-rows';
+        obrisi.setAttribute('aria-hidden', 'true');
+        obrisi.innerHTML = Array.from({ length: 3 }, () => '<div class="loading-row"><div class="loading-avatar"></div><div class="loading-lines"><div></div><div></div></div><div class="loading-size"></div></div>').join('');
+        const poruka = document.createElement('div');
+        poruka.className = 'loading-description';
+        poruka.textContent = unos.dulje ? 'Još učitavam podatke. Hvala na strpljenju.' : 'Prvi pregled može potrajati malo dulje.';
+        spremnik.append(obrisi, poruka);
+      }
+      return true;
+    }
+
+    function ucitajPopis(vrsta, url, kljuc, badge) {
+      if (ucitavanja[vrsta]?.aktivno) return ucitavanja[vrsta].zahtjev;
+      const unos = zapocniUcitavanje(vrsta);
+      unos.zahtjev = (async () => {
+        let greska = '';
+        try {
+          const odg = await fetch(url);
+          if (!odg.ok) throw new Error('Dohvat podataka nije uspio. Pokušajte ponovno.');
+          const podaci = await odg.json();
+          if (!Array.isArray(podaci)) throw new Error('Primljen je neispravan popis. Pokušajte ponovno.');
+          stanje[kljuc] = podaci;
+          postaviBadge(badge, podaci.length);
+        } catch (err) {
+          greska = err.message;
+        } finally {
+          zavrsiUcitavanje(vrsta, unos, greska);
+        }
+      })();
+      return unos.zahtjev;
+    }
 
     // Formatiranje bajtova
     function formatirajBajte(bajti) {
@@ -1753,6 +1888,14 @@
 
     // Osvježavanje donje akcijske trake
     function osvjeziDonjuTraku() {
+      const kljucUcitavanja = stanje.aktivniTab === 'kos' ? 'kos' : 'ciscenje';
+      const unosUcitavanja = ucitavanja[kljucUcitavanja];
+      if (unosUcitavanja && (unosUcitavanja.aktivno || unosUcitavanja.greska)) {
+        document.getElementById('traka-gumb-akcija').disabled = true;
+        document.getElementById('traka-gumb-odabir-sve').disabled = true;
+        return;
+      }
+      document.getElementById('traka-gumb-odabir-sve').disabled = false;
       const trakaOdabrano = document.getElementById('traka-odabrano-tekst');
       const trakaHint = document.getElementById('traka-hint-tekst');
       const trakaGumbAkcija = document.getElementById('traka-gumb-akcija');
@@ -1818,6 +1961,7 @@
     // 2. ISCRTAVANJE: ČIŠĆENJE
     function iscrtajCiscenje() {
       const spremnik = document.getElementById('popis-stavki-ciscenja');
+      if (prikaziLoader('ciscenje', spremnik)) return;
       spremnik.replaceChildren();
 
       if (!stanje.izvjestaj) {
@@ -1929,6 +2073,7 @@
     // 3. ISCRTAVANJE: APLIKACIJE
     function iscrtajAplikacije() {
       const spremnik = document.getElementById('popis-aplikacija');
+      if (prikaziLoader('aplikacije', spremnik)) return;
       spremnik.replaceChildren();
 
       const q = stanje.tekstPretrageApp.trim().toLowerCase();
@@ -2274,6 +2419,7 @@
     // 5. ISCRTAVANJE: KOŠ I POVRAT
     function iscrtajKos() {
       const spremnik = document.getElementById('popis-kosa');
+      if (prikaziLoader('kos', spremnik)) return;
       spremnik.replaceChildren();
 
       let zbroj = 0;
@@ -2683,8 +2829,8 @@
           simbol.textContent = '\u2193';
           naslov.textContent = 'Nova verzija je spremna.';
           podnaslov.textContent = 'Pregledajte novosti i ažurirajte PometiME.';
-          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || '1.0.6';
-          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || '1.0.6';
+          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || '1.0.7';
+          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || '1.0.7';
           karticeVerzija.style.display = 'grid';
 
           const biljeske = podaci.release_notes ? renderirajMarkdown(podaci.release_notes) : '<p>Bilješke uz izdanje trenutačno nisu dostupne. Više informacija potražite na stranici izdanja.</p>';
@@ -2703,7 +2849,7 @@
           simbol.textContent = '\u2713';
           naslov.textContent = 'Sve je ažurno.';
           podnaslov.textContent = 'Već koristite najnoviju verziju PometiME.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.current_version || '1.0.6');
+          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.current_version || '1.0.7');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           break;
@@ -2721,7 +2867,7 @@
           simbol.textContent = '\u2713';
           naslov.textContent = 'Nadogradnja je instalirana.';
           podnaslov.textContent = 'Pokrenite PometiME ponovno kako biste koristili novu verziju.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.latest_version || '1.0.6');
+          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.latest_version || '1.0.7');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           break;
@@ -2803,10 +2949,13 @@
 
     // Učitavanje podataka s poslužitelja
     async function ucitajSkeniranje() {
+      const unosUcitavanja = zapocniUcitavanje('ciscenje');
+      let greskaUcitavanja = '';
       const ikona = document.getElementById('ikona-skeniranja');
       if (ikona) ikona.classList.add('rotiraj');
       try {
         const odg = await fetch('/api/skeniraj');
+        if (!odg.ok) throw new Error('Pregled diska nije uspio. Pokušajte ponovno.');
         stanje.izvjestaj = await odg.json();
         stanje.zadnjeSkeniranje = new Date();
 
@@ -2832,9 +2981,11 @@
         if (stanje.aktivniTab === 'ciscenje') iscrtajCiscenje();
         if (stanje.aktivniTab === 'napredni') iscrtajNapredneAlate();
       } catch (err) {
+        greskaUcitavanja = err.message;
         prikaziPoruku('Greška pri skeniranju: ' + err.message);
       } finally {
         if (ikona) ikona.classList.remove('rotiraj');
+        zavrsiUcitavanje('ciscenje', unosUcitavanja, greskaUcitavanja);
       }
     }
 
@@ -2845,26 +2996,12 @@
       el.style.display = broj > 0 ? 'inline-block' : 'none';
     }
 
-    async function ucitajAplikacije() {
-      try {
-        const odg = await fetch('/api/aplikacije');
-        stanje.aplikacije = await odg.json();
-        postaviBadge('badge-aplikacije', (stanje.aplikacije || []).length);
-        if (stanje.aktivniTab === 'aplikacije') iscrtajAplikacije();
-      } catch (err) {
-        console.warn('Greška pri dohvatu aplikacija:', err);
-      }
+    function ucitajAplikacije() {
+      return ucitajPopis('aplikacije', '/api/aplikacije', 'aplikacije', 'badge-aplikacije');
     }
 
-    async function ucitajKos() {
-      try {
-        const odg = await fetch('/api/kos');
-        stanje.kos = await odg.json();
-        postaviBadge('badge-kos', (stanje.kos || []).length);
-        if (stanje.aktivniTab === 'kos') iscrtajKos();
-      } catch (err) {
-        console.warn('Greška pri dohvatu Koša:', err);
-      }
+    function ucitajKos() {
+      return ucitajPopis('kos', '/api/kos', 'kos', 'badge-kos');
     }
 
     async function ucitajPokretace() {

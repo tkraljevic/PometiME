@@ -55,7 +55,7 @@ open dist/PometiME.app
 make quality
 
 # Regresijski testovi sučelja nadogradnje (Node.js)
-node --test dev/ui/nadogradnja.test.cjs
+node --test dev/ui/*.test.cjs
 ```
 
 ## Licenca
