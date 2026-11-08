@@ -79,10 +79,31 @@
 
 @end
 
-@interface PometiAppDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
+// Odvojeni proces čeka izlazak ove instance pa otvara točno nadograđeni paket.
+static BOOL PometiScheduleRelaunch(NSString *appPath, pid_t pid, NSError **error) {
+    NSString *executable = [appPath stringByAppendingPathComponent:@"Contents/MacOS/PometiME"];
+    if (![[NSFileManager defaultManager] isExecutableFileAtPath:executable]) {
+        if (error) *error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileNoSuchFileError userInfo:nil];
+        return NO;
+    }
+    NSTask *helper = [[NSTask alloc] init];
+    helper.executableURL = [NSURL fileURLWithPath:@"/bin/sh"];
+    helper.arguments = @[@"-c",
+        @"i=0; while [ $i -lt 100 ]; do if ! kill -0 \"$1\" 2>/dev/null; then exec /usr/bin/open -n \"$2\"; fi; sleep 0.1; i=$((i+1)); done; exit 1",
+        @"pometime-relaunch", [NSString stringWithFormat:@"%d", pid], appPath];
+    helper.standardInput = [NSFileHandle fileHandleWithNullDevice];
+    helper.standardOutput = [NSFileHandle fileHandleWithNullDevice];
+    helper.standardError = [NSFileHandle fileHandleWithNullDevice];
+    return [helper launchAndReturnError:error];
+}
+
+@interface PometiAppDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate, WKScriptMessageHandlerWithReply>
 @property (strong, nonatomic) NSWindow *window;
 @property (strong, nonatomic) WKWebView *webView;
 @property (strong, nonatomic) NSTask *serverTask;
+@property (copy, nonatomic) NSString *applicationPath;
+@property (strong, nonatomic) NSURL *serverURL;
+@property (nonatomic) BOOL restarting;
 @end
 
 @implementation PometiAppDelegate
@@ -136,8 +157,10 @@
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    self.applicationPath = [[[NSBundle mainBundle] bundlePath] stringByResolvingSymlinksInPath];
     [self setupMainMenu];
     NSString *urlString = [self startLocalServer];
+    self.serverURL = [NSURL URLWithString:urlString];
 
     NSRect frame = NSMakeRect(0, 0, 1120, 740);
     NSUInteger style = NSWindowStyleMaskTitled |
@@ -156,6 +179,7 @@
 
     WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
     [config setURLSchemeHandler:[[PometiIconHandler alloc] init] forURLScheme:@"pometime-icon"];
+    [config.userContentController addScriptMessageHandlerWithReply:self contentWorld:WKContentWorld.pageWorld name:@"pometimeRestart"];
     self.webView = [[WKWebView alloc] initWithFrame:[[self.window contentView] bounds]
                                       configuration:config];
     [self.webView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
@@ -167,6 +191,31 @@
 
     [self.window makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
+}
+
+- (void)userContentController:(WKUserContentController *)controller
+     didReceiveScriptMessage:(WKScriptMessage *)message
+                replyHandler:(void (^)(id, NSString *))replyHandler {
+    WKSecurityOrigin *origin = message.frameInfo.securityOrigin;
+    if (!message.frameInfo.isMainFrame || ![origin.protocol isEqualToString:self.serverURL.scheme] ||
+        ![origin.host isEqualToString:self.serverURL.host] || origin.port != self.serverURL.port.integerValue) {
+        replyHandler(nil, @"Ponovno pokretanje dopušteno je samo iz aplikacije.");
+        return;
+    }
+    if (self.restarting) {
+        replyHandler(nil, @"Ponovno pokretanje već je u tijeku.");
+        return;
+    }
+    NSError *error = nil;
+    if (!PometiScheduleRelaunch(self.applicationPath, NSProcessInfo.processInfo.processIdentifier, &error)) {
+        replyHandler(nil, @"Ne mogu pripremiti ponovno pokretanje. Zatvorite PometiME i otvorite ga ponovno.");
+        return;
+    }
+    self.restarting = YES;
+    replyHandler(@YES, nil);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 150 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+        [NSApp terminate:nil];
+    });
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {

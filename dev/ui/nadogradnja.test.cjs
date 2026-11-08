@@ -6,7 +6,7 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '../../internal/web/sucelje.html'), 'utf8');
 const source = html.slice(html.indexOf('function postaviStanjeNadogradnje('), html.indexOf('// Učitavanje podataka s poslužitelja'));
 
-function ui(data, installStatus = 200) {
+function ui(data, installStatus = 200, restart = null) {
   const elements = new Map();
   const element = id => {
     if (!elements.has(id)) elements.set(id, { style: {}, classList: { add() {}, remove() {} }, showModal() { this.open = true; } });
@@ -16,6 +16,7 @@ function ui(data, installStatus = 200) {
   const context = vm.createContext({
     document: { getElementById: element },
     stanje: {},
+    window: { webkit: restart ? { messageHandlers: { pometimeRestart: { postMessage: restart } } } : undefined },
     renderirajMarkdown: s => s,
     fetch: async (url, options) => {
       calls.push({ url, options });
@@ -65,4 +66,43 @@ test('greška instalacije ostaje vidljiva umjesto prikaza uspjeha', async () => 
   await u.context.instalirajNadogradnju();
   assert.equal(u.element('nadogradnja-naslov').textContent, 'Instalacija nije uspjela.');
   assert.equal(u.element('nadogradnja-status-poruka').textContent, 'Nema dozvole za zamjenu.');
+});
+
+test('gumb za ponovno pokretanje pojavljuje se tek nakon instalacije u nativnoj aplikaciji', () => {
+  const u = ui(release, 200, async () => true);
+  for (const state of ['Checking', 'Available', 'Installing', 'Current', 'InstallError']) {
+    u.context.postaviStanjeNadogradnje(state, release);
+    assert.equal(u.element('nadogradnja-gumb-restart').style.display, 'none');
+  }
+  u.context.postaviStanjeNadogradnje('Installed', release);
+  assert.equal(u.element('nadogradnja-gumb-restart').style.display, 'inline-flex');
+});
+
+test('bez nativnog mosta ostaje uputa za ručno ponovno pokretanje', () => {
+  const u = ui(release);
+  u.context.postaviStanjeNadogradnje('Installed', release);
+  assert.equal(u.element('nadogradnja-gumb-restart').style.display, 'none');
+  assert.match(u.element('nadogradnja-podnaslov').textContent, /ponovno/);
+});
+
+test('ponovno pokretanje zahtijeva instalaciju i dvostruki klik šalje samo jedan zahtjev', async () => {
+  let calls = 0, finish;
+  const u = ui(release, 200, () => { calls++; return new Promise(resolve => { finish = resolve; }); });
+  await u.context.ponovnoPokreniPometiME();
+  assert.equal(calls, 0);
+  u.context.postaviStanjeNadogradnje('Installed', release);
+  const first = u.context.ponovnoPokreniPometiME();
+  await u.context.ponovnoPokreniPometiME();
+  assert.equal(calls, 1);
+  assert.equal(u.element('nadogradnja-gumb-restart').disabled, true);
+  finish(true); await first;
+});
+
+test('neuspjelo ponovno pokretanje vraća gumbe i pokazuje ručnu uputu', async () => {
+  const u = ui(release, 200, async () => { throw new Error('Helper nije pokrenut'); });
+  u.context.postaviStanjeNadogradnje('Installed', release);
+  await u.context.ponovnoPokreniPometiME();
+  assert.equal(u.element('nadogradnja-gumb-restart').disabled, false);
+  assert.equal(u.element('nadogradnja-gumb-zatvori').disabled, false);
+  assert.match(u.element('nadogradnja-status-poruka').textContent, /⌘Q/);
 });

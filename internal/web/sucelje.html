@@ -1293,7 +1293,7 @@
     <!-- Kartica verzije i nadogradnje -->
     <div class="side-update-box">
       <div class="side-update-ver">
-        <span id="prikaz-trenutne-verzije">PometiME 1.0.7</span>
+        <span id="prikaz-trenutne-verzije">PometiME 1.0.8</span>
         <span id="indikator-nove-verzije" class="side-update-badge" style="display: none;">● Nova</span>
       </div>
       <button type="button" class="side-update-btn" id="gumb-provjeri-nadogradnju">
@@ -1599,11 +1599,11 @@
       <div class="update-versions-grid" id="nadogradnja-kartice-verzija">
         <div class="update-ver-card">
           <div class="update-ver-label">Instalirana verzija</div>
-          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.7</div>
+          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.8</div>
         </div>
         <div class="update-ver-card">
           <div class="update-ver-label">Dostupna verzija</div>
-          <div class="update-ver-value" id="nadogradnja-nova-verzija">1.0.7</div>
+          <div class="update-ver-value" id="nadogradnja-nova-verzija">1.0.8</div>
         </div>
       </div>
 
@@ -1626,6 +1626,7 @@
       <button type="button" class="btn" id="nadogradnja-gumb-zatvori" style="display: none;">Zatvori</button>
       <button type="button" class="btn" id="nadogradnja-gumb-ponovi" style="display: none;">Pokušaj ponovno</button>
       <button type="button" class="btn btn-primary" id="nadogradnja-gumb-instaliraj">Ažuriraj odmah</button>
+        <button type="button" class="btn btn-primary" id="nadogradnja-gumb-restart" style="display: none;">Ponovno pokreni PometiME</button>
     </div>
   </dialog>
 
@@ -2802,6 +2803,7 @@
       const gumbZatvori = document.getElementById('nadogradnja-gumb-zatvori');
       const gumbPonovi = document.getElementById('nadogradnja-gumb-ponovi');
       const gumbInstaliraj = document.getElementById('nadogradnja-gumb-instaliraj');
+      const gumbRestart = document.getElementById('nadogradnja-gumb-restart');
 
       // Reset
       simbol.classList.remove('rotiraj');
@@ -2813,6 +2815,10 @@
       gumbZatvori.style.display = 'none';
       gumbPonovi.style.display = 'none';
       gumbInstaliraj.style.display = 'none';
+      gumbRestart.style.display = 'none';
+      gumbRestart.disabled = false;
+      gumbRestart.textContent = 'Ponovno pokreni PometiME';
+      stanje.nadogradnjaInstalirana = vrsta === 'Installed';
 
       switch (vrsta) {
         case 'Checking':
@@ -2829,8 +2835,8 @@
           simbol.textContent = '\u2193';
           naslov.textContent = 'Nova verzija je spremna.';
           podnaslov.textContent = 'Pregledajte novosti i ažurirajte PometiME.';
-          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || '1.0.7';
-          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || '1.0.7';
+          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || '1.0.8';
+          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || '1.0.8';
           karticeVerzija.style.display = 'grid';
 
           const biljeske = podaci.release_notes ? renderirajMarkdown(podaci.release_notes) : '<p>Bilješke uz izdanje trenutačno nisu dostupne. Više informacija potražite na stranici izdanja.</p>';
@@ -2849,7 +2855,7 @@
           simbol.textContent = '\u2713';
           naslov.textContent = 'Sve je ažurno.';
           podnaslov.textContent = 'Već koristite najnoviju verziju PometiME.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.current_version || '1.0.7');
+          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.current_version || '1.0.8');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           break;
@@ -2867,9 +2873,10 @@
           simbol.textContent = '\u2713';
           naslov.textContent = 'Nadogradnja je instalirana.';
           podnaslov.textContent = 'Pokrenite PometiME ponovno kako biste koristili novu verziju.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.latest_version || '1.0.7');
+          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.latest_version || '1.0.8');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
+          if (window.webkit?.messageHandlers?.pometimeRestart) gumbRestart.style.display = 'inline-flex';
           break;
 
         case 'UpdateError':
@@ -2894,6 +2901,25 @@
       }
 
       if (!dijalog.open) dijalog.showModal();
+    }
+
+    async function ponovnoPokreniPometiME() {
+      const handler = window.webkit?.messageHandlers?.pometimeRestart;
+      if (!stanje.nadogradnjaInstalirana || !handler) return;
+      const gumb = document.getElementById('nadogradnja-gumb-restart');
+      if (gumb.disabled) return;
+      const zatvori = document.getElementById('nadogradnja-gumb-zatvori');
+      gumb.disabled = true;
+      zatvori.disabled = true;
+      gumb.textContent = 'Ponovno pokretanje…';
+      try {
+        await handler.postMessage(null);
+      } catch (err) {
+        document.getElementById('nadogradnja-status-poruka').textContent = 'Ponovno pokretanje nije uspjelo. Zatvorite PometiME s ⌘Q i otvorite ga ponovno.';
+        gumb.disabled = false;
+        zatvori.disabled = false;
+        gumb.textContent = 'Ponovno pokreni PometiME';
+      }
     }
 
     async function provjeriNadogradnju(rucno = false) {
@@ -3158,6 +3184,7 @@
       });
       document.getElementById('nadogradnja-gumb-ponovi').addEventListener('click', () => provjeriNadogradnju(true));
       document.getElementById('nadogradnja-gumb-instaliraj').addEventListener('click', instalirajNadogradnju);
+      document.getElementById('nadogradnja-gumb-restart').addEventListener('click', ponovnoPokreniPometiME);
 
       // Obavijest traka zatvaranje
       document.getElementById('obavijest-zatvori').addEventListener('click', sakrijPoruku);
