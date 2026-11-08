@@ -52,6 +52,7 @@ func NoviPosluzitelj(p cistac.Postavke) *Posluzitelj {
 	mux.HandleFunc("GET /api/pokretaci", pos.obradiPokretace)
 	mux.HandleFunc("GET /api/snimke", pos.obradiSnimke)
 	mux.HandleFunc("GET /api/aerials", pos.obradiAerials)
+	mux.HandleFunc("GET /api/stablo", pos.obradiStablo)
 	mux.HandleFunc("GET /api/nadogradnja", pos.obradiProvjeruNadogradnje)
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
@@ -152,6 +153,20 @@ func (p *Posluzitelj) obradiSnimke(w http.ResponseWriter, _ *http.Request) {
 func (p *Posluzitelj) obradiAerials(w http.ResponseWriter, _ *http.Request) {
 	info := cistac.SkenirajZracnePozadine(p.postavke)
 	posluziJSON(w, http.StatusOK, info)
+}
+
+func (p *Posluzitelj) obradiStablo(w http.ResponseWriter, r *http.Request) {
+	putanja := r.URL.Query().Get("putanja")
+	if putanja == "" {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Parametar putanja je obavezan."})
+		return
+	}
+	izvj, err := cistac.PregledajStablo(p.postavke, putanja)
+	if err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, izvj)
 }
 
 func (p *Posluzitelj) obradiProvjeruNadogradnje(w http.ResponseWriter, _ *http.Request) {

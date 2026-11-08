@@ -227,6 +227,24 @@ func TestAPIOcistiIDeinstaliraj(t *testing.T) {
 	if err := json.Unmarshal(odgAer.Body.Bytes(), &infoAer); err != nil {
 		t.Errorf("greška pri dekodiranju /api/aerials: %v", err)
 	}
+	// Provjera /api/stablo
+	odgStabloPrazno := httptest.NewRecorder()
+	pos.ServeHTTP(odgStabloPrazno, httptest.NewRequest(http.MethodGet, "/api/stablo", nil))
+	if odgStabloPrazno.Code != http.StatusBadRequest {
+		t.Errorf("očekivan 400 za prazan /api/stablo, dobiveno %d", odgStabloPrazno.Code)
+	}
+
+	odgStabloErr := httptest.NewRecorder()
+	pos.ServeHTTP(odgStabloErr, httptest.NewRequest(http.MethodGet, "/api/stablo?putanja=/etc/forbidden", nil))
+	if odgStabloErr.Code != http.StatusBadRequest {
+		t.Errorf("očekivan 400 za nedozvoljenu putanju /api/stablo, dobiveno %d", odgStabloErr.Code)
+	}
+
+	odgStabloOk := httptest.NewRecorder()
+	pos.ServeHTTP(odgStabloOk, httptest.NewRequest(http.MethodGet, "/api/stablo?putanja="+dom, nil))
+	if odgStabloOk.Code != http.StatusOK {
+		t.Errorf("očekivan 200 za valjanu putanju /api/stablo, dobiveno %d", odgStabloOk.Code)
+	}
 }
 
 func TestAPINadogradnja(t *testing.T) {

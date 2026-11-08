@@ -760,6 +760,123 @@
       color: var(--primary);
     }
 
+    /* Lebdeći skočni prozor za stablo izvora (Source Tree Popover) */
+    .source-tree-popover {
+      position: fixed;
+      z-index: 9999;
+      width: 440px;
+      max-width: 90vw;
+      max-height: 380px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(6px) scale(0.98);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .source-tree-popover.vidljiv {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    .popover-header {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .popover-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .popover-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .popover-size {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .popover-path {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+
+    .popover-tree {
+      padding: 10px 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+      line-height: 1.45;
+      color: var(--text-main);
+    }
+
+    .tree-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 0;
+    }
+
+    .tree-branch {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-icon {
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .tree-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tree-size {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      flex-shrink: 0;
+    }
+
+    .popover-footer {
+      padding: 6px 14px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-card-subtle);
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      text-align: right;
+    }
+
     /* Sticky Bottom Action Bar with Glass */
     .bottom-glass-bar {
       position: fixed;
@@ -1396,6 +1513,21 @@
     </div>
   </main>
 
+  <!-- Lebdeći skočni prozor za stablo izvora (Source Tree Popover) -->
+  <div id="source-tree-popover" class="source-tree-popover" role="tooltip" aria-hidden="true">
+    <div class="popover-header">
+      <div class="popover-title-row">
+        <span class="popover-title" id="popover-naslov">Stablo izvora</span>
+        <span class="popover-size" id="popover-velicina">0 B</span>
+      </div>
+      <div class="popover-path" id="popover-putanja"></div>
+    </div>
+    <div class="popover-tree" id="popover-stablo"></div>
+    <div class="popover-footer">
+      <span>Kliknite gumb info za potpuni pregled stavke</span>
+    </div>
+  </div>
+
   <!-- DIJALOG 1: POTVRDA ČIŠĆENJA / DEINSTALACIJE -->
   <dialog id="potvrda-dijalog" aria-labelledby="potvrda-naslov">
     <div class="dialog-header">
@@ -1767,8 +1899,11 @@
           const infoGumb = document.createElement('button');
           infoGumb.type = 'button';
           infoGumb.className = 'item-action-icon';
-          infoGumb.title = 'Prikaži pojedinosti';
+          infoGumb.title = 'Prikaži stablo izvora i pojedinosti';
+          infoGumb.setAttribute('aria-label', 'Stablo izvora i pojedinosti za ' + st.name);
           infoGumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+          infoGumb.addEventListener('mouseenter', (e) => prikaziStabloPopover(e, st));
+          infoGumb.addEventListener('mouseleave', sakrijStabloPopover);
           infoGumb.addEventListener('click', () => otvoriDijalogDetalji(st));
 
           red.append(chk, tijelo, velicina, infoGumb);
@@ -1835,13 +1970,24 @@
         velicina.className = 'item-size';
         velicina.textContent = formatirajBajte(app.total_size_bytes);
 
+        const infoGumb = document.createElement('button');
+        infoGumb.type = 'button';
+        infoGumb.className = 'item-action-icon';
+        infoGumb.title = 'Stablo izvora aplikacije i knjižnice';
+        infoGumb.setAttribute('aria-label', 'Stablo izvora za ' + app.name);
+        infoGumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+        const appMeta = stvoriStabloZaAplikaciju(app);
+        infoGumb.addEventListener('mouseenter', (e) => prikaziStabloPopover(e, appMeta));
+        infoGumb.addEventListener('mouseleave', sakrijStabloPopover);
+        infoGumb.addEventListener('click', () => otvoriDijalogDetalji(appMeta));
+
         const gumbPregled = document.createElement('button');
         gumbPregled.type = 'button';
         gumbPregled.className = 'btn btn-sm';
         gumbPregled.textContent = 'Pregledaj';
         gumbPregled.addEventListener('click', () => zatraziPotvrduDeinstalacije(app));
 
-        red.append(avatar, tijelo, velicina, gumbPregled);
+        red.append(avatar, tijelo, velicina, infoGumb, gumbPregled);
         spremnik.appendChild(red);
       }
     }
@@ -1944,8 +2090,11 @@
         const infoGumb = document.createElement('button');
         infoGumb.type = 'button';
         infoGumb.className = 'item-action-icon';
-        infoGumb.title = 'Prikaži pojedinosti';
+        infoGumb.title = 'Prikaži stablo izvora i pojedinosti';
+        infoGumb.setAttribute('aria-label', 'Stablo izvora i pojedinosti za ' + st.name);
         infoGumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+        infoGumb.addEventListener('mouseenter', (e) => prikaziStabloPopover(e, st));
+        infoGumb.addEventListener('mouseleave', sakrijStabloPopover);
         infoGumb.addEventListener('click', () => otvoriDijalogDetalji(st));
 
         red.append(chk, tijelo, velicina, infoGumb);
@@ -2149,30 +2298,169 @@
         velicina.className = 'item-size';
         velicina.textContent = formatirajBajte(st.size_bytes);
 
-        red.append(chk, tijelo, velicina);
+        const infoGumb = document.createElement('button');
+        infoGumb.type = 'button';
+        infoGumb.className = 'item-action-icon';
+        infoGumb.title = 'Prikaži stablo i lokaciju';
+        infoGumb.setAttribute('aria-label', 'Stablo i lokacija za ' + st.name);
+        infoGumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+        const kosMeta = {
+          name: st.name,
+          path: st.trash_path,
+          size_bytes: st.size_bytes,
+          description: 'Izvorna lokacija: ' + (st.original_path || 'nepoznato')
+        };
+        infoGumb.addEventListener('mouseenter', (e) => prikaziStabloPopover(e, kosMeta));
+        infoGumb.addEventListener('mouseleave', sakrijStabloPopover);
+        infoGumb.addEventListener('click', () => otvoriDijalogDetalji(kosMeta));
+
+        red.append(chk, tijelo, velicina, infoGumb);
         spremnik.appendChild(red);
       }
+    }
+
+    // ==========================================
+    // SUSTAV ZA PREGLED STABLA IZVORA (SOURCE TREE)
+    // ==========================================
+    const kesStabla = new Map();
+    let popoverTajmer = null;
+
+    async function dohvatiStablo(putanja) {
+      if (!putanja) return null;
+      if (kesStabla.has(putanja)) {
+        return kesStabla.get(putanja);
+      }
+      try {
+        const res = await fetch('/api/stablo?putanja=' + encodeURIComponent(putanja));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const podaci = await res.json();
+        kesStabla.set(putanja, podaci);
+        return podaci;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function stvoriStabloZaAplikaciju(app) {
+      const stavke = [
+        {
+          name: app.name + '.app',
+          path: app.app_path,
+          size_bytes: app.app_size_bytes,
+          is_dir: true
+        }
+      ];
+      for (const rel of (app.related_paths || [])) {
+        stavke.push({
+          name: '[' + rel.kind + '] ' + rel.path.split('/').pop(),
+          path: rel.path,
+          size_bytes: rel.size_bytes,
+          is_dir: true
+        });
+      }
+      return {
+        name: app.name,
+        path: app.app_path,
+        size_bytes: app.total_size_bytes,
+        item_count: stavke.length,
+        items: stavke
+      };
+    }
+
+    function iscrtajStabloHtml(cvorovi, dubina = 0) {
+      if (!cvorovi || cvorovi.length === 0) return '';
+      let html = '';
+      const indent = dubina * 16;
+      for (let i = 0; i < cvorovi.length; i++) {
+        const c = cvorovi[i];
+        const zadnji = (i === cvorovi.length - 1);
+        const prefiks = dubina === 0 ? '' : (zadnji ? '\u2514\u2500 ' : '\u251C\u2500 ');
+        const ikona = c.is_dir ? '\uD83D\uDCC1' : '\uD83D\uDCC4';
+        html += '<div class="tree-row" style="padding-left: ' + indent + 'px;" title="' + c.path + '">' +
+          '<div class="tree-branch">' +
+            '<span style="opacity: 0.5;">' + prefiks + '</span>' +
+            '<span class="tree-icon">' + ikona + '</span>' +
+            '<span class="tree-name">' + c.name + '</span>' +
+          '</div>' +
+          '<span class="tree-size">' + formatirajBajte(c.size_bytes) + '</span>' +
+        '</div>';
+        if (c.children && c.children.length > 0) {
+          html += iscrtajStabloHtml(c.children, dubina + 1);
+        }
+      }
+      return html;
+    }
+
+    function prikaziStabloPopover(event, meta) {
+      clearTimeout(popoverTajmer);
+      const popover = document.getElementById('source-tree-popover');
+      if (!popover) return;
+
+      const target = event.currentTarget;
+      const rect = target.getBoundingClientRect();
+
+      document.getElementById('popover-naslov').textContent = meta.name || 'Stavka';
+      document.getElementById('popover-velicina').textContent = formatirajBajte(meta.size_bytes || 0);
+      document.getElementById('popover-putanja').textContent = meta.path || '';
+
+      const stabloKontejner = document.getElementById('popover-stablo');
+      stabloKontejner.innerHTML = '<div style="color: var(--text-muted); padding: 8px 0;">Učitavanje stabla izvora...</div>';
+
+      const popoverWidth = 440;
+      let top = rect.bottom + 8;
+      let left = rect.right - popoverWidth;
+      if (left < 16) left = 16;
+      if (top + 380 > window.innerHeight) {
+        top = Math.max(16, rect.top - 390);
+      }
+      popover.style.top = top + 'px';
+      popover.style.left = left + 'px';
+      popover.classList.add('vidljiv');
+
+      if (meta.items) {
+        stabloKontejner.innerHTML = iscrtajStabloHtml(meta.items);
+      } else if (meta.path) {
+        dohvatiStablo(meta.path).then(data => {
+          if (!data || !data.items || data.items.length === 0) {
+            stabloKontejner.innerHTML = '<div style="color: var(--text-muted); padding: 6px 0;">Pojedinačna datoteka: ' + meta.path + '</div>';
+            return;
+          }
+          stabloKontejner.innerHTML = iscrtajStabloHtml(data.items);
+        });
+      }
+    }
+
+    function sakrijStabloPopover() {
+      popoverTajmer = setTimeout(() => {
+        const popover = document.getElementById('source-tree-popover');
+        if (popover) popover.classList.remove('vidljiv');
+      }, 180);
     }
 
     // DIJALOG DETALJA
     function otvoriDijalogDetalji(st) {
       const d = document.getElementById('detalji-dijalog');
       document.getElementById('detalji-naslov').textContent = st.name;
-      document.getElementById('detalji-opis').textContent = st.description || 'Pronađena stavka na disku.';
+      document.getElementById('detalji-opis').textContent = st.description || 'Pronađena stavka na disku sa stablom izvora.';
       document.getElementById('detalji-ukupno-bajta').textContent = formatirajBajte(st.size_bytes);
 
       const popisPutanja = document.getElementById('detalji-popis-putanja');
-      popisPutanja.replaceChildren();
+      popisPutanja.innerHTML = '<div style="color: var(--text-muted); padding: 8px;">Učitavanje stabla izvora...</div>';
+      document.getElementById('detalji-lokacija').textContent = 'Lokacija: ' + (st.path || 'Različite mape sustava');
 
-      const putanje = [st.path];
-      document.getElementById('detalji-broj-stavki').textContent = uzBrojHR(putanje.length, 'stavka', 'stavke', 'stavki');
-      document.getElementById('detalji-lokacija').textContent = 'Lokacija: ' + st.path;
-
-      for (const p of putanje) {
-        const r = document.createElement('div');
-        r.className = 'path-row';
-        r.innerHTML = '<span>' + p + '</span><span>' + formatirajBajte(st.size_bytes) + '</span>';
-        popisPutanja.appendChild(r);
+      if (st.items) {
+        document.getElementById('detalji-broj-stavki').textContent = uzBrojHR(st.items.length, 'povezana putanja', 'povezane putanje', 'povezanih putanja');
+        popisPutanja.innerHTML = iscrtajStabloHtml(st.items);
+      } else if (st.path) {
+        dohvatiStablo(st.path).then(data => {
+          if (!data || !data.items || data.items.length === 0) {
+            document.getElementById('detalji-broj-stavki').textContent = '1 datoteka';
+            popisPutanja.innerHTML = '<div class="path-row"><span>' + st.path + '</span><span>' + formatirajBajte(st.size_bytes) + '</span></div>';
+            return;
+          }
+          document.getElementById('detalji-broj-stavki').textContent = uzBrojHR(data.items.length, 'podstavka', 'podstavke', 'podstavki');
+          popisPutanja.innerHTML = iscrtajStabloHtml(data.items);
+        });
       }
 
       d.showModal();
@@ -2739,6 +3027,12 @@
           }
         });
       });
+
+      const popoverEl = document.getElementById('source-tree-popover');
+      if (popoverEl) {
+        popoverEl.addEventListener('mouseenter', () => clearTimeout(popoverTajmer));
+        popoverEl.addEventListener('mouseleave', sakrijStabloPopover);
+      }
 
       // Početno učitavanje
       const hash = window.location.hash.replace('#', '');
