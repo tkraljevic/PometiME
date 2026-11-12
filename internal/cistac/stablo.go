@@ -9,6 +9,9 @@ import (
 	"strings"
 )
 
+// najviseCvorovaStabla je broj najvećih stavki koje stablo prikazuje po mapi.
+const najviseCvorovaStabla = 40
+
 // CvorStabla predstavlja datoteku ili mapu unutar stabla stavke.
 type CvorStabla struct {
 	Naziv         string       `json:"name"`
@@ -46,18 +49,14 @@ func PregledajStablo(p Postavke, putanja string) (*IzvjestajStabla, error) {
 	return stvoriIzvjestajZaMapu(cistaPutanja), nil
 }
 
+// jePutanjaDozvoljenaZaPregled traži da putanja bude sama mapa ili unutar nje:
+// /Users/ana ne smije propustiti /Users/ana-drugi.
 func jePutanjaDozvoljenaZaPregled(p Postavke, putanja string) bool {
-	if putanja == "" || putanja == "/" || putanja == "." {
-		return false
-	}
-	if strings.HasPrefix(putanja, filepath.Clean(p.KorijenKorisnika)) {
-		return true
-	}
-	if strings.HasPrefix(putanja, "/Applications") {
-		return true
-	}
-	if strings.HasPrefix(putanja, "/Library/Application Support/com.apple.idleassetsd") {
-		return true
+	korijeni := []string{filepath.Clean(p.KorijenKorisnika), "/Applications", "/Library/Application Support/com.apple.idleassetsd"}
+	for _, korijen := range korijeni {
+		if putanja == korijen || JeUnutarKorijena(putanja, korijen) {
+			return true
+		}
 	}
 	return false
 }
@@ -81,14 +80,10 @@ func stvoriIzvjestajZaDatoteku(putanja string, st os.FileInfo) *IzvjestajStabla 
 
 func stvoriIzvjestajZaMapu(putanja string) *IzvjestajStabla {
 	djeca := citajDjecuMape(putanja, 1, 2)
-	var ukupnaVelicina int64
-	for _, d := range djeca {
-		ukupnaVelicina += d.VelicinaBajta
-	}
 	return &IzvjestajStabla{
 		Putanja:       putanja,
 		Naziv:         filepath.Base(putanja),
-		VelicinaBajta: ukupnaVelicina,
+		VelicinaBajta: IzracunajVelicinu(putanja),
 		BrojStavki:    len(djeca),
 		Stavke:        djeca,
 	}
@@ -105,13 +100,13 @@ func citajDjecuMape(mapa string, dubina, maxDubina int) []CvorStabla {
 		if strings.HasPrefix(e.Name(), ".") {
 			continue // preskaču se skrivene sistemske datoteke
 		}
-		cvor := obradiJedanUlaz(mapa, e, dubina, maxDubina)
-		cvorovi = append(cvorovi, cvor)
-		if len(cvorovi) >= 40 {
-			break
-		}
+		cvorovi = append(cvorovi, obradiJedanUlaz(mapa, e, dubina, maxDubina))
 	}
+	// Prvo se sortira, pa reže: inače bi ostalo prvih 40 po abecedi, a ne najvećih 40.
 	sortirajCvorovePoVelicini(cvorovi)
+	if len(cvorovi) > najviseCvorovaStabla {
+		cvorovi = cvorovi[:najviseCvorovaStabla]
+	}
 	return cvorovi
 }
 
@@ -121,12 +116,13 @@ func obradiJedanUlaz(mapa string, e os.DirEntry, dubina, maxDubina int) CvorStab
 	var velicina int64
 	var djeca []CvorStabla
 
-	if jeDir && dubina < maxDubina {
+	switch {
+	case jeDir && dubina < maxDubina:
 		djeca = citajDjecuMape(punPutanja, dubina+1, maxDubina)
-		for _, d := range djeca {
-			velicina += d.VelicinaBajta
-		}
-	} else if !jeDir {
+		velicina = IzracunajVelicinu(punPutanja)
+	case jeDir:
+		velicina = IzracunajVelicinu(punPutanja) // mapa na zadnjoj razini prikazuje stvarnu veličinu, ne 0 B
+	default:
 		velicina = velicinaUlaza(e, nil)
 	}
 

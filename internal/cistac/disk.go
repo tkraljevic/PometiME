@@ -62,5 +62,10 @@ func velicinaUlaza(d fs.DirEntry, err error) int64 {
 	if infoErr != nil {
 		return 0
 	}
+	return velicinaDatoteke(info)
+}
+
+// velicinaDatoteke je jedino mjesto koje odlučuje koliko jedna datoteka zauzima.
+func velicinaDatoteke(info fs.FileInfo) int64 {
 	return info.Size()
 }

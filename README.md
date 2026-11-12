@@ -12,18 +12,19 @@ Sve što se očisti prvo ide u **Koš za smeće** (`~/.Trash`), pa ako vam bilo 
 
 ## Kako radi
 
-Sučelje je podijeljeno na pet jednostavnih cjelina:
+Sučelje je podijeljeno na šest jednostavnih cjelina:
 
 1. **Pregled** — Brzi uvid u stanje diska (Macintosh HD) i preporuka koliko prostora možete odmah osloboditi.
 2. **Čišćenje** — Popis privremenih datoteka, predmemorije aplikacija i sustava. Preporučene stavke već su označene, a prije čišćenja možete pregledati svaku pojedinost.
-3. **Aplikacije** — Pregled instaliranih programa s njihovim izvornim macOS ikonicama. Ikonice se učitavaju lokalno iz aplikacijskih paketa ili preko sistemskog servisa, uz zamjensku ikonicu ako dohvat nije moguć. Prije uklanjanja možete pregledati pripadajuće podatke pronađene u mapi `~/Library`.
-4. **Napredni alati** — Dodatno održavanje kada vam zatreba:
+3. **Zauzeće prostora** — Najveće mape i datoteke u vašoj korisničkoj mapi, poredane po veličini. Kliknite mapu da vidite što je u njoj, a stavku otvorite u Finderu. Ovdje se ništa ne briše.
+4. **Aplikacije** — Pregled instaliranih programa s njihovim izvornim macOS ikonicama. Ikonice se učitavaju lokalno iz aplikacijskih paketa ili preko sistemskog servisa, uz zamjensku ikonicu ako dohvat nije moguć. Prije uklanjanja možete pregledati pripadajuće podatke pronađene u mapi `~/Library`.
+5. **Napredni alati** — Dodatno održavanje kada vam zatreba:
    - *Razvojni i AI alati*: čišćenje međuspremnika za Xcode, Go, Rust Cargo, NPM, Python, kao i zaostalih iOS simulatora, Android emulatora i Claude Code sesija (uz trajnu zaštitu memorije).
    - *Ostaci aplikacija*: brisanje mapa programa koje ste ranije deinstalirali.
    - *Kopije i privici*: stare iOS sigurnosne kopije i preuzeti privici Maila.
    - *Stari instaleri*: preuzete `.dmg` i `.pkg` datoteke u mapi Preuzimanja.
    - *Održavanje sustava*: pražnjenje DNS-a, osvježavanje QuickLooka, proređivanje Time Machine snimaka i čišćenje 4K pozadina.
-5. **Koš i povrat** — Popis svih stavki koje je PometiME premjestio u Koš. Jedan klik na *Vrati odabrano* vraća datoteke točno tamo gdje su bile.
+6. **Koš i povrat** — Popis svih stavki koje je PometiME premjestio u Koš. Jedan klik na *Vrati odabrano* vraća datoteke točno tamo gdje su bile. Prostor se oslobađa tek kad stavke trajno izbrišete gumbom *Trajno izbriši*; stavke starije od 7 dana su istaknute.
 
 Sučelje koristi plave naglaske, izvornu ikonicu četke i usklađene SVG ikonice naprednih alata. Podržava svijetli i tamni izgled te kratke prijelaze uz postavke smanjenog kretanja i prozirnosti.
 

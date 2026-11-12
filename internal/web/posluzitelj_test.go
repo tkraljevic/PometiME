@@ -443,3 +443,42 @@ func TestAPITrajnoBrisanjeIzKosa(t *testing.T) {
 		t.Errorf("stavka mora biti trajno izbrisana iz Koša: %v", err)
 	}
 }
+
+func TestAPIProstorIFinder(t *testing.T) {
+	pos, dom, _ := postaviTestniPosluzitelj(t)
+	if err := os.MkdirAll(filepath.Join(dom, "Movies"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dom, "Movies", "film.mov"), make([]byte, 300), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	odg := httptest.NewRecorder()
+	pos.ServeHTTP(odg, httptest.NewRequest(http.MethodGet, "/api/prostor?osvjezi=1", nil))
+	var izvj cistac.IzvjestajProstora
+	if err := json.Unmarshal(odg.Body.Bytes(), &izvj); err != nil || odg.Code != http.StatusOK || izvj.VelicinaBajta != 300 {
+		t.Fatalf("očekivano zauzeće 300 B, dobiveno %d %s (%v)", odg.Code, odg.Body.String(), err)
+	}
+	odgIzvan := httptest.NewRecorder()
+	pos.ServeHTTP(odgIzvan, httptest.NewRequest(http.MethodGet, "/api/prostor?putanja=/etc", nil))
+	if odgIzvan.Code != http.StatusBadRequest {
+		t.Errorf("mapa izvan korisničke mape mora biti odbijena, dobiveno %d", odgIzvan.Code)
+	}
+
+	defer cistac.PostaviPokretacNaredbiZaTest(func(string, ...string) error { return nil })()
+	slucajevi := []struct {
+		tijelo string
+		status int
+	}{
+		{`{"path":"` + filepath.Join(dom, "Movies") + `"}`, http.StatusOK},
+		{`{"path":"/etc/hosts"}`, http.StatusBadRequest},
+		{`{neispravno`, http.StatusBadRequest},
+	}
+	for _, s := range slucajevi {
+		odgF := httptest.NewRecorder()
+		pos.ServeHTTP(odgF, httptest.NewRequest(http.MethodPost, "/api/prikazi-u-finderu", strings.NewReader(s.tijelo)))
+		if odgF.Code != s.status {
+			t.Errorf("%s: očekivan status %d, dobiveno %d", s.tijelo, s.status, odgF.Code)
+		}
+	}
+}

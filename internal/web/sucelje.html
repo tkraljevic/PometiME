@@ -586,6 +586,33 @@
       cursor: default;
     }
 
+    .prostor-traka {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .prostor-traka > div {
+      height: 100%;
+      background: var(--primary);
+    }
+
+    .prostor-ime {
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .prostor-ime:hover {
+      color: var(--primary);
+    }
+
     .stavka-stara {
       color: var(--danger);
       font-weight: 600;
@@ -1263,7 +1290,7 @@
       </div>
     </div>
 
-    <!-- Navigacija: 5 zadanih odjeljaka prema FigCraftu -->
+    <!-- Navigacija -->
     <ul class="nav-list" role="navigation" aria-label="Glavna navigacija">
       <li>
         <button type="button" class="nav-btn active" data-tab="pregled">
@@ -1274,6 +1301,11 @@
         <button type="button" class="nav-btn" data-tab="ciscenje">
           <span class="nav-title">Čišćenje</span>
           <span class="nav-badge" id="badge-ciscenje" style="display: none;">0</span>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="nav-btn" data-tab="prostor">
+          <span class="nav-title">Zauzeće prostora</span>
         </button>
       </li>
       <li>
@@ -1360,6 +1392,12 @@
       <div>
         <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">Što još možete učiniti</h3>
         <div class="quick-grid">
+          <div class="quick-card" id="brza-akcija-prostor">
+            <div class="quick-card-title">
+              <span>Što zauzima prostor? &rarr;</span>
+            </div>
+            <p class="quick-card-desc">Najveće mape i datoteke u vašoj korisničkoj mapi.</p>
+          </div>
           <div class="quick-card" id="brza-akcija-aplikacije">
             <div class="quick-card-title">
               <span>Uklonite aplikacije &rarr;</span>
@@ -1403,6 +1441,36 @@
       
       <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
         Kliknite na &ldquo;Pojedinosti&rdquo; uz bilo koju stavku za pregled pripadajućih mapa i lokacija na disku.
+      </div>
+    </section>
+
+    <!-- POGLED: ZAUZEĆE PROSTORA -->
+    <section id="pogled-prostor" class="view-content" style="display: none;">
+      <div class="view-header">
+        <h1 class="view-title">Što zauzima prostor?</h1>
+        <p class="view-subtitle">Najveće mape i datoteke u vašoj korisničkoj mapi. Kliknite mapu da vidite što je u njoj. Ovdje se ništa ne briše: stavku otvorite u Finderu i ondje odlučite.</p>
+      </div>
+      <div class="divider-line"></div>
+
+      <div class="filter-bar">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+          <button type="button" class="btn btn-sm" id="prostor-gumb-natrag" style="display: none;">&larr; Natrag</button>
+          <div style="min-width: 0;">
+            <div class="item-title" id="prostor-naslov">Korisnička mapa</div>
+            <div class="item-desc" id="prostor-putanja"></div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="item-desc" id="prostor-izmjereno"></span>
+          <button type="button" class="btn btn-sm" id="prostor-gumb-osvjezi">Izmjeri ponovno</button>
+          <div style="font-size: 1.35rem; font-weight: 700; color: var(--primary); white-space: nowrap;" id="prostor-ukupno"></div>
+        </div>
+      </div>
+
+      <div class="items-list" id="popis-prostora"></div>
+
+      <div style="font-size: 0.78rem; color: var(--text-muted);">
+        Prvo mjerenje može potrajati minutu ili dvije. macOS pritom može tražiti dozvolu za mape Dokumenti, Radna površina i Preuzimanja.
       </div>
     </section>
 
@@ -1694,6 +1762,7 @@
     const prikaziUcitavanja = {
       aplikacije: { naslov: 'Učitavam aplikacije…', opis: 'Prikupljam popis, ikonice i podatke o zauzeću.', iscrtaj: () => iscrtajAplikacije(), ponovi: () => ucitajAplikacije() },
       ciscenje: { naslov: 'Pregledavam disk…', opis: 'Tražim stavke koje možete očistiti.', iscrtaj: () => { iscrtajCiscenje(); if (stanje.aktivniTab === 'napredni') iscrtajNapredneAlate(); }, ponovi: () => ucitajSkeniranje() },
+      prostor: { naslov: 'Mjerim zauzeće prostora…', opis: 'Zbrajam veličine mapa u vašoj korisničkoj mapi.', iscrtaj: () => iscrtajProstor(), ponovi: () => ucitajProstor(stanje.prostorPutanja || '') },
       kos: { naslov: 'Učitavam Koš i povrat…', opis: 'Provjeravam stavke koje možete vratiti.', iscrtaj: () => iscrtajKos(), ponovi: () => ucitajKos() }
     };
 
@@ -1899,7 +1968,7 @@
       });
 
       // Sakrij sve poglede i prikaži aktivni
-      const pogledi = ['pregled', 'ciscenje', 'aplikacije', 'napredni', 'kos', 'uspjeh'];
+      const pogledi = ['pregled', 'ciscenje', 'prostor', 'aplikacije', 'napredni', 'kos', 'uspjeh'];
       pogledi.forEach(p => {
         const sekcija = document.getElementById('pogled-' + p);
         if (sekcija) {
@@ -1922,6 +1991,10 @@
       if (noviTab === 'aplikacije') iscrtajAplikacije();
       if (noviTab === 'napredni') iscrtajNapredneAlate();
       if (noviTab === 'kos') iscrtajKos();
+      if (noviTab === 'prostor') {
+        if (stanje.prostor || ucitavanja.prostor?.aktivno) iscrtajProstor();
+        else ucitajProstor('');
+      }
     }
 
     // Osvježavanje donje akcijske trake
@@ -2459,6 +2532,110 @@
     }
 
     // 5. ISCRTAVANJE: KOŠ I POVRAT
+    // ZAUZEĆE PROSTORA: mjeri se tek kad korisnik otvori karticu.
+    function ucitajProstor(putanja = '', osvjezi = false) {
+      const unos = zapocniUcitavanje('prostor');
+      unos.zahtjev = (async () => {
+        let greska = '';
+        try {
+          const odg = await apiFetch('/api/prostor?putanja=' + encodeURIComponent(putanja) + (osvjezi ? '&osvjezi=1' : ''));
+          const podaci = await odg.json();
+          if (!odg.ok) throw new Error(podaci.error || 'Mjerenje nije uspjelo. Pokušajte ponovno.');
+          stanje.prostor = podaci;
+          stanje.prostorPutanja = podaci.path;
+        } catch (err) {
+          greska = err.message;
+        } finally {
+          zavrsiUcitavanje('prostor', unos, greska);
+        }
+      })();
+      return unos.zahtjev;
+    }
+
+    function udioProstora(bajta, ukupno) {
+      if (!ukupno || ukupno <= 0) return 0;
+      return Math.max(0, Math.min(100, (bajta / ukupno) * 100));
+    }
+
+    function iscrtajProstor() {
+      const spremnik = document.getElementById('popis-prostora');
+      if (prikaziLoader('prostor', spremnik)) return;
+      spremnik.replaceChildren();
+      const iz = stanje.prostor;
+      if (!iz) return;
+
+      document.getElementById('prostor-naslov').textContent = iz.parent ? iz.name : 'Korisnička mapa (' + iz.name + ')';
+      document.getElementById('prostor-putanja').textContent = iz.path;
+      document.getElementById('prostor-ukupno').textContent = formatirajBajte(iz.size_bytes);
+      document.getElementById('prostor-izmjereno').textContent = 'Izmjereno u ' + iz.measured_at;
+      document.getElementById('prostor-gumb-natrag').style.display = iz.parent ? 'inline-flex' : 'none';
+
+      if (!iz.items || iz.items.length === 0) {
+        spremnik.innerHTML = '<div class="empty-state">Ova mapa je prazna.</div>';
+        return;
+      }
+      for (const st of iz.items) {
+        const red = document.createElement('div');
+        red.className = 'item-card';
+
+        const tijelo = document.createElement('div');
+        tijelo.className = 'item-body';
+        const naslov = document.createElement(st.is_dir ? 'button' : 'span');
+        naslov.className = 'item-title' + (st.is_dir ? ' prostor-ime' : '');
+        naslov.textContent = (st.is_dir ? '\uD83D\uDCC1 ' : '\uD83D\uDCC4 ') + st.name;
+        if (st.is_dir) {
+          naslov.type = 'button';
+          naslov.title = 'Otvori mapu ' + st.name;
+          naslov.addEventListener('click', () => ucitajProstor(st.path));
+        }
+        const udio = udioProstora(st.size_bytes, iz.size_bytes);
+        const opis = document.createElement('span');
+        opis.className = 'item-desc';
+        opis.textContent = Math.round(udio) + ' % ove mape';
+        const traka = document.createElement('div');
+        traka.className = 'prostor-traka';
+        const ispuna = document.createElement('div');
+        ispuna.style.width = udio.toFixed(1) + '%';
+        traka.append(ispuna);
+        tijelo.append(naslov, opis, traka);
+
+        const velicina = document.createElement('span');
+        velicina.className = 'item-size';
+        velicina.textContent = formatirajBajte(st.size_bytes);
+
+        const finder = document.createElement('button');
+        finder.type = 'button';
+        finder.className = 'btn btn-sm';
+        finder.textContent = 'Prikaži u Finderu';
+        finder.addEventListener('click', () => prikaziUFinderu(st.path));
+
+        red.append(tijelo, velicina, finder);
+        spremnik.appendChild(red);
+      }
+      if (iz.hidden_count > 0) {
+        const ostalo = document.createElement('div');
+        ostalo.className = 'item-desc';
+        ostalo.textContent = 'I još ' + uzBrojHR(iz.hidden_count, 'manja stavka', 'manje stavke', 'manjih stavki') + ' (' + formatirajBajte(iz.hidden_bytes) + ').';
+        spremnik.appendChild(ostalo);
+      }
+    }
+
+    async function prikaziUFinderu(putanja) {
+      try {
+        const odg = await apiFetch('/api/prikazi-u-finderu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: putanja })
+        });
+        if (!odg.ok) {
+          const rez = await odg.json();
+          throw new Error(rez.error || 'Finder nije otvoren.');
+        }
+      } catch (err) {
+        prikaziPoruku('Finder nije otvoren: ' + err.message);
+      }
+    }
+
     // Stavka u Košu ovoliko dana dobiva oznaku i ulazi u brzi odabir za trajno brisanje.
     const DANA_DO_STARE_STAVKE = 7;
 
@@ -3192,6 +3369,11 @@
       document.getElementById('hero-gumb-pregled').addEventListener('click', () => postaviAktivniTab('ciscenje'));
       document.getElementById('brza-akcija-aplikacije').addEventListener('click', () => postaviAktivniTab('aplikacije'));
       document.getElementById('brza-akcija-kos').addEventListener('click', () => postaviAktivniTab('kos'));
+      document.getElementById('brza-akcija-prostor').addEventListener('click', () => postaviAktivniTab('prostor'));
+      document.getElementById('prostor-gumb-natrag').addEventListener('click', () => {
+        if (stanje.prostor?.parent) ucitajProstor(stanje.prostor.parent);
+      });
+      document.getElementById('prostor-gumb-osvjezi').addEventListener('click', () => ucitajProstor(stanje.prostorPutanja || '', true));
 
       // Filteri za čišćenje
       const btnFilterPrep = document.getElementById('filter-preporuceno');
@@ -3336,7 +3518,7 @@
 
       // Početno učitavanje
       const hash = window.location.hash.replace('#', '');
-      if (['pregled', 'ciscenje', 'aplikacije', 'napredni', 'kos'].includes(hash)) {
+      if (['pregled', 'ciscenje', 'prostor', 'aplikacije', 'napredni', 'kos'].includes(hash)) {
         postaviAktivniTab(hash);
       }
       ucitajSkeniranje();

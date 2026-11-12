@@ -50,6 +50,10 @@ type zahtjevCiscenja struct {
 	Putanje []string `json:"paths"`
 }
 
+type zahtjevPutanje struct {
+	Putanja string `json:"path"`
+}
+
 type zahtjevDeinstalacije struct {
 	PutanjaAplikacije string   `json:"app_path"`
 	PovezanePutanje   []string `json:"related_paths"`
@@ -81,6 +85,8 @@ func NoviPosluzitelj(p cistac.Postavke, z Zastita) *Posluzitelj {
 	mux.HandleFunc("GET /api/stablo", pos.obradiStablo)
 	mux.HandleFunc("GET /api/nadogradnja", pos.obradiProvjeruNadogradnje)
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
+	mux.HandleFunc("GET /api/prostor", pos.obradiProstor)
+	mux.HandleFunc("POST /api/prikazi-u-finderu", pos.obradiPrikaziUFinderu)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
 	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
 	mux.HandleFunc("POST /api/kos/izbrisi", pos.obradiTrajnoBrisanje)
@@ -188,6 +194,30 @@ func (p *Posluzitelj) obradiPokretace(w http.ResponseWriter, _ *http.Request) {
 func (p *Posluzitelj) obradiKos(w http.ResponseWriter, _ *http.Request) {
 	stavke := cistac.IzlistajKos(p.postavke)
 	posluziJSON(w, http.StatusOK, stavke)
+}
+
+// obradiProstor vraća sadržaj mape poredan po veličini; osvjezi=1 mjeri iznova.
+func (p *Posluzitelj) obradiProstor(w http.ResponseWriter, r *http.Request) {
+	upit := r.URL.Query()
+	izvj, err := cistac.IstraziProstor(p.postavke, upit.Get("putanja"), upit.Get("osvjezi") == "1")
+	if err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, izvj)
+}
+
+func (p *Posluzitelj) obradiPrikaziUFinderu(w http.ResponseWriter, r *http.Request) {
+	var zah zahtjevPutanje
+	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za prikaz u Finderu."})
+		return
+	}
+	if err := cistac.PrikaziUFinderu(p.postavke, zah.Putanja); err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
 func (p *Posluzitelj) obradiOcisti(w http.ResponseWriter, r *http.Request) {

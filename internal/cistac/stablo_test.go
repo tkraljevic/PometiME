@@ -1,6 +1,7 @@
 package cistac
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -97,5 +98,37 @@ func TestPregledajStablo(t *testing.T) {
 	izvjApp := PregledajStabloAplikacije(app)
 	if izvjApp.BrojStavki != 2 || izvjApp.VelicinaBajta != 8000 {
 		t.Errorf("neispravno stablo aplikacije: %+v", izvjApp)
+	}
+}
+
+// Ispravci iz pregleda koda: stablo mora pokazati najveće stavke i stvarne veličine.
+func TestStabloNajveceStavkeIStvarneVelicine(t *testing.T) {
+	dom := t.TempDir()
+	p := ZadanePostavke(dom)
+	mapa := filepath.Join(dom, "Library", "Caches", "app")
+	for i := 0; i < 49; i++ {
+		zapisiDatoteku(t, filepath.Join(mapa, fmt.Sprintf("a%02d", i)), 10)
+	}
+	zapisiDatoteku(t, filepath.Join(mapa, "zzz_velika"), 5000)
+	zapisiDatoteku(t, filepath.Join(mapa, "pod", "jos", "dublje", "f"), 3000)
+
+	izvj, err := PregledajStablo(p, mapa)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if izvj.VelicinaBajta != 49*10+5000+3000 {
+		t.Errorf("ukupna veličina mora biti stvarna, dobiveno %d", izvj.VelicinaBajta)
+	}
+	if len(izvj.Stavke) != najviseCvorovaStabla || izvj.Stavke[0].Naziv != "zzz_velika" {
+		t.Errorf("najveća stavka mora biti prva od %d prikazanih, dobiveno %d stavki, prva %s", najviseCvorovaStabla, len(izvj.Stavke), izvj.Stavke[0].Naziv)
+	}
+	if izvj.Stavke[1].Naziv != "pod" || izvj.Stavke[1].VelicinaBajta != 3000 || izvj.Stavke[1].Djeca[0].VelicinaBajta != 3000 {
+		t.Errorf("mapa i njezina podmapa na zadnjoj razini moraju imati stvarnu veličinu: %+v", izvj.Stavke[1])
+	}
+	if jePutanjaDozvoljenaZaPregled(p, dom+"-drugi/tajno") || jePutanjaDozvoljenaZaPregled(p, "/ApplicationsDrugo") {
+		t.Errorf("susjedna mapa s istim početkom imena ne smije biti dopuštena")
+	}
+	if !jePutanjaDozvoljenaZaPregled(p, "/Applications") || !jePutanjaDozvoljenaZaPregled(p, dom) {
+		t.Errorf("sami korijeni moraju biti dopušteni")
 	}
 }
