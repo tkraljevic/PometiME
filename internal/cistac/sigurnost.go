@@ -20,6 +20,7 @@ func DozvoljeniKorijeni(p Postavke) []string {
 		filepath.Join(k, "Library", "HTTPStorages"),
 		filepath.Join(k, "Library", "Preferences"),
 		filepath.Join(k, "Library", "Containers"),
+		filepath.Join(k, "Library", "Group Containers"),
 		filepath.Join(k, "Library", "LaunchAgents"),
 		filepath.Join(k, "Library", "Developer", "CoreSimulator"),
 		filepath.Join(k, "Library", "Developer", "Xcode"),
@@ -135,6 +136,19 @@ func DeinstalirajAplikaciju(p Postavke, putanjaApp string, povezane []string) Re
 	svePutanje = append(svePutanje, cistaApp)
 	svePutanje = append(svePutanje, povezane...)
 	return OcistiPutanje(p, svePutanje)
+}
+
+// UkloniPodatkeAplikacije premješta u Koš samo podatke aplikacije, bez paketa.
+// Koristi se kad paket pripada rootu: korisnik ga premješta u Finderu, uz lozinku.
+func UkloniPodatkeAplikacije(p Postavke, putanjaApp string, povezane []string) RezultatCiscenja {
+	if !jeValjanaPutanjaAplikacije(p, filepath.Clean(putanjaApp)) {
+		return RezultatCiscenja{
+			Poruka: "Uklanjanje podataka odbijeno jer putanja nije valjana aplikacija.",
+			Greske: []string{fmt.Sprintf("nevaljana putanja aplikacije: %s", putanjaApp)},
+			Disk:   DohvatiStanjeDiska(p.KorijenKorisnika),
+		}
+	}
+	return OcistiPutanje(p, povezane)
 }
 
 func jeValjanaPutanjaAplikacije(p Postavke, cistaApp string) bool {

@@ -2267,7 +2267,8 @@
         const opis = document.createElement('span');
         opis.className = 'item-desc';
         const povezaneBroj = (app.related_paths || []).length;
-        opis.textContent = app.bundle_id ? app.bundle_id + ' \u00B7 ' + uzBrojHR(povezaneBroj, 'pripadajuća mapa', 'pripadajuće mape', 'pripadajućih mapa') : app.app_path;
+        opis.textContent = (app.bundle_id ? app.bundle_id + ' \u00B7 ' + uzBrojHR(povezaneBroj, 'pripadajuća mapa', 'pripadajuće mape', 'pripadajućih mapa') : app.app_path) +
+          (app.needs_admin ? ' \u00B7 uklanjanje traži lozinku' : '');
 
         tijelo.append(naslov, opis);
 
@@ -3096,8 +3097,47 @@
       );
     }
 
+    // Aplikaciju u vlasništvu roota PometiME ne može premjestiti: miče njezine podatke,
+    // a paket korisnik povlači u Koš u Finderu, koji traži lozinku.
+    function zatraziPotvrduUklanjanjaUzLozinku(app) {
+      const povezane = (app.related_paths || []).map(r => r.path);
+      const uvod = 'Aplikaciju ' + app.name + ' instalirao je sustav ili instalacijski paket, pa je PometiME ne može premjestiti bez administratorske lozinke.\n\n';
+      if (povezane.length === 0) {
+        otvoriDijalogPotvrde('Uklanjanje: ' + app.name,
+          uvod + 'PometiME nije pronašao njezine podatke. Otvorit ćemo Finder s označenom aplikacijom: povucite je u Koš i upišite lozinku.',
+          'Prikaži u Finderu', () => prikaziUFinderu(app.app_path));
+        return;
+      }
+      otvoriDijalogPotvrde(
+        'Uklanjanje: ' + app.name,
+        uvod + 'PometiME će u Koš premjestiti ' + uzBrojHR(povezane.length, 'njezinu mapu', 'njezine mape', 'njezinih mapa') +
+          ' (' + formatirajBajte(app.support_size_bytes) + '). Zatim će otvoriti Finder s označenom aplikacijom: povucite je u Koš i upišite lozinku.',
+        'Premjesti podatke u Koš',
+        async () => {
+          try {
+            const odg = await apiFetch('/api/deinstaliraj', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ app_path: app.app_path, related_paths: povezane, data_only: true })
+            });
+            const rez = await odg.json();
+            if (!odg.ok) throw new Error(rez.error || 'Podaci nisu premješteni.');
+            prikaziPoruku(rez.message + ' Aplikaciju ' + app.name + ' sad povucite u Koš u Finderu.');
+            await prikaziUFinderu(app.app_path);
+            await Promise.all([ucitajSkeniranje(), ucitajAplikacije(), ucitajKos()]);
+          } catch (err) {
+            prikaziPoruku('Podaci nisu premješteni: ' + err.message);
+          }
+        }
+      );
+    }
+
     // Akcija deinstalacije aplikacije
     function zatraziPotvrduDeinstalacije(app) {
+      if (app.needs_admin) {
+        zatraziPotvrduUklanjanjaUzLozinku(app);
+        return;
+      }
       const povezane = (app.related_paths || []).map(r => r.path);
       otvoriDijalogPotvrde(
         'Deinstalacija: ' + app.name,

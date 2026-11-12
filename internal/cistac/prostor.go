@@ -251,8 +251,8 @@ func skratiPopis(stavke []StavkaProstora, najvise int) ([]StavkaProstora, int, i
 func PrikaziUFinderu(p Postavke, putanja string) error {
 	dom := filepath.Clean(p.KorijenKorisnika)
 	cista := filepath.Clean(putanja)
-	if cista != dom && !JeUnutarKorijena(cista, dom) {
-		return fmt.Errorf("stavka nije u vašoj korisničkoj mapi: %s", cista)
+	if cista != dom && !JeUnutarKorijena(cista, dom) && !jeValjanaPutanjaAplikacije(p, cista) {
+		return fmt.Errorf("stavka nije u vašoj korisničkoj mapi ni među aplikacijama: %s", cista)
 	}
 	if _, err := os.Lstat(cista); err != nil {
 		return fmt.Errorf("stavka više ne postoji: %s", cista)

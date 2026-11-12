@@ -61,6 +61,7 @@ type zahtjevAlata struct {
 type zahtjevDeinstalacije struct {
 	PutanjaAplikacije string   `json:"app_path"`
 	PovezanePutanje   []string `json:"related_paths"`
+	SamoPodaci        bool     `json:"data_only"`
 }
 
 type zahtjevOptimizacije struct {
@@ -283,8 +284,11 @@ func (p *Posluzitelj) obradiDeinstaliraj(w http.ResponseWriter, r *http.Request)
 		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za deinstalaciju."})
 		return
 	}
-	rezultat := cistac.DeinstalirajAplikaciju(p.postavke, zah.PutanjaAplikacije, zah.PovezanePutanje)
-	posluziJSON(w, http.StatusOK, rezultat)
+	ukloni := cistac.DeinstalirajAplikaciju
+	if zah.SamoPodaci {
+		ukloni = cistac.UkloniPodatkeAplikacije
+	}
+	posluziJSON(w, http.StatusOK, ukloni(p.postavke, zah.PutanjaAplikacije, zah.PovezanePutanje))
 }
 
 func (p *Posluzitelj) obradiOptimiziraj(w http.ResponseWriter, r *http.Request) {

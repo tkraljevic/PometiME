@@ -68,6 +68,7 @@ type InstaliranaAplikacija struct {
 	VelicinaPodataka     int64             `json:"support_size_bytes"`
 	UkupnaVelicina       int64             `json:"total_size_bytes"`
 	PovezanePutanje      []PovezanaPutanja `json:"related_paths"`
+	TrebaAdmin           bool              `json:"needs_admin"`
 }
 
 // IzvjestajSkeniranja objedinjuje stanje diska i sve pronađene kategorije za čišćenje.

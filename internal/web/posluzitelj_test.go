@@ -545,3 +545,29 @@ func TestAPIOtvoriPostavkeDozvole(t *testing.T) {
 		}
 	}
 }
+
+func TestAPIUklanjanjeSamoPodataka(t *testing.T) {
+	pos, dom, apps := postaviTestniPosluzitelj(t)
+	app := filepath.Join(apps, "Paket.app")
+	podaci := filepath.Join(dom, "Library", "Application Support", "Paket")
+	for _, put := range []string{filepath.Join(app, "bin"), filepath.Join(podaci, "baza.db")} {
+		if err := os.MkdirAll(filepath.Dir(put), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(put, make([]byte, 64), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tijelo, _ := json.Marshal(zahtjevDeinstalacije{PutanjaAplikacije: app, PovezanePutanje: []string{podaci}, SamoPodaci: true}) // poznata struktura bez greške serijalizacije
+	odg := httptest.NewRecorder()
+	pos.ServeHTTP(odg, httptest.NewRequest(http.MethodPost, "/api/deinstaliraj", bytes.NewReader(tijelo)))
+	if odg.Code != http.StatusOK {
+		t.Fatalf("očekivan status 200, dobiveno %d", odg.Code)
+	}
+	if _, err := os.Stat(app); err != nil {
+		t.Errorf("uz data_only paket aplikacije ostaje: %v", err)
+	}
+	if _, err := os.Stat(podaci); !os.IsNotExist(err) {
+		t.Errorf("podaci aplikacije moraju biti u Košu: %v", err)
+	}
+}
