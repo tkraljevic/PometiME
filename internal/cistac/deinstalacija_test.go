@@ -160,3 +160,23 @@ func TestGrupeIzPotpisa(t *testing.T) {
 		t.Logf("Kalkulator ima grupe %v", grupe)
 	}
 }
+
+func TestAppleoveAplikacije(t *testing.T) {
+	apps := t.TempDir()
+	napraviAplikaciju(t, apps, "Safari", "com.apple.Safari", false)
+	imovie := napraviAplikaciju(t, apps, "iMovie", "com.apple.iMovieApp", true)
+	napraviDatoteku(t, filepath.Join(imovie, "Contents", "_MASReceipt", "receipt"), 10)
+	p := ZadanePostavke(t.TempDir())
+	p.KorijenAplikacija = apps
+	stari := procitajGrupeFn
+	t.Cleanup(func() { procitajGrupeFn = stari })
+	procitajGrupeFn = func(string) []string { return nil }
+
+	imena := []string{}
+	for _, a := range SkenirajAplikacije(p) {
+		imena = append(imena, a.IdentifikatorPaketa)
+	}
+	if strings.Join(imena, ",") != "com.apple.iMovieApp" {
+		t.Errorf("na popisu smije biti samo Appleova aplikacija iz App Storea, dobiveno %v", imena)
+	}
+}

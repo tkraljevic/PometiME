@@ -118,7 +118,7 @@ func obradiUlazAplikacije(mapaAplikacija string, u os.DirEntry) []metaAplikacije
 	punaPutanja := filepath.Join(mapaAplikacija, ime)
 	if strings.HasSuffix(ime, ".app") {
 		meta := procitajInfoPlist(punaPutanja)
-		if strings.HasPrefix(meta.paketID, "com.apple.") {
+		if jeUgradenaAppleova(meta) {
 			return nil
 		}
 		return []metaAplikacije{meta}
@@ -140,7 +140,7 @@ func prikupiPodmapuAplikacija(podmapa string) []metaAplikacije {
 			continue
 		}
 		meta := procitajInfoPlist(filepath.Join(podmapa, u.Name()))
-		if !strings.HasPrefix(meta.paketID, "com.apple.") {
+		if !jeUgradenaAppleova(meta) {
 			popis = append(popis, meta)
 		}
 	}
@@ -159,6 +159,16 @@ func mapePodrskeKorisnika(korijenKorisnika string) []struct{ vrsta, putanja stri
 		{"HTTPStorages", filepath.Join(lib, "HTTPStorages")},
 		{"Containers", filepath.Join(lib, "Containers")},
 	}
+}
+
+// jeUgradenaAppleova prepoznaje Appleove aplikacije koje dolaze sa sustavom (npr. Safari).
+// Appleove aplikacije iz App Storea (iMovie, Pages) imaju potvrdu kupnje i mogu se ukloniti.
+func jeUgradenaAppleova(meta metaAplikacije) bool {
+	if !strings.HasPrefix(meta.paketID, "com.apple.") {
+		return false
+	}
+	_, err := os.Stat(filepath.Join(meta.putanja, "Contents", "_MASReceipt", "receipt"))
+	return err != nil
 }
 
 // procitajGrupeAplikacije čita grupe aplikacija iz potpisa (application-groups).
