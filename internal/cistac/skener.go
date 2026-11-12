@@ -1,11 +1,23 @@
 package cistac
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
+	"time"
+)
+
+// danaDoStarePredmemorije: predmemorija mijenjana u tom razdoblju koristi se i
+// brzo bi se ponovno napunila, pa se ne preporučuje za čišćenje.
+const danaDoStarePredmemorije = 30
+
+var (
+	pokrenuteAplikacijeFn = pokrenuteAplikacije
+	uzorakIdentifikatora  = regexp.MustCompile(`bundleID="([^"]+)"`)
 )
 
 type kandidatCiscenja struct {
@@ -17,28 +29,28 @@ type kandidatCiscenja struct {
 }
 
 var preskocenePredmemorije = map[string]bool{
-	"go-build":               true,
-	"Homebrew":               true,
-	"pip":                    true,
-	"Codex":                  true,
-	"CocoaPods":              true,
-	"Yarn":                   true,
-	"goimports":              true,
-	"golangci-lint":          true,
-	"gopls":                  true,
-	"ms-playwright":          true,
-	"ms-playwright-go":       true,
-	"CloudKit":               true,
-	"FamilyCircle":           true,
-	"GeoServices":            true,
-	"PassKit":                true,
-	"GameKit":                true,
-	"Animoji":                true,
-	"SiriTTS":                true,
-	"AudioUnitCache":         true,
-	"askpermissiond":         true,
-	"antigravity":            true,
-	"com.google.antigravity": true,
+	"go-build":                true,
+	"Homebrew":                true,
+	"pip":                     true,
+	"Codex":                   true,
+	"CocoaPods":               true,
+	"Yarn":                    true,
+	"goimports":               true,
+	"golangci-lint":           true,
+	"gopls":                   true,
+	"ms-playwright":           true,
+	"ms-playwright-go":        true,
+	"CloudKit":                true,
+	"FamilyCircle":            true,
+	"GeoServices":             true,
+	"PassKit":                 true,
+	"GameKit":                 true,
+	"Animoji":                 true,
+	"SiriTTS":                 true,
+	"AudioUnitCache":          true,
+	"askpermissiond":          true,
+	"antigravity":             true,
+	"com.google.antigravity":  true,
 	"io.tailscale.ipn.macsys": true,
 }
 
@@ -73,10 +85,76 @@ func opisPredmemorije(ime string) string {
 
 // SkenirajPredmemoriju pronalazi stavke u ~/Library/Caches i ~/Library/Logs veće od praga.
 func SkenirajPredmemoriju(p Postavke) []StavkaCiscenja {
+	mapaCaches := filepath.Join(p.KorijenKorisnika, "Library", "Caches")
 	var kandidati []kandidatCiscenja
-	kandidati = append(kandidati, prikupiKandidateCaches(filepath.Join(p.KorijenKorisnika, "Library", "Caches"))...)
+	kandidati = append(kandidati, prikupiKandidateCaches(mapaCaches)...)
 	kandidati = append(kandidati, prikupiKandidateLogova(filepath.Join(p.KorijenKorisnika, "Library", "Logs"))...)
-	return izmjeriKandidate(kandidati, p.NajmanjaVelicinaPredmemorije)
+	stavke := izmjeriKandidate(kandidati, p.NajmanjaVelicinaPredmemorije)
+	return prilagodiPreporukePredmemorije(stavke, mapaCaches, pokrenuteAplikacijeFn())
+}
+
+// prilagodiPreporukePredmemorije ne preporučuje predmemoriju koju aplikacija upravo
+// koristi ili koja se nedavno mijenjala: takva bi se brzo ponovno napunila.
+func prilagodiPreporukePredmemorije(stavke []StavkaCiscenja, mapaCaches string, pokrenute map[string]bool) []StavkaCiscenja {
+	for i := range stavke {
+		st := &stavke[i]
+		if !st.Preporuceno || !JeUnutarKorijena(st.Putanja, mapaCaches) {
+			continue
+		}
+		switch {
+		case jeUPokrenutojAplikaciji(st.Naziv, pokrenute):
+			st.Preporuceno = false
+			st.Opis += " Aplikacija je pokrenuta i koristi ovu predmemoriju."
+		case st.DanaOdIzmjene < danaDoStarePredmemorije:
+			st.Preporuceno = false
+			st.Opis += " " + opisNedavneIzmjene(st.DanaOdIzmjene) + " Brzo bi se ponovno napunila."
+		}
+	}
+	return stavke
+}
+
+func opisNedavneIzmjene(dana int) string {
+	if dana <= 0 {
+		return "Mijenjana je danas."
+	}
+	return fmt.Sprintf("Mijenjana je prije %s.", UzBrojHR(dana, "dan", "dana", "dana"))
+}
+
+// jeUPokrenutojAplikaciji prepoznaje mapu nazvanu po identifikatoru pokrenute
+// aplikacije, i njezine podmape poput com.primjer.app.ShipIt.
+func jeUPokrenutojAplikaciji(ime string, pokrenute map[string]bool) bool {
+	malo := strings.ToLower(ime)
+	for id := range pokrenute {
+		if malo == id || strings.HasPrefix(malo, id+".") {
+			return true
+		}
+	}
+	return false
+}
+
+// pokrenuteAplikacije čita identifikatore iz lsappinfo, koji ne traži dozvolu za automatizaciju.
+func pokrenuteAplikacije() map[string]bool {
+	izlaz, err := pokreniIzlazNaredbe("/usr/bin/lsappinfo", "list")
+	if err != nil {
+		return map[string]bool{}
+	}
+	return izdvojiIdentifikatore(string(izlaz))
+}
+
+func izdvojiIdentifikatore(tekst string) map[string]bool {
+	identifikatori := map[string]bool{}
+	for _, m := range uzorakIdentifikatora.FindAllStringSubmatch(tekst, -1) {
+		identifikatori[strings.ToLower(m[1])] = true
+	}
+	return identifikatori
+}
+
+// danaOdVremena vraća pune dane od zadanog vremena; nulto vrijeme znači da datoteka nema.
+func danaOdVremena(vrijeme time.Time) int {
+	if vrijeme.IsZero() {
+		return -1
+	}
+	return int(time.Since(vrijeme).Hours() / 24)
 }
 
 func prikupiKandidateCaches(mapaCaches string) []kandidatCiscenja {
@@ -214,7 +292,7 @@ func izmjeriKandidate(kandidati []kandidatCiscenja, najmanjaVelicina int64) []St
 		wg.Add(1)
 		go func(k kandidatCiscenja) {
 			defer wg.Done()
-			vel := IzracunajVelicinu(k.putanja)
+			vel, zadnjaIzmjena := izmjeriMapu(k.putanja)
 			if vel < najmanjaVelicina {
 				return
 			}
@@ -227,6 +305,7 @@ func izmjeriKandidate(kandidati []kandidatCiscenja, najmanjaVelicina int64) []St
 				VelicinaBajta: vel,
 				Opis:          k.opis,
 				Preporuceno:   k.preporuceno,
+				DanaOdIzmjene: danaOdVremena(zadnjaIzmjena),
 			})
 			mu.Unlock()
 		}(kan)

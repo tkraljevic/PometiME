@@ -48,6 +48,7 @@ type StavkaCiscenja struct {
 	VelicinaBajta int64  `json:"size_bytes"`
 	Opis          string `json:"description"`
 	Preporuceno   bool   `json:"recommended"`
+	DanaOdIzmjene int    `json:"days_since_change"`
 }
 
 // PovezanaPutanja predstavlja pripadajuću mapu aplikacije u ~/Library.

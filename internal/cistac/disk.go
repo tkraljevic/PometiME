@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
 // velicinaBloka je jedinica u kojoj stat vraća broj zauzetih blokova (st_blocks).
@@ -45,9 +46,16 @@ func izracunajStanjeIzStatfs(cilj string, blokova, dostupno, velicinaBloka uint6
 
 // IzracunajVelicinu zbraja prostor koji datoteke unutar putanje stvarno zauzimaju na disku.
 func IzracunajVelicinu(putanja string) int64 {
+	velicina, _ := izmjeriMapu(putanja)
+	return velicina
+}
+
+// izmjeriMapu vraća zauzeće i vrijeme zadnje izmjene bilo koje datoteke unutar putanje.
+func izmjeriMapu(putanja string) (int64, time.Time) {
 	var ukupno int64
-	_ = filepath.WalkDir(putanja, dodajVelicinuUlaza(&ukupno, &zbrajalo{})) // nedostupne podmape se preskaču pri zbrajanju
-	return ukupno
+	z := &zbrajalo{}
+	_ = filepath.WalkDir(putanja, dodajVelicinuUlaza(&ukupno, z)) // nedostupne podmape se preskaču pri zbrajanju
+	return ukupno, z.zadnjaIzmjena
 }
 
 func dodajVelicinuUlaza(ukupno *int64, z *zbrajalo) fs.WalkDirFunc {
@@ -66,7 +74,8 @@ type inode struct {
 // zbrajalo broji prostor na disku tijekom jednog mjerenja. Datoteku s više
 // čvrstih poveznica (npr. pnpm store i node_modules) broji samo jednom.
 type zbrajalo struct {
-	vidjene map[inode]bool
+	vidjene       map[inode]bool
+	zadnjaIzmjena time.Time
 }
 
 func (z *zbrajalo) velicinaUlaza(d fs.DirEntry, err error) int64 {
@@ -76,6 +85,9 @@ func (z *zbrajalo) velicinaUlaza(d fs.DirEntry, err error) int64 {
 	info, infoErr := d.Info()
 	if infoErr != nil {
 		return 0
+	}
+	if izmjena := info.ModTime(); izmjena.After(z.zadnjaIzmjena) {
+		z.zadnjaIzmjena = izmjena
 	}
 	return z.velicina(info)
 }
