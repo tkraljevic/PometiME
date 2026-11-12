@@ -26,8 +26,7 @@ Sučelje je podijeljeno na šest jednostavnih cjelina:
    - *Održavanje sustava*: pražnjenje DNS-a, osvježavanje QuickLooka, proređivanje Time Machine snimaka i čišćenje 4K pozadina.
 6. **Koš i povrat** — Popis svih stavki koje je PometiME premjestio u Koš. Jedan klik na *Vrati odabrano* vraća datoteke točno tamo gdje su bile. Prostor se oslobađa tek kad stavke trajno izbrišete gumbom *Trajno izbriši*; stavke starije od 7 dana su istaknute.
 
-Sučelje koristi plave naglaske, izvornu ikonicu četke i usklađene SVG ikonice naprednih alata. Podržava svijetli i tamni izgled te kratke prijelaze uz postavke smanjenog kretanja i prozirnosti.
-
+Sučelje koristi plave nijanse, ikonicu četke i usklađene SVG ikonice naprednih alata. Podržava svijetli i tamni izgled automatski ovisno o postavkama sustava (Postavke -> Izgled) iz vašeg OS-a.
 ![PometiME 1.0.8 — izvorne ikonice aplikacija, gumb Ukloni i pregled pripadajućih podataka](docs/redizajn_aplikacije.png)
 
 ## Sigurnost na prvom mjestu
