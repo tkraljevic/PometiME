@@ -180,7 +180,7 @@ func TestPrimijeniNadogradnjuOdbija(t *testing.T) {
 		vanjske       map[string]string
 		ocekivano     string
 	}{
-		{"nema novije verzije", "v1.0.8", map[string][]byte{zip: ispravna, sig: potpisiTestno(ispravna)}, nil, "nema novije verzije"},
+		{"nema novije verzije", "v" + TrenutnaInacica, map[string][]byte{zip: ispravna, sig: potpisiTestno(ispravna)}, nil, "nema novije verzije"},
 		{"izdanje bez potpisa", "v9.0.0", map[string][]byte{zip: ispravna}, nil, "nema potpisanu arhivu"},
 		{"arhiva na tuđoj adresi", "v9.0.0", map[string][]byte{zip: ispravna, sig: potpisiTestno(ispravna)}, map[string]string{zip: "https://napadac.example/a.zip"}, "nije na stranici izdanja"},
 		{"adresa s ..", "v9.0.0", map[string][]byte{zip: ispravna, sig: potpisiTestno(ispravna)}, map[string]string{sig: "x/../a.sig"}, "nije na stranici izdanja"},

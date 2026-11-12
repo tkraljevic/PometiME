@@ -18,7 +18,7 @@ import (
 )
 
 // TrenutnaInacica definira ugrađenu verziju programa PometiME.
-const TrenutnaInacica = "1.0.8"
+const TrenutnaInacica = "1.0.9"
 
 // identifikatorPaketa je CFBundleIdentifier koji preuzeta aplikacija mora imati.
 const identifikatorPaketa = "hr.kraljevic.pometime"

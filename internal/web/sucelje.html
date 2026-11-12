@@ -1359,7 +1359,7 @@
     <!-- Kartica verzije i nadogradnje -->
     <div class="side-update-box">
       <div class="side-update-ver">
-        <span id="prikaz-trenutne-verzije">PometiME 1.0.8</span>
+        <span id="prikaz-trenutne-verzije">PometiME 1.0.9</span>
         <span id="indikator-nove-verzije" class="side-update-badge" style="display: none;">● Nova</span>
       </div>
       <button type="button" class="side-update-btn" id="gumb-provjeri-nadogradnju">
@@ -1708,11 +1708,11 @@
       <div class="update-versions-grid" id="nadogradnja-kartice-verzija">
         <div class="update-ver-card">
           <div class="update-ver-label">Instalirana verzija</div>
-          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.8</div>
+          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.9</div>
         </div>
         <div class="update-ver-card">
           <div class="update-ver-label">Dostupna verzija</div>
-          <div class="update-ver-value" id="nadogradnja-nova-verzija">1.0.8</div>
+          <div class="update-ver-value" id="nadogradnja-nova-verzija">1.0.9</div>
         </div>
       </div>
 
@@ -3326,8 +3326,8 @@
           simbol.textContent = '\u2193';
           naslov.textContent = 'Nova verzija je spremna.';
           podnaslov.textContent = 'Pregledajte novosti i ažurirajte PometiME.';
-          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || '1.0.8';
-          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || '1.0.8';
+          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || '1.0.9';
+          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || '1.0.9';
           karticeVerzija.style.display = 'grid';
 
           const biljeske = podaci.release_notes ? renderirajMarkdown(podaci.release_notes) : '<p>Bilješke uz izdanje trenutačno nisu dostupne. Više informacija potražite na stranici izdanja.</p>';
@@ -3351,7 +3351,7 @@
           simbol.textContent = '\u2713';
           naslov.textContent = 'Sve je ažurno.';
           podnaslov.textContent = 'Već koristite najnoviju verziju PometiME.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.current_version || '1.0.8');
+          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.current_version || '1.0.9');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           break;
@@ -3369,7 +3369,7 @@
           simbol.textContent = '\u2713';
           naslov.textContent = 'Nadogradnja je instalirana.';
           podnaslov.textContent = 'Pokrenite PometiME ponovno kako biste koristili novu verziju.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.latest_version || '1.0.8');
+          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.latest_version || '1.0.9');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           if (window.webkit?.messageHandlers?.pometimeRestart) gumbRestart.style.display = 'inline-flex';
