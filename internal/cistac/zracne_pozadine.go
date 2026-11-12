@@ -46,7 +46,7 @@ func obradiVideoUlaz(ukupno *int64, broj *int) fs.WalkDirFunc {
 		}
 		if strings.HasSuffix(strings.ToLower(d.Name()), ".mov") {
 			if info, errStat := d.Info(); errStat == nil {
-				*ukupno += info.Size()
+				*ukupno += velicinaDatoteke(info)
 				*broj++
 			}
 		}

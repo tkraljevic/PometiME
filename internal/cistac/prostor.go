@@ -163,11 +163,12 @@ func izmjeriMape(korijen string) map[string]int64 {
 // te svakoj nadređenoj mapi do dubinaPamcenjaProstora.
 func izmjeriPodstablo(korijen, podmapa string) map[string]int64 {
 	velicine := map[string]int64{podmapa: 0}
+	z := &zbrajalo{}
 	zbroji := func(put string, d fs.DirEntry, err error) error {
 		if err != nil || !d.Type().IsRegular() {
 			return nil // nedostupne mape i poveznice se preskaču
 		}
-		bajta := velicinaUlaza(d, nil)
+		bajta := z.velicinaUlaza(d, nil)
 		velicine[korijen] += bajta
 		rel, _ := filepath.Rel(korijen, put) // put je uvijek unutar korijena
 		dijelovi := strings.Split(rel, string(filepath.Separator))

@@ -65,13 +65,13 @@ func stvoriIzvjestajZaDatoteku(putanja string, st os.FileInfo) *IzvjestajStabla 
 	return &IzvjestajStabla{
 		Putanja:       putanja,
 		Naziv:         filepath.Base(putanja),
-		VelicinaBajta: st.Size(),
+		VelicinaBajta: velicinaDatoteke(st),
 		BrojStavki:    1,
 		Stavke: []CvorStabla{
 			{
 				Naziv:         filepath.Base(putanja),
 				Putanja:       putanja,
-				VelicinaBajta: st.Size(),
+				VelicinaBajta: velicinaDatoteke(st),
 				JeDirektorij:  false,
 			},
 		},

@@ -456,8 +456,8 @@ func TestAPIProstorIFinder(t *testing.T) {
 	odg := httptest.NewRecorder()
 	pos.ServeHTTP(odg, httptest.NewRequest(http.MethodGet, "/api/prostor?osvjezi=1", nil))
 	var izvj cistac.IzvjestajProstora
-	if err := json.Unmarshal(odg.Body.Bytes(), &izvj); err != nil || odg.Code != http.StatusOK || izvj.VelicinaBajta != 300 {
-		t.Fatalf("očekivano zauzeće 300 B, dobiveno %d %s (%v)", odg.Code, odg.Body.String(), err)
+	if err := json.Unmarshal(odg.Body.Bytes(), &izvj); err != nil || odg.Code != http.StatusOK || izvj.VelicinaBajta < 300 {
+		t.Fatalf("očekivano barem 300 B zauzeća, dobiveno %d %s (%v)", odg.Code, odg.Body.String(), err)
 	}
 	odgIzvan := httptest.NewRecorder()
 	pos.ServeHTTP(odgIzvan, httptest.NewRequest(http.MethodGet, "/api/prostor?putanja=/etc", nil))

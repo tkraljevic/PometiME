@@ -9,16 +9,6 @@ import (
 	"time"
 )
 
-func zapisiDatoteku(t *testing.T, put string, bajta int) {
-	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(put), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(put, make([]byte, bajta), 0o600); err != nil {
-		t.Fatal(err)
-	}
-}
-
 // novoMjerenje briše zapamćeno mjerenje, da testovi ne ovise jedan o drugome.
 func novoMjerenje(t *testing.T) {
 	t.Helper()
@@ -31,10 +21,14 @@ func TestIstraziProstor(t *testing.T) {
 	novoMjerenje(t)
 	dom := t.TempDir()
 	p := ZadanePostavke(dom)
-	zapisiDatoteku(t, filepath.Join(dom, "Movies", "film.mov"), 5000)
-	zapisiDatoteku(t, filepath.Join(dom, "Library", "Caches", "app", "duboko", "jos", "x.bin"), 3000)
-	zapisiDatoteku(t, filepath.Join(dom, ".Trash", "staro.zip"), 2000)
-	zapisiDatoteku(t, filepath.Join(dom, "biljeska.txt"), 100)
+	film := filepath.Join(dom, "Movies", "film.mov")
+	duboko := filepath.Join(dom, "Library", "Caches", "app", "duboko", "jos", "x.bin")
+	staro := filepath.Join(dom, ".Trash", "staro.zip")
+	biljeska := filepath.Join(dom, "biljeska.txt")
+	napraviDatoteku(t, film, 50000)
+	napraviDatoteku(t, duboko, 30000)
+	napraviDatoteku(t, staro, 20000)
+	napraviDatoteku(t, biljeska, 1000)
 	if err := os.MkdirAll(filepath.Join(dom, "Prazno"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -46,14 +40,14 @@ func TestIstraziProstor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if izvj.VelicinaBajta != 10100 || izvj.Nadredena != "" || izvj.Putanja != dom {
+	if izvj.VelicinaBajta != zauzeto(t, film, duboko, staro, biljeska) || izvj.Nadredena != "" || izvj.Putanja != dom {
 		t.Fatalf("neočekivan korijen: %+v", izvj)
 	}
 	redoslijed := []string{}
 	for _, st := range izvj.Stavke {
-		redoslijed = append(redoslijed, fmt.Sprintf("%s=%d", st.Naziv, st.VelicinaBajta))
+		redoslijed = append(redoslijed, st.Naziv)
 	}
-	if got := strings.Join(redoslijed[:4], " "); got != "Movies=5000 Library=3000 .Trash=2000 biljeska.txt=100" {
+	if got := strings.Join(redoslijed[:4], " "); got != "Movies Library .Trash biljeska.txt" || izvj.Stavke[0].VelicinaBajta != zauzeto(t, film) {
 		t.Errorf("stavke moraju biti poredane po veličini, dobiveno %s", strings.Join(redoslijed, " "))
 	}
 	for _, st := range izvj.Stavke {
@@ -68,25 +62,26 @@ func TestIstraziProstor(t *testing.T) {
 	}
 
 	// Podmapa unutar zapamćenog mjerenja: veličine bez novog mjerenja.
-	zapisiDatoteku(t, filepath.Join(dom, "Library", "Caches", "app", "novo.bin"), 999)
+	novo := filepath.Join(dom, "Library", "Caches", "app", "novo.bin")
+	napraviDatoteku(t, novo, 999)
 	caches, err := IstraziProstor(p, filepath.Join(dom, "Library", "Caches"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if caches.VelicinaBajta != 3000 || caches.Nadredena != filepath.Join(dom, "Library") || caches.Stavke[0].VelicinaBajta != 3000 {
+	if d := zauzeto(t, duboko); caches.VelicinaBajta != d || caches.Nadredena != filepath.Join(dom, "Library") || caches.Stavke[0].VelicinaBajta != d {
 		t.Errorf("podmapa mora doći iz zapamćenog mjerenja: %+v", caches)
 	}
 
 	// Osvježavanje mjeri iznova i vidi novu datoteku.
 	osvjezeno, err := IstraziProstor(p, filepath.Join(dom, "Library", "Caches"), true)
-	if err != nil || osvjezeno.VelicinaBajta != 3999 {
+	if err != nil || osvjezeno.VelicinaBajta != zauzeto(t, duboko, novo) {
 		t.Errorf("osvježeno mjerenje mora vidjeti novu datoteku: %+v (%v)", osvjezeno, err)
 	}
 
 	// Dublje od zapamćenih razina mjeri se ta mapa.
-	duboko, err := IstraziProstor(p, filepath.Join(dom, "Library", "Caches", "app", "duboko", "jos"), false)
-	if err != nil || duboko.VelicinaBajta != 3000 {
-		t.Errorf("duboka mapa mora imati točnu veličinu: %+v (%v)", duboko, err)
+	dubokaMapa, err := IstraziProstor(p, filepath.Join(dom, "Library", "Caches", "app", "duboko", "jos"), false)
+	if err != nil || dubokaMapa.VelicinaBajta != zauzeto(t, duboko) {
+		t.Errorf("duboka mapa mora imati točnu veličinu: %+v (%v)", dubokaMapa, err)
 	}
 }
 
@@ -94,7 +89,7 @@ func TestIstraziProstorOdbija(t *testing.T) {
 	novoMjerenje(t)
 	dom := t.TempDir()
 	p := ZadanePostavke(dom)
-	zapisiDatoteku(t, filepath.Join(dom, "datoteka.txt"), 1)
+	napraviDatoteku(t, filepath.Join(dom, "datoteka.txt"), 1)
 	if err := os.Mkdir(dom+"-drugi", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +111,7 @@ func TestIstraziProstorOdbija(t *testing.T) {
 	if _, err := IstraziProstor(p, nedostupna, false); err == nil || !strings.Contains(err.Error(), "nije moguće pročitati") {
 		t.Errorf("nedostupna mapa mora vratiti razumljivu grešku, dobiveno %v", err)
 	}
-	if izvj, err := IstraziProstor(p, "", false); err != nil || izvj.VelicinaBajta != 1 {
+	if izvj, err := IstraziProstor(p, "", false); err != nil || izvj.VelicinaBajta != zauzeto(t, filepath.Join(dom, "datoteka.txt")) {
 		t.Errorf("nedostupna podmapa se preskače, ostatak se mjeri: %+v (%v)", izvj, err)
 	}
 	if len(izmjeriMape(filepath.Join(dom, "nema"))) != 0 {
@@ -127,21 +122,26 @@ func TestIstraziProstorOdbija(t *testing.T) {
 func TestSkracivanjeIZastarjeloMjerenje(t *testing.T) {
 	novoMjerenje(t)
 	dom := t.TempDir()
+	najmanje := []string{}
 	for i := 0; i < najviseStavkiProstora+5; i++ {
-		zapisiDatoteku(t, filepath.Join(dom, fmt.Sprintf("f%02d", i)), i+1)
+		put := filepath.Join(dom, fmt.Sprintf("f%02d", i))
+		napraviDatoteku(t, put, (i+1)*4096) // svaka datoteka zauzima drugi broj blokova
+		if i < 5 {
+			najmanje = append(najmanje, put)
+		}
 	}
 	p := ZadanePostavke(dom)
 	izvj, err := IstraziProstor(p, "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(izvj.Stavke) != najviseStavkiProstora || izvj.SkrivenoStavki != 5 || izvj.SkrivenoBajta != 1+2+3+4+5 {
+	if len(izvj.Stavke) != najviseStavkiProstora || izvj.SkrivenoStavki != 5 || izvj.SkrivenoBajta != zauzeto(t, najmanje...) {
 		t.Errorf("neočekivano skraćivanje: %d stavki, skriveno %d (%d B)", len(izvj.Stavke), izvj.SkrivenoStavki, izvj.SkrivenoBajta)
 	}
 
 	staro := sadaZaMjerenjeFn
 	t.Cleanup(func() { sadaZaMjerenjeFn = staro })
-	zapisiDatoteku(t, filepath.Join(dom, "nova"), 1000)
+	napraviDatoteku(t, filepath.Join(dom, "nova"), 1<<20)
 	sadaZaMjerenjeFn = func() time.Time { return time.Now().Add(trajanjeMjerenja + time.Minute) }
 	izvj, err = IstraziProstor(p, "", false)
 	if err != nil || izvj.Stavke[0].Naziv != "nova" {
@@ -152,7 +152,7 @@ func TestSkracivanjeIZastarjeloMjerenje(t *testing.T) {
 func TestPrikaziUFinderu(t *testing.T) {
 	dom := t.TempDir()
 	p := ZadanePostavke(dom)
-	zapisiDatoteku(t, filepath.Join(dom, "Movies", "film.mov"), 1)
+	napraviDatoteku(t, filepath.Join(dom, "Movies", "film.mov"), 1)
 	var pozvano []string
 	t.Cleanup(PostaviPokretacNaredbiZaTest(func(name string, args ...string) error {
 		pozvano = append([]string{name}, args...)

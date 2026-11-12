@@ -175,7 +175,7 @@ func TestSkenirajSveIOcisti(t *testing.T) {
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "com.test.ShipIt", "pkg.bin"), 500)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "ObičnaApp", "cache.db"), 300)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "Google", "chrome.db"), 350)
-	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "PremalaApp", "mali.db"), 10)
+	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "PremalaApp", "mali.db"), 0) // prazna datoteka ne zauzima nijedan blok
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "com.apple.Safari", "sys.db"), 500)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Caches", "go-build", "go.o"), 600)
 	napraviDatoteku(t, filepath.Join(dom, "Library", "Logs", ".skriveni"), 500)
@@ -466,8 +466,8 @@ func TestZracnePozadine(t *testing.T) {
 	if infoPuno.BrojVidea != 2 {
 		t.Errorf("očekivana 2 videa, dobiveno %d", infoPuno.BrojVidea)
 	}
-	if infoPuno.UkupnoBajta != 3300 {
-		t.Errorf("očekivano 3300 bajta (3000 videa + 300 user cache), dobiveno %d", infoPuno.UkupnoBajta)
+	if ocekivano := zauzeto(t, video1, video2, userCache); infoPuno.UkupnoBajta != ocekivano {
+		t.Errorf("očekivano %d bajta (dva videa i korisnička predmemorija), dobiveno %d", ocekivano, infoPuno.UkupnoBajta)
 	}
 
 	// 3. Test čišćenja
@@ -560,7 +560,7 @@ func TestSkenirajInstalacije(t *testing.T) {
 
 	napraviDatoteku(t, stariDmg, 500)
 	napraviDatoteku(t, noviPkg, 600)
-	napraviDatoteku(t, maliIso, 10) // premalo za prag od 100
+	napraviDatoteku(t, maliIso, 0) // prazna datoteka ne zauzima nijedan blok, pa je ispod praga od 100
 	napraviDatoteku(t, skriveni, 500)
 	if err := os.MkdirAll(podmapa, 0o755); err != nil {
 		t.Fatal(err)

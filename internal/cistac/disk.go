@@ -6,6 +6,9 @@ import (
 	"syscall"
 )
 
+// velicinaBloka je jedinica u kojoj stat vraća broj zauzetih blokova (st_blocks).
+const velicinaBloka = 512
+
 // DohvatiStanjeDiska čita zauzeće diska za zadanu putanju pomoću sustavskog poziva Statfs.
 func DohvatiStanjeDiska(putanja string) StanjeDiska {
 	cilj := odaberiPutanjuZaStatfs(putanja)
@@ -40,21 +43,33 @@ func izracunajStanjeIzStatfs(cilj string, blokova, dostupno, velicinaBloka uint6
 	}
 }
 
-// IzracunajVelicinu zbraja veličinu svih običnih datoteka unutar zadane putanje.
+// IzracunajVelicinu zbraja prostor koji datoteke unutar putanje stvarno zauzimaju na disku.
 func IzracunajVelicinu(putanja string) int64 {
 	var ukupno int64
-	_ = filepath.WalkDir(putanja, dodajVelicinuUlaza(&ukupno)) // nedostupne podmape se preskaču pri zbrajanju
+	_ = filepath.WalkDir(putanja, dodajVelicinuUlaza(&ukupno, &zbrajalo{})) // nedostupne podmape se preskaču pri zbrajanju
 	return ukupno
 }
 
-func dodajVelicinuUlaza(ukupno *int64) fs.WalkDirFunc {
+func dodajVelicinuUlaza(ukupno *int64, z *zbrajalo) fs.WalkDirFunc {
 	return func(_ string, d fs.DirEntry, err error) error {
-		*ukupno += velicinaUlaza(d, err)
+		*ukupno += z.velicinaUlaza(d, err)
 		return nil
 	}
 }
 
-func velicinaUlaza(d fs.DirEntry, err error) int64 {
+// inode jednoznačno određuje datoteku na računalu, bez obzira na broj poveznica.
+type inode struct {
+	uredaj uint64
+	broj   uint64
+}
+
+// zbrajalo broji prostor na disku tijekom jednog mjerenja. Datoteku s više
+// čvrstih poveznica (npr. pnpm store i node_modules) broji samo jednom.
+type zbrajalo struct {
+	vidjene map[inode]bool
+}
+
+func (z *zbrajalo) velicinaUlaza(d fs.DirEntry, err error) int64 {
 	if err != nil || d == nil || !d.Type().IsRegular() {
 		return 0
 	}
@@ -62,10 +77,35 @@ func velicinaUlaza(d fs.DirEntry, err error) int64 {
 	if infoErr != nil {
 		return 0
 	}
-	return velicinaDatoteke(info)
+	return z.velicina(info)
 }
 
-// velicinaDatoteke je jedino mjesto koje odlučuje koliko jedna datoteka zauzima.
+// velicina vraća zauzete blokove, a ne prividnu duljinu: rijetka datoteka
+// (Docker.raw) i datoteka iz oblaka koja nije preuzeta zauzimaju manje od duljine.
+func (z *zbrajalo) velicina(info fs.FileInfo) int64 {
+	st, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return info.Size()
+	}
+	if st.Nlink > 1 {
+		kljuc := inode{uredaj: uint64(st.Dev), broj: st.Ino}
+		if z.vidjene[kljuc] {
+			return 0
+		}
+		if z.vidjene == nil {
+			z.vidjene = map[inode]bool{}
+		}
+		z.vidjene[kljuc] = true
+	}
+	return st.Blocks * velicinaBloka
+}
+
+// velicinaUlaza mjeri jednu stavku, bez pamćenja poveznica.
+func velicinaUlaza(d fs.DirEntry, err error) int64 {
+	return (&zbrajalo{}).velicinaUlaza(d, err)
+}
+
+// velicinaDatoteke mjeri jednu datoteku, bez pamćenja poveznica.
 func velicinaDatoteke(info fs.FileInfo) int64 {
-	return info.Size()
+	return (&zbrajalo{}).velicina(info)
 }

@@ -34,7 +34,7 @@ func TestPregledajStablo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("neočekivana greška pri pregledu datoteke: %v", err)
 	}
-	if izvjDat.BrojStavki != 1 || izvjDat.VelicinaBajta != int64(len("sadrzaj-instalera-123")) {
+	if izvjDat.BrojStavki != 1 || izvjDat.VelicinaBajta != zauzeto(t, datPutanja) {
 		t.Errorf("neispravni podaci za datoteku: %+v", izvjDat)
 	}
 
@@ -106,23 +106,27 @@ func TestStabloNajveceStavkeIStvarneVelicine(t *testing.T) {
 	dom := t.TempDir()
 	p := ZadanePostavke(dom)
 	mapa := filepath.Join(dom, "Library", "Caches", "app")
+	sve := []string{}
 	for i := 0; i < 49; i++ {
-		zapisiDatoteku(t, filepath.Join(mapa, fmt.Sprintf("a%02d", i)), 10)
+		sve = append(sve, filepath.Join(mapa, fmt.Sprintf("a%02d", i)))
+		napraviDatoteku(t, sve[i], 10)
 	}
-	zapisiDatoteku(t, filepath.Join(mapa, "zzz_velika"), 5000)
-	zapisiDatoteku(t, filepath.Join(mapa, "pod", "jos", "dublje", "f"), 3000)
+	velika := filepath.Join(mapa, "zzz_velika")
+	duboka := filepath.Join(mapa, "pod", "jos", "dublje", "f")
+	napraviDatoteku(t, velika, 50000)
+	napraviDatoteku(t, duboka, 30000)
 
 	izvj, err := PregledajStablo(p, mapa)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if izvj.VelicinaBajta != 49*10+5000+3000 {
-		t.Errorf("ukupna veličina mora biti stvarna, dobiveno %d", izvj.VelicinaBajta)
+	if ocekivano := zauzeto(t, append(sve, velika, duboka)...); izvj.VelicinaBajta != ocekivano {
+		t.Errorf("ukupna veličina mora biti stvarna (%d), dobiveno %d", ocekivano, izvj.VelicinaBajta)
 	}
 	if len(izvj.Stavke) != najviseCvorovaStabla || izvj.Stavke[0].Naziv != "zzz_velika" {
 		t.Errorf("najveća stavka mora biti prva od %d prikazanih, dobiveno %d stavki, prva %s", najviseCvorovaStabla, len(izvj.Stavke), izvj.Stavke[0].Naziv)
 	}
-	if izvj.Stavke[1].Naziv != "pod" || izvj.Stavke[1].VelicinaBajta != 3000 || izvj.Stavke[1].Djeca[0].VelicinaBajta != 3000 {
+	if d := zauzeto(t, duboka); izvj.Stavke[1].Naziv != "pod" || izvj.Stavke[1].VelicinaBajta != d || izvj.Stavke[1].Djeca[0].VelicinaBajta != d {
 		t.Errorf("mapa i njezina podmapa na zadnjoj razini moraju imati stvarnu veličinu: %+v", izvj.Stavke[1])
 	}
 	if jePutanjaDozvoljenaZaPregled(p, dom+"-drugi/tajno") || jePutanjaDozvoljenaZaPregled(p, "/ApplicationsDrugo") {
