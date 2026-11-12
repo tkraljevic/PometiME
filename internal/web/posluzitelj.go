@@ -54,6 +54,10 @@ type zahtjevPutanje struct {
 	Putanja string `json:"path"`
 }
 
+type zahtjevAlata struct {
+	ID string `json:"id"`
+}
+
 type zahtjevDeinstalacije struct {
 	PutanjaAplikacije string   `json:"app_path"`
 	PovezanePutanje   []string `json:"related_paths"`
@@ -86,6 +90,8 @@ func NoviPosluzitelj(p cistac.Postavke, z Zastita) *Posluzitelj {
 	mux.HandleFunc("GET /api/nadogradnja", pos.obradiProvjeruNadogradnje)
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("GET /api/prostor", pos.obradiProstor)
+	mux.HandleFunc("GET /api/razvojni-alati", pos.obradiRazvojneAlate)
+	mux.HandleFunc("POST /api/razvojni-alati/ocisti", pos.obradiCiscenjeAlata)
 	mux.HandleFunc("POST /api/prikazi-u-finderu", pos.obradiPrikaziUFinderu)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
 	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
@@ -205,6 +211,25 @@ func (p *Posluzitelj) obradiProstor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	posluziJSON(w, http.StatusOK, izvj)
+}
+
+func (p *Posluzitelj) obradiRazvojneAlate(w http.ResponseWriter, _ *http.Request) {
+	posluziJSON(w, http.StatusOK, cistac.PronadiRazvojneAlate(p.postavke))
+}
+
+// obradiCiscenjeAlata pokreće samo naredbe s popisa poznatih alata, nikad naredbu iz zahtjeva.
+func (p *Posluzitelj) obradiCiscenjeAlata(w http.ResponseWriter, r *http.Request) {
+	var zah zahtjevAlata
+	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za čišćenje alata."})
+		return
+	}
+	poruka, err := cistac.OcistiRazvojniAlat(p.postavke, zah.ID)
+	if err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, cistac.RezultatOptimizacije{Uspjeh: true, Poruka: poruka})
 }
 
 func (p *Posluzitelj) obradiPrikaziUFinderu(w http.ResponseWriter, r *http.Request) {

@@ -613,6 +613,12 @@
       color: var(--primary);
     }
 
+    .naredba-alata {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
     .stavka-stara {
       color: var(--danger);
       font-weight: 600;
@@ -2329,9 +2335,13 @@
       document.getElementById('napredni-naslov').textContent = meta.naslov;
       document.getElementById('napredni-podnaslov').textContent = meta.opis;
       document.getElementById('napredni-podnaslov-info').textContent = uzBrojHR(meta.stavke.length, 'stavka', 'stavke', 'stavki');
+      if (alatKljuc === 'dev_ai') iscrtajNaredbeAlata(spremnik);
 
       if (meta.stavke.length === 0) {
-        spremnik.innerHTML = '<div class="empty-state">Nema pronađenih stavki za ovu kategoriju.</div>';
+        const prazno = document.createElement('div');
+        prazno.className = 'empty-state';
+        prazno.textContent = 'Nema pronađenih stavki za ovu kategoriju.';
+        spremnik.appendChild(prazno);
         return;
       }
 
@@ -2532,6 +2542,100 @@
     }
 
     // 5. ISCRTAVANJE: KOŠ I POVRAT
+    // NAREDBE RAZVOJNIH ALATA: alat sam čisti svoje spremište, trajno i bez Koša.
+    async function ucitajRazvojneAlate() {
+      stanje.razvojniAlati = { ucitava: true, popis: [] };
+      try {
+        const odg = await apiFetch('/api/razvojni-alati');
+        const popis = await odg.json();
+        stanje.razvojniAlati = { ucitava: false, popis: Array.isArray(popis) ? popis : [] };
+      } catch (err) {
+        stanje.razvojniAlati = { ucitava: false, popis: [], greska: 'Alati nisu provjereni: ' + err.message };
+      }
+      if (stanje.aktivniTab === 'napredni' && stanje.aktivniNapredniAlat === 'dev_ai') iscrtajNapredneAlate();
+    }
+
+    function iscrtajNaredbeAlata(spremnik) {
+      const naslov = document.createElement('div');
+      naslov.className = 'item-title';
+      naslov.textContent = 'Čišćenje naredbama alata';
+      const uputa = document.createElement('div');
+      uputa.className = 'item-desc';
+      uputa.textContent = 'Alat sam briše ono što mu više ne treba. Brisanje je trajno, stavke ne idu u Koš.';
+      spremnik.append(naslov, uputa);
+
+      if (!stanje.razvojniAlati) ucitajRazvojneAlate();
+      const ra = stanje.razvojniAlati || { ucitava: true, popis: [] };
+      if (ra.ucitava || ra.greska || ra.popis.length === 0) {
+        const poruka = document.createElement('div');
+        poruka.className = 'item-desc';
+        poruka.textContent = ra.ucitava ? 'Provjeravam instalirane alate\u2026' : (ra.greska || 'Nije pronađen nijedan podržani alat (Homebrew, Go, pnpm).');
+        spremnik.appendChild(poruka);
+        return;
+      }
+      for (const alat of ra.popis) {
+        const red = document.createElement('div');
+        red.className = 'item-card';
+        const tijelo = document.createElement('div');
+        tijelo.className = 'item-body';
+        const ime = document.createElement('span');
+        ime.className = 'item-title';
+        ime.textContent = alat.name;
+        const opis = document.createElement('span');
+        opis.className = 'item-desc';
+        opis.textContent = alat.description + ' ' + alat.estimate;
+        const naredba = document.createElement('code');
+        naredba.className = 'naredba-alata';
+        naredba.textContent = alat.command;
+        tijelo.append(ime, opis, naredba);
+
+        const velicina = document.createElement('span');
+        velicina.className = 'item-size';
+        velicina.textContent = alat.size_bytes > 0 ? formatirajBajte(alat.size_bytes) : '\u2014';
+
+        const gumb = document.createElement('button');
+        gumb.type = 'button';
+        gumb.className = 'btn btn-sm btn-opasno';
+        gumb.textContent = 'Pokreni';
+        gumb.disabled = !alat.can_clean;
+        gumb.addEventListener('click', () => zatraziPotvrduNaredbeAlata(alat));
+
+        red.append(tijelo, velicina, gumb);
+        spremnik.appendChild(red);
+      }
+      const razdjelnik = document.createElement('div');
+      razdjelnik.className = 'item-title';
+      razdjelnik.style.marginTop = '8px';
+      razdjelnik.textContent = 'Mape koje idu u Koš';
+      spremnik.appendChild(razdjelnik);
+    }
+
+    function zatraziPotvrduNaredbeAlata(alat) {
+      otvoriDijalogPotvrde(
+        'Pokrenuti ' + alat.command + '?',
+        alat.estimate + '\n\nNaredba trajno briše datoteke. One ne idu u Koš i ne mogu se vratiti.',
+        'Pokreni naredbu',
+        async () => {
+          try {
+            prikaziPoruku('Pokrećem ' + alat.command + '\u2026 Ovo može potrajati nekoliko minuta.');
+            const odg = await apiFetch('/api/razvojni-alati/ocisti', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: alat.id })
+            });
+            const rez = await odg.json();
+            if (!odg.ok) throw new Error(rez.error || 'Naredba nije uspjela.');
+            prikaziPoruku(rez.message);
+          } catch (err) {
+            prikaziPoruku('Naredba nije uspjela: ' + err.message);
+          }
+          stanje.razvojniAlati = null;
+          await ucitajSkeniranje();
+          if (stanje.aktivniTab === 'napredni') iscrtajNapredneAlate();
+        }
+      );
+    }
+
     // ZAUZEĆE PROSTORA: mjeri se tek kad korisnik otvori karticu.
     function ucitajProstor(putanja = '', osvjezi = false) {
       const unos = zapocniUcitavanje('prostor');

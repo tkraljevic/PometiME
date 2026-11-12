@@ -19,7 +19,7 @@ Sučelje je podijeljeno na šest jednostavnih cjelina:
 3. **Zauzeće prostora** — Najveće mape i datoteke u vašoj korisničkoj mapi, poredane po veličini. Kliknite mapu da vidite što je u njoj, a stavku otvorite u Finderu. Ovdje se ništa ne briše.
 4. **Aplikacije** — Pregled instaliranih programa s njihovim izvornim macOS ikonicama. Ikonice se učitavaju lokalno iz aplikacijskih paketa ili preko sistemskog servisa, uz zamjensku ikonicu ako dohvat nije moguć. Prije uklanjanja možete pregledati pripadajuće podatke pronađene u mapi `~/Library`.
 5. **Napredni alati** — Dodatno održavanje kada vam zatreba:
-   - *Razvojni i AI alati*: čišćenje međuspremnika za Xcode, Go, Rust Cargo, NPM, Python, kao i zaostalih iOS simulatora, Android emulatora i Claude Code sesija (uz trajnu zaštitu memorije).
+   - *Razvojni i AI alati*: čišćenje međuspremnika za Xcode, Go, Rust Cargo, NPM, Python, kao i zaostalih iOS simulatora, Android emulatora i Claude Code sesija (uz trajnu zaštitu memorije). Ako su instalirani Homebrew, Go ili pnpm, PometiME nudi i njihove naredbe za čišćenje (`brew cleanup --prune=all`, `go clean -modcache`, `pnpm store prune`) s procjenom prostora. Te naredbe brišu trajno, bez Koša.
    - *Ostaci aplikacija*: brisanje mapa programa koje ste ranije deinstalirali.
    - *Kopije i privici*: stare iOS sigurnosne kopije i preuzeti privici Maila.
    - *Stari instaleri*: preuzete `.dmg` i `.pkg` datoteke u mapi Preuzimanja.

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"pometime/internal/cistac"
@@ -480,5 +481,50 @@ func TestAPIProstorIFinder(t *testing.T) {
 		if odgF.Code != s.status {
 			t.Errorf("%s: očekivan status %d, dobiveno %d", s.tijelo, s.status, odgF.Code)
 		}
+	}
+}
+
+func TestAPIRazvojniAlati(t *testing.T) {
+	pos, dom, _ := postaviTestniPosluzitelj(t)
+	brew := filepath.Join(dom, "bin", "brew")
+	if err := os.MkdirAll(filepath.Dir(brew), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(brew, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var pokrenuto []string
+	var brava sync.Mutex // alati se provjeravaju usporedno
+	defer cistac.PostaviAlateZaTest(map[string][]string{"brew": {brew}}, func(_ string, argumenti ...string) ([]byte, error) {
+		brava.Lock()
+		defer brava.Unlock()
+		pokrenuto = append(pokrenuto, strings.Join(argumenti, " "))
+		return []byte("==> This operation would free approximately 10MB of disk space."), nil
+	})()
+
+	odg := httptest.NewRecorder()
+	pos.ServeHTTP(odg, httptest.NewRequest(http.MethodGet, "/api/razvojni-alati", nil))
+	var alati []cistac.AlatZaCiscenje
+	if err := json.Unmarshal(odg.Body.Bytes(), &alati); err != nil || len(alati) != 1 || alati[0].ID != "brew" {
+		t.Fatalf("očekivan Homebrew, dobiveno %s (%v)", odg.Body.String(), err)
+	}
+
+	slucajevi := []struct {
+		tijelo string
+		status int
+	}{
+		{`{"id":"brew"}`, http.StatusOK},
+		{`{"id":"rm -rf ~"}`, http.StatusBadRequest},
+		{`{neispravno`, http.StatusBadRequest},
+	}
+	for _, s := range slucajevi {
+		o := httptest.NewRecorder()
+		pos.ServeHTTP(o, httptest.NewRequest(http.MethodPost, "/api/razvojni-alati/ocisti", strings.NewReader(s.tijelo)))
+		if o.Code != s.status {
+			t.Errorf("%s: očekivan status %d, dobiveno %d (%s)", s.tijelo, s.status, o.Code, o.Body.String())
+		}
+	}
+	if pokrenuto[len(pokrenuto)-1] != "cleanup --prune=all" {
+		t.Errorf("pokrenuta je kriva naredba: %v", pokrenuto)
 	}
 }
