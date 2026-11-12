@@ -9,7 +9,7 @@ function setup(fetcher) {
   let now = 0, next = 0, renders = 0;
   const timers = new Map();
   const context = vm.createContext({
-    stanje: {}, fetch: fetcher,
+    stanje: {}, apiFetch: fetcher,
     setTimeout: (fn, delay) => { timers.set(++next, { fn, time: now + delay }); return next; },
     clearTimeout: id => timers.delete(id),
     iscrtajAplikacije: () => renders++, iscrtajCiscenje() {}, iscrtajNapredneAlate() {}, iscrtajKos() {},

@@ -18,7 +18,7 @@ function ui(data, installStatus = 200, restart = null) {
     stanje: {},
     window: { webkit: restart ? { messageHandlers: { pometimeRestart: { postMessage: restart } } } : undefined },
     renderirajMarkdown: s => s,
-    fetch: async (url, options) => {
+    apiFetch: async (url, options) => {
       calls.push({ url, options });
       return { ok: !options || installStatus === 200, json: async () => options ? { success: installStatus === 200, error: 'Nema dozvole za zamjenu.' } : data };
     }
@@ -42,12 +42,12 @@ test('GitHub API odgovor prikazuje dostupnu verziju, bilješke i oznaku nadograd
   assert.equal(u.element('indikator-nove-verzije').style.display, 'inline-flex');
 });
 
-test('instalacija šalje URL paketa poslužitelju i prikazuje instaliranu verziju', async () => {
+test('instalacija ne šalje adresu paketa, nego je poslužitelj bira sam', async () => {
   const u = ui(release);
   await u.context.provjeriNadogradnju(true);
   await u.context.instalirajNadogradnju();
   assert.equal(u.calls[1].url, '/api/nadogradnja/primijeni');
-  assert.equal(JSON.parse(u.calls[1].options.body).download_url, release.download_url);
+  assert.deepEqual(JSON.parse(u.calls[1].options.body), {});
   assert.equal(u.element('nadogradnja-naslov').textContent, 'Nadogradnja je instalirana.');
   assert.equal(u.element('nadogradnja-status-poruka').textContent, 'Instalirana verzija 1.0.6');
 });
@@ -58,6 +58,13 @@ test('ažurna instalacija prikazuje stvarnu verziju API-ja', async () => {
   assert.equal(u.element('nadogradnja-naslov').textContent, 'Sve je ažurno.');
   assert.equal(u.element('nadogradnja-status-poruka').textContent, 'Instalirana verzija 2.4.1');
   assert.equal(u.element('indikator-nove-verzije').style.display, 'none');
+});
+
+test('izdanje bez potpisane arhive nudi samo ručno preuzimanje', async () => {
+  const u = ui({ ...release, download_url: '' });
+  await u.context.provjeriNadogradnju(true);
+  assert.equal(u.element('nadogradnja-gumb-instaliraj').style.display, 'none');
+  assert.match(u.element('nadogradnja-status-poruka').textContent, /stranice izdanja/);
 });
 
 test('greška instalacije ostaje vidljiva umjesto prikaza uspjeha', async () => {

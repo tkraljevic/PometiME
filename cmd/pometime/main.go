@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"io"
@@ -57,12 +58,17 @@ func odrediKorijenKorisnika(zadani string) (string, error) {
 	return dom, nil
 }
 
+// posluziDoPrekida izrađuje novi ključ sesije pri svakom pokretanju. Ključ ide
+// samo u adresu koju čita prozor aplikacije, pa naredbe API-ju ne može slati
+// web-stranica ni drugi program na računalu.
 func posluziDoPrekida(ctx context.Context, slusac net.Listener, p cistac.Postavke, izlaz io.Writer) error {
+	kljuc := rand.Text()
+	zastita := web.Zastita{Kljuc: kljuc, Hostovi: dopusteniHostovi(slusac.Addr().String())}
 	posluzitelj := &http.Server{
-		Handler:           web.NoviPosluzitelj(p),
+		Handler:           web.NoviPosluzitelj(p, zastita),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-	_, _ = fmt.Fprintf(izlaz, "POMETIME_URL=http://%s\n", slusac.Addr().String()) // ispis URL-a na standardni izlaz
+	_, _ = fmt.Fprintf(izlaz, "POMETIME_URL=http://%s/?k=%s\n", slusac.Addr().String(), kljuc) // ispis URL-a na standardni izlaz
 
 	greskaPosluzitelja := make(chan error, 1)
 	go func() {
@@ -79,5 +85,17 @@ func posluziDoPrekida(ctx context.Context, slusac net.Listener, p cistac.Postavk
 		ctxGasenja, otkazi := context.WithTimeout(context.Background(), 3*time.Second)
 		defer otkazi()
 		return posluzitelj.Shutdown(ctxGasenja)
+	}
+}
+
+// dopusteniHostovi su imena pod kojima prozor aplikacije ili preglednik na ovom
+// računalu doseže poslužitelj. Zahtjev preko drugog imena (DNS rebinding) ne prolazi.
+func dopusteniHostovi(adresa string) []string {
+	_, port, _ := net.SplitHostPort(adresa) // adresa dolazi iz net.Listen, pa uvijek ima port
+	return []string{
+		adresa,
+		net.JoinHostPort("127.0.0.1", port),
+		net.JoinHostPort("localhost", port),
+		net.JoinHostPort("::1", port),
 	}
 }

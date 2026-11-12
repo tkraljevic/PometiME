@@ -3,6 +3,8 @@ package web
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +16,23 @@ import (
 	"pometime/internal/cistac"
 )
 
-func postaviTestniPosluzitelj(t *testing.T) (*Posluzitelj, string, string) {
+const testniKljucSesije = "testni-kljuc-sesije"
+
+// testnaZastita dopušta Host koji httptest.NewRequest postavlja sam (example.com).
+var testnaZastita = Zastita{Kljuc: testniKljucSesije, Hostovi: []string{"example.com"}}
+
+// prozorSucelja šalje zahtjeve kao sučelje PometiME: s ključem sesije i JSON tijelom.
+type prozorSucelja struct{ pos *Posluzitelj }
+
+func (s prozorSucelja) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	r.Header.Set(ZaglavljeKljuca, testniKljucSesije)
+	if r.Method == http.MethodPost {
+		r.Header.Set("Content-Type", "application/json")
+	}
+	s.pos.ServeHTTP(w, r)
+}
+
+func postaviTestniPosluzitelj(t *testing.T) (http.Handler, string, string) {
 	t.Helper()
 	dom := t.TempDir()
 	apps := t.TempDir()
@@ -25,7 +43,7 @@ func postaviTestniPosluzitelj(t *testing.T) (*Posluzitelj, string, string) {
 		NajmanjaVelicinaRazvojnih:    10,
 		NajmanjaVelicinaOstataka:     10,
 	}
-	return NoviPosluzitelj(p), dom, apps
+	return prozorSucelja{pos: NoviPosluzitelj(p, testnaZastita)}, dom, apps
 }
 
 func TestPosluziSuceljeI404(t *testing.T) {
@@ -247,54 +265,112 @@ func TestAPIOcistiIDeinstaliraj(t *testing.T) {
 	}
 }
 
+func TestZastitaAPIja(t *testing.T) {
+	pos := NoviPosluzitelj(cistac.Postavke{KorijenKorisnika: t.TempDir()}, testnaZastita)
+	posalji := func(metoda, putanja, host, kljuc, vrsta, tijelo string) *httptest.ResponseRecorder {
+		zah := httptest.NewRequest(metoda, putanja, strings.NewReader(tijelo))
+		zah.Host = host
+		if kljuc != "" {
+			zah.Header.Set(ZaglavljeKljuca, kljuc)
+		}
+		if vrsta != "" {
+			zah.Header.Set("Content-Type", vrsta)
+		}
+		odg := httptest.NewRecorder()
+		pos.ServeHTTP(odg, zah)
+		return odg
+	}
+	slucajevi := []struct {
+		naziv, metoda, putanja, host, kljuc, vrsta, tijelo string
+		status                                             int
+	}{
+		{"sučelje", "GET", "/", "example.com", "", "", "", http.StatusOK},
+		{"sučelje preko tuđeg imena", "GET", "/", "napadac.example:19845", "", "", "", http.StatusForbidden},
+		{"API preko tuđeg imena", "GET", "/api/kos", "napadac.example", testniKljucSesije, "", "", http.StatusForbidden},
+		{"API bez ključa", "GET", "/api/kos", "example.com", "", "", "", http.StatusForbidden},
+		{"API s krivim ključem", "GET", "/api/kos", "example.com", "krivi", "", "", http.StatusForbidden},
+		{"API s ključem", "GET", "/api/kos", "EXAMPLE.com", testniKljucSesije, "", "", http.StatusOK},
+		{"čišćenje kao običan tekst", "POST", "/api/ocisti", "example.com", testniKljucSesije, "text/plain;charset=UTF-8", `{"paths":[]}`, http.StatusUnsupportedMediaType},
+		{"čišćenje bez vrste sadržaja", "POST", "/api/ocisti", "example.com", testniKljucSesije, "", `{"paths":[]}`, http.StatusUnsupportedMediaType},
+		{"čišćenje sa stranice bez ključa", "POST", "/api/ocisti", "example.com", "", "application/json", `{"paths":[]}`, http.StatusForbidden},
+		{"čišćenje kao JSON", "POST", "/api/ocisti", "example.com", testniKljucSesije, "application/json; charset=utf-8", `{"paths":[]}`, http.StatusOK},
+		{"preveliko tijelo", "POST", "/api/ocisti", "example.com", testniKljucSesije, "application/json", `{"paths":["` + strings.Repeat("a", najveceTijeloZahtjeva) + `"]}`, http.StatusBadRequest},
+	}
+	for _, s := range slucajevi {
+		if odg := posalji(s.metoda, s.putanja, s.host, s.kljuc, s.vrsta, s.tijelo); odg.Code != s.status {
+			t.Errorf("%s: očekivan status %d, dobiveno %d (%s)", s.naziv, s.status, odg.Code, odg.Body.String())
+		}
+	}
+
+	bezKljuca := NoviPosluzitelj(cistac.Postavke{KorijenKorisnika: t.TempDir()}, Zastita{Hostovi: []string{"example.com"}})
+	zah := httptest.NewRequest(http.MethodGet, "/api/kos", nil)
+	odg := httptest.NewRecorder()
+	bezKljuca.ServeHTTP(odg, zah)
+	if odg.Code != http.StatusForbidden {
+		t.Errorf("poslužitelj bez ključa mora odbiti API, dobiveno %d", odg.Code)
+	}
+}
+
+func TestPolitikaSadrzaja(t *testing.T) {
+	odg := httptest.NewRecorder()
+	NoviPosluzitelj(cistac.Postavke{}, testnaZastita).ServeHTTP(odg, httptest.NewRequest(http.MethodGet, "/", nil))
+	politika := odg.Header().Get("Content-Security-Policy")
+	if !strings.Contains(politika, "script-src 'sha256-") || strings.Contains(politika, "script-src 'unsafe-inline'") {
+		t.Errorf("sučelje mora dopuštati samo ugrađenu skriptu, dobiveno %q", politika)
+	}
+	if strings.Count(string(ugradenoSucelje), "<script") != strings.Count(politika, "'sha256-") {
+		t.Errorf("svaka skripta u sučelju mora imati sažetak u politici: %q", politika)
+	}
+	if p := izracunajPolitikuSadrzaja([]byte("<p>bez skripte</p>")); !strings.Contains(p, "script-src 'none'") {
+		t.Errorf("stranica bez skripte ne smije dopustiti nijednu skriptu: %q", p)
+	}
+}
+
 func TestAPINadogradnja(t *testing.T) {
 	pos, _, _ := postaviTestniPosluzitelj(t)
+	tajni := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{3}, ed25519.SeedSize))
+	javni, _ := tajni.Public().(ed25519.PublicKey) // ed25519.PrivateKey uvijek vraća ed25519.PublicKey
+
+	var arhiva bytes.Buffer
+	zw := zip.NewWriter(&arhiva)
+	f, err := zw.Create("PometiME.app/Contents/Info.plist")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plist := `<plist><dict><key>CFBundleIdentifier</key><string>hr.kraljevic.pometime</string>` +
+		`<key>CFBundleShortVersionString</key><string>9.9.9</string></dict></plist>`
+	if _, err := f.Write([]byte(plist)); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	potpis := base64.StdEncoding.EncodeToString(ed25519.Sign(tajni, arhiva.Bytes()))
 
 	mockSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/release-ok" {
-			if err := json.NewEncoder(w).Encode(map[string]any{
-				"tag_name": "v1.1.0",
-				"name":     "PometiME 1.1.0",
-				"assets": []map[string]any{
-					{
-						"name":                 "PometiME-macOS.zip",
-						"size":                 100,
-						"browser_download_url": "http://" + r.Host + "/zip-ok",
-					},
-				},
-			}); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
+		switch r.URL.Path {
+		case "/release-ok", "/release-bez-potpisa":
+			assets := []map[string]any{{"name": "PometiME-macOS.zip", "size": arhiva.Len(), "browser_download_url": "http://" + r.Host + "/dl/a.zip"}}
+			if r.URL.Path == "/release-ok" {
+				assets = append(assets, map[string]any{"name": "PometiME-macOS.zip.sig", "browser_download_url": "http://" + r.Host + "/dl/a.zip.sig"})
 			}
-			return
+			_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": "v9.9.9", "assets": assets}) // kodiranje lažnog odgovora GitHuba
+		case "/dl/a.zip":
+			_, _ = w.Write(arhiva.Bytes()) // slanje potpisane arhive
+		case "/dl/a.zip.sig":
+			_, _ = w.Write([]byte(potpis)) // slanje potpisa
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
 		}
-		if r.URL.Path == "/zip-ok" {
-			var buf bytes.Buffer
-			zw := zip.NewWriter(&buf)
-			f, err := zw.Create("PometiME.app/Contents/Info.plist")
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			if _, err := f.Write([]byte("ok")); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			_ = zw.Close() // zatvaranje zip arhive u testu
-			_, _ = w.Write(buf.Bytes()) // slanje mock zip arhive
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer mockSrv.Close()
+	defer cistac.PostaviProvjeruIzdanjaZaTest(mockSrv.URL+"/dl/", javni)()
 
 	// 1. GET /api/nadogradnja - uspješna provjera
 	vratiNad := cistac.PostaviNadogradnjuZaTest(mockSrv.URL+"/release-ok", mockSrv.Client())
 	defer vratiNad()
-
-	zahNad := httptest.NewRequest(http.MethodGet, "/api/nadogradnja", nil)
 	odgNad := httptest.NewRecorder()
-	pos.ServeHTTP(odgNad, zahNad)
+	pos.ServeHTTP(odgNad, httptest.NewRequest(http.MethodGet, "/api/nadogradnja", nil))
 	if odgNad.Code != http.StatusOK {
 		t.Errorf("očekivan status 200 za /api/nadogradnja, dobiveno %d", odgNad.Code)
 	}
@@ -308,32 +384,27 @@ func TestAPINadogradnja(t *testing.T) {
 	}
 	vratiErr()
 
-	// 3. POST /api/nadogradnja/primijeni - neispravan JSON
-	zahNeispravan := httptest.NewRequest(http.MethodPost, "/api/nadogradnja/primijeni", bytes.NewReader([]byte("{neispravan-json")))
-	odgNeispravan := httptest.NewRecorder()
-	pos.ServeHTTP(odgNeispravan, zahNeispravan)
-	if odgNeispravan.Code != http.StatusBadRequest {
-		t.Errorf("očekivan status 400 za neispravan JSON, dobiveno %d", odgNeispravan.Code)
-	}
-
-	// 4. POST /api/nadogradnja/primijeni - prazna adresa
-	zahPrazno, _ := json.Marshal(map[string]string{"download_url": ""}) // jednostavna mapa bez greške
-	odgPrazno := httptest.NewRecorder()
-	pos.ServeHTTP(odgPrazno, httptest.NewRequest(http.MethodPost, "/api/nadogradnja/primijeni", bytes.NewReader(zahPrazno)))
-	if odgPrazno.Code != http.StatusInternalServerError {
-		t.Errorf("očekivan status 500 za prazan download_url, dobiveno %d", odgPrazno.Code)
-	}
-
-	// 5. POST /api/nadogradnja/primijeni - uspješna nadogradnja
 	privremenaMapa := t.TempDir()
-	vratiPutanju := cistac.PostaviPutanjuAplikacijeZaTest(func() string {
+	defer cistac.PostaviPutanjuAplikacijeZaTest(func() string {
 		return filepath.Join(privremenaMapa, "PometiME.app")
-	})
-	defer vratiPutanju()
+	})()
 
-	zahOk, _ := json.Marshal(map[string]string{"download_url": mockSrv.URL + "/zip-ok"}) // json za uspješnu primjenu
+	// 3. Izdanje bez potpisa se ne instalira, a adresa iz zahtjeva se ne koristi.
+	vratiBez := cistac.PostaviNadogradnjuZaTest(mockSrv.URL+"/release-bez-potpisa", mockSrv.Client())
+	tijelo := `{"download_url":"` + mockSrv.URL + `/dl/a.zip"}`
+	odgBez := httptest.NewRecorder()
+	pos.ServeHTTP(odgBez, httptest.NewRequest(http.MethodPost, "/api/nadogradnja/primijeni", strings.NewReader(tijelo)))
+	if odgBez.Code != http.StatusInternalServerError {
+		t.Errorf("očekivan status 500 za izdanje bez potpisa, dobiveno %d", odgBez.Code)
+	}
+	if _, err := os.Stat(filepath.Join(privremenaMapa, "PometiME.app")); err == nil {
+		t.Errorf("izdanje bez potpisa ne smije se instalirati")
+	}
+	vratiBez()
+
+	// 4. Potpisano izdanje se instalira.
 	odgOk := httptest.NewRecorder()
-	pos.ServeHTTP(odgOk, httptest.NewRequest(http.MethodPost, "/api/nadogradnja/primijeni", bytes.NewReader(zahOk)))
+	pos.ServeHTTP(odgOk, httptest.NewRequest(http.MethodPost, "/api/nadogradnja/primijeni", strings.NewReader("{}")))
 	if odgOk.Code != http.StatusOK {
 		t.Errorf("očekivan status 200 za uspješnu primjenu nadogradnje, dobiveno %d (%s)", odgOk.Code, odgOk.Body.String())
 	}

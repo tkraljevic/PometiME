@@ -1633,6 +1633,25 @@
   <script>
     'use strict';
 
+    // Ključ sesije dolazi u adresi stranice (?k=…). Bez njega poslužitelj odbija
+    // svaki zahtjev, pa naredbe ne može slati druga stranica ni drugi program.
+    const kljucSesije = new URLSearchParams(window.location.search).get('k') || '';
+
+    function apiFetch(url, opcije = {}) {
+      const zaglavlja = Object.assign({}, opcije.headers, { 'X-PometiME-Kljuc': kljucSesije });
+      return fetch(url, Object.assign({}, opcije, { headers: zaglavlja }));
+    }
+
+    // Imena datoteka i mapa s diska idu u HTML samo escapirana.
+    function escapirajHtml(tekst) {
+      return String(tekst ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     // Stanje sučelja
     const stanje = {
       aktivniTab: 'pregled',
@@ -1746,7 +1765,7 @@
       unos.zahtjev = (async () => {
         let greska = '';
         try {
-          const odg = await fetch(url);
+          const odg = await apiFetch(url);
           if (!odg.ok) throw new Error('Dohvat podataka nije uspio. Pokušajte ponovno.');
           const podaci = await odg.json();
           if (!Array.isArray(podaci)) throw new Error('Primljen je neispravan popis. Pokušajte ponovno.');
@@ -2497,7 +2516,7 @@
         return kesStabla.get(putanja);
       }
       try {
-        const res = await fetch('/api/stablo?putanja=' + encodeURIComponent(putanja));
+        const res = await apiFetch('/api/stablo?putanja=' + encodeURIComponent(putanja));
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const podaci = await res.json();
         kesStabla.set(putanja, podaci);
@@ -2542,11 +2561,11 @@
         const zadnji = (i === cvorovi.length - 1);
         const prefiks = dubina === 0 ? '' : (zadnji ? '\u2514\u2500 ' : '\u251C\u2500 ');
         const ikona = c.is_dir ? '\uD83D\uDCC1' : '\uD83D\uDCC4';
-        html += '<div class="tree-row" style="padding-left: ' + indent + 'px;" title="' + c.path + '">' +
+        html += '<div class="tree-row" style="padding-left: ' + indent + 'px;" title="' + escapirajHtml(c.path) + '">' +
           '<div class="tree-branch">' +
             '<span style="opacity: 0.5;">' + prefiks + '</span>' +
             '<span class="tree-icon">' + ikona + '</span>' +
-            '<span class="tree-name">' + c.name + '</span>' +
+            '<span class="tree-name">' + escapirajHtml(c.name) + '</span>' +
           '</div>' +
           '<span class="tree-size">' + formatirajBajte(c.size_bytes) + '</span>' +
         '</div>';
@@ -2621,7 +2640,7 @@
         dohvatiStablo(st.path).then(data => {
           if (!data || !data.items || data.items.length === 0) {
             document.getElementById('detalji-broj-stavki').textContent = '1 datoteka';
-            popisPutanja.innerHTML = '<div class="path-row"><span>' + st.path + '</span><span>' + formatirajBajte(st.size_bytes) + '</span></div>';
+            popisPutanja.innerHTML = '<div class="path-row"><span>' + escapirajHtml(st.path) + '</span><span>' + formatirajBajte(st.size_bytes) + '</span></div>';
             return;
           }
           document.getElementById('detalji-broj-stavki').textContent = uzBrojHR(data.items.length, 'podstavka', 'podstavke', 'podstavki');
@@ -2658,7 +2677,7 @@
         async () => {
           try {
             prikaziPoruku('Čišćenje je u tijeku…');
-            const odg = await fetch('/api/ocisti', {
+            const odg = await apiFetch('/api/ocisti', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ paths: putanje })
@@ -2690,7 +2709,7 @@
         async () => {
           try {
             prikaziPoruku('Uklanjanje aplikacije: ' + app.name + '…');
-            const odg = await fetch('/api/deinstaliraj', {
+            const odg = await apiFetch('/api/deinstaliraj', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ app_path: app.app_path, related_paths: povezane })
@@ -2713,7 +2732,7 @@
         'Premjesti u Koš',
         async () => {
           try {
-            const odg = await fetch('/api/ocisti', {
+            const odg = await apiFetch('/api/ocisti', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ paths: [p.plist_path] })
@@ -2736,7 +2755,7 @@
         'Premjesti u Koš',
         async () => {
           try {
-            const odg = await fetch('/api/ocisti', {
+            const odg = await apiFetch('/api/ocisti', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ paths: putanje })
@@ -2758,7 +2777,7 @@
 
       try {
         prikaziPoruku('Vraćanje stavki na izvorno mjesto…');
-        const odg = await fetch('/api/vrati', {
+        const odg = await apiFetch('/api/vrati', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paths: putanje })
@@ -2776,7 +2795,7 @@
     async function pokreniOptimizaciju(akcija) {
       try {
         prikaziPoruku('Izvršavam: ' + akcija + '…');
-        const odg = await fetch('/api/optimiziraj', {
+        const odg = await apiFetch('/api/optimiziraj', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: akcija })
@@ -2848,7 +2867,12 @@
             linkOkvir.style.display = 'block';
           }
           gumbKasnije.style.display = 'inline-flex';
-          gumbInstaliraj.style.display = 'inline-flex';
+          if (podaci.download_url) {
+            gumbInstaliraj.style.display = 'inline-flex';
+          } else {
+            statusPoruka.textContent = 'Ovu verziju preuzmite sa stranice izdanja na GitHubu.';
+            statusPoruka.style.display = 'block';
+          }
           break;
 
         case 'Current':
@@ -2925,7 +2949,7 @@
     async function provjeriNadogradnju(rucno = false) {
       if (rucno) postanjeStanja('Checking');
       try {
-        const odg = await fetch('/api/nadogradnja');
+        const odg = await apiFetch('/api/nadogradnja');
         if (!odg.ok) {
           const err = await odg.json().catch(() => ({ error: 'GitHub poslužitelj nije dostupan.' }));
           throw new Error(err.error || 'Greška pri provjeri.');
@@ -2958,10 +2982,10 @@
       if (!stanje.podaciONadogradnji || !stanje.podaciONadogradnji.download_url) return;
       postaviStanjeNadogradnje('Installing');
       try {
-        const odg = await fetch('/api/nadogradnja/primijeni', {
+        const odg = await apiFetch('/api/nadogradnja/primijeni', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ download_url: stanje.podaciONadogradnji.download_url })
+          body: '{}'
         });
         if (!odg.ok) {
           const err = await odg.json().catch(() => ({ error: 'Instalacija nije uspjela.' }));
@@ -2980,7 +3004,7 @@
       const ikona = document.getElementById('ikona-skeniranja');
       if (ikona) ikona.classList.add('rotiraj');
       try {
-        const odg = await fetch('/api/skeniraj');
+        const odg = await apiFetch('/api/skeniraj');
         if (!odg.ok) throw new Error('Pregled diska nije uspio. Pokušajte ponovno.');
         stanje.izvjestaj = await odg.json();
         stanje.zadnjeSkeniranje = new Date();
@@ -3032,7 +3056,7 @@
 
     async function ucitajPokretace() {
       try {
-        const odg = await fetch('/api/pokretaci');
+        const odg = await apiFetch('/api/pokretaci');
         stanje.pokretaci = await odg.json();
         const brSirocadi = (stanje.pokretaci || []).filter(p => p.status === 'siroce').length;
         postaviBadge('badge-napredni', brSirocadi);
@@ -3046,7 +3070,7 @@
 
     async function ucitajSnimke() {
       try {
-        const odg = await fetch('/api/snimke');
+        const odg = await apiFetch('/api/snimke');
         stanje.snimke = await odg.json();
         if (stanje.aktivniTab === 'napredni' && stanje.aktivniNapredniAlat === 'sustav') {
           iscrtajNapredneAlate();
@@ -3058,7 +3082,7 @@
 
     async function ucitajAerials() {
       try {
-        const odg = await fetch('/api/aerials');
+        const odg = await apiFetch('/api/aerials');
         stanje.aerials = await odg.json();
         if (stanje.aktivniTab === 'napredni' && stanje.aktivniNapredniAlat === 'sustav') {
           iscrtajNapredneAlate();

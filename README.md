@@ -33,8 +33,9 @@ Sučelje koristi plave naglaske, izvornu ikonicu četke i usklađene SVG ikonice
 
 - **Nema trajnog brisanja bez Koša**: Sve očišćene stavke idu u vaš macOS Koš.
 - **Zaštićene mape**: PometiME automatski štiti osjetljive datoteke sustava (`com.apple.*`, `CloudKit`, Claude `memory` mape).
+- **Naredbe samo iz vlastitog prozora**: Sučelje i čistač razgovaraju preko lokalnog poslužitelja na adresi 127.0.0.1. Poslužitelj pri svakom pokretanju dobije novi ključ i odbija zahtjev bez njega, pa datoteke ne može premjestiti ni web-stranica ni drugi program na računalu.
 - **Bez vanjskih ovisnosti**: Izrađen u čistom Go standardnom paketu i Cocoa/WebKit sučelju — lagan, brz i otvorenog koda.
-- **Automatska nadogradnja**: Provjerite nova izdanja i ažurirajte aplikaciju izravno iz sučelja. Od verzije 1.0.8, nakon uspješne instalacije gumb **Ponovno pokreni PometiME** zatvara staru instancu i otvara nadograđenu aplikaciju. Pri prvom prijelazu sa starije verzije i dalje je potrebno ručno ponovno pokretanje.
+- **Automatska nadogradnja**: Provjerite nova izdanja i ažurirajte aplikaciju izravno iz sučelja. PometiME sam preuzima zadnje izdanje s GitHuba i instalira ga samo ako je arhiva potpisana ključem izdanja. Od verzije 1.0.8, nakon uspješne instalacije gumb **Ponovno pokreni PometiME** zatvara staru instancu i otvara nadograđenu aplikaciju. Pri prvom prijelazu sa starije verzije i dalje je potrebno ručno ponovno pokretanje.
 
 ## Preuzimanje i pokretanje
 
@@ -54,9 +55,20 @@ open dist/PometiME.app
 # Provjera kvalitete koda (STATUS: HEALTHY)
 make quality
 
-# Regresijski testovi sučelja nadogradnje (Node.js)
+# Regresijski testovi sučelja (Node.js)
 node --test dev/ui/*.test.cjs
 ```
+
+Za razvoj bez paketa aplikacije pokrenite `make run`. Poslužitelj ispiše redak `POMETIME_URL=…` s ključem sesije. Otvorite baš tu adresu u pregledniku, jer bez ključa sučelje ne može ništa učitati.
+
+## Izdavanje nove verzije
+
+1. Povećajte verziju u `build/Info.plist` i u `internal/cistac/nadogradnja.go` (`TrenutnaInacica`).
+2. Izgradite aplikaciju: `make app`.
+3. Potpišite arhivu: `make potpisi`. Nastaje `dist/PometiME-macOS.zip.sig`.
+4. Uz izdanje na GitHubu objavite obje datoteke, `PometiME-macOS.zip` i `PometiME-macOS.zip.sig`. Izdanje bez potpisa aplikacija nudi samo za ručno preuzimanje.
+
+Tajni ključ za potpis nalazi se u `~/.config/pometime/nadogradnja-ed25519.key` i nije u repozitoriju. Čuvajte sigurnosnu kopiju, na primjer u upravitelju lozinki. Bez tog ključa instalirane aplikacije ne mogu prihvatiti nadogradnju, pa bi ih svi korisnici morali jednom zamijeniti ručno. Ako ključ procuri, izradite novi (`cd dev/potpis && go run . novi-kljuc -kljuc PUTANJA`), upišite ispisani javni ključ u `internal/cistac/nadogradnja.go` i to izdanje objavite za ručno preuzimanje.
 
 ## Licenca
 

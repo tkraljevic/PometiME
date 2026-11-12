@@ -2,6 +2,10 @@ package cistac
 
 import (
 	"archive/zip"
+	"bytes"
+	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,13 +20,46 @@ import (
 // TrenutnaInacica definira ugrađenu verziju programa PometiME.
 const TrenutnaInacica = "1.0.8"
 
+// identifikatorPaketa je CFBundleIdentifier koji preuzeta aplikacija mora imati.
+const identifikatorPaketa = "hr.kraljevic.pometime"
+
+// javniKljucNadogradnjeB64 provjerava potpis arhive izdanja. Pripadni tajni
+// ključ čuva se izvan repozitorija (vidi odjeljak Izdavanje u README.md).
+const javniKljucNadogradnjeB64 = "1sVS6uEP3YTV6tZalhLKjSKugjBNGANfZUVxRMkqe4M="
+
+const (
+	najvecaArhiva  = 200 << 20
+	najveciPotpis  = 1 << 10
+	najveciOpis    = 1 << 20
+	rokProvjere    = 8 * time.Second
+	rokPreuzimanja = 10 * time.Minute
+)
+
 var (
 	urlGitHubReleases         = "https://api.github.com/repos/tkraljevic/PometiME/releases/latest"
-	klijentNadogradnje        = &http.Client{Timeout: 8 * time.Second}
+	prefiksPreuzimanja        = "https://github.com/tkraljevic/PometiME/releases/download/"
+	javniKljucNadogradnje     = ucitajJavniKljuc(javniKljucNadogradnjeB64)
+	klijentNadogradnje        = noviKlijentNadogradnje()
 	odrediPutanjuAplikacijeFn = odrediPutanjuAplikacije
 	executablePutanjaFn       = os.Executable
 	stvoriPrivremenuMapuFn    = func() (string, error) { return os.MkdirTemp("", "pometime-nadogradnja-*") }
 )
+
+// noviKlijentNadogradnje nema ukupni rok, jer bi on prekinuo preuzimanje na
+// sporoj vezi. Rokove zadaje kontekst svakog zahtjeva.
+func noviKlijentNadogradnje() *http.Client {
+	prijenos := http.DefaultTransport.(*http.Transport).Clone()
+	prijenos.ResponseHeaderTimeout = 15 * time.Second
+	return &http.Client{Transport: prijenos}
+}
+
+func ucitajJavniKljuc(b64 string) ed25519.PublicKey {
+	kljuc, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil || len(kljuc) != ed25519.PublicKeySize {
+		panic("javni ključ nadogradnje nije ispravan")
+	}
+	return ed25519.PublicKey(kljuc)
+}
 
 // PostaviNadogradnjuZaTest privremeno mijenja postavke poslužitelja za potrebe testiranja.
 func PostaviNadogradnjuZaTest(url string, klijent *http.Client) func() {
@@ -33,6 +70,18 @@ func PostaviNadogradnjuZaTest(url string, klijent *http.Client) func() {
 	return func() {
 		urlGitHubReleases = stariURL
 		klijentNadogradnje = stariKlijent
+	}
+}
+
+// PostaviProvjeruIzdanjaZaTest privremeno mijenja dopuštenu adresu arhiva i javni ključ potpisa.
+func PostaviProvjeruIzdanjaZaTest(prefiks string, kljuc ed25519.PublicKey) func() {
+	stariPrefiks := prefiksPreuzimanja
+	stariKljuc := javniKljucNadogradnje
+	prefiksPreuzimanja = prefiks
+	javniKljucNadogradnje = kljuc
+	return func() {
+		prefiksPreuzimanja = stariPrefiks
+		javniKljucNadogradnje = stariKljuc
 	}
 }
 
@@ -60,8 +109,30 @@ type githubRelease struct {
 }
 
 // ProvjeriNadogradnju provjerava dostupnost novog izdanja na GitHub repozitoriju.
+// Adresu za preuzimanje vraća samo kad izdanje ima i potpis arhive.
 func ProvjeriNadogradnju() (*InformacijeONadogradnji, error) {
-	zahtjev, err := http.NewRequest(http.MethodGet, urlGitHubReleases, nil)
+	izdanje, err := dohvatiZadnjeIzdanje()
+	if err != nil {
+		return nil, err
+	}
+	info := &InformacijeONadogradnji{
+		TrenutnaInacica:  TrenutnaInacica,
+		NajnovijaInacica: strings.TrimPrefix(izdanje.TagName, "v"),
+		NazivIzdanja:     izdanje.Name,
+		Biljeske:         izdanje.Body,
+		Poveznica:        izdanje.HTMLURL,
+	}
+	if arhiva, _, ok := potpisanaArhiva(izdanje.Assets); ok {
+		info.PoveznicaPreuzimanja, info.VelicinaBajta = arhiva.BrowserDownloadURL, arhiva.Size
+	}
+	info.ImaNadogradnju = UsporediInacice(TrenutnaInacica, info.NajnovijaInacica)
+	return info, nil
+}
+
+func dohvatiZadnjeIzdanje() (*githubRelease, error) {
+	ctx, otkazi := context.WithTimeout(context.Background(), rokProvjere)
+	defer otkazi()
+	zahtjev, err := http.NewRequestWithContext(ctx, http.MethodGet, urlGitHubReleases, nil)
 	if err != nil {
 		return nil, fmt.Errorf("priprema zahtjeva za GitHub: %w", err)
 	}
@@ -75,36 +146,29 @@ func ProvjeriNadogradnju() (*InformacijeONadogradnji, error) {
 	defer func() {
 		_ = odgovor.Body.Close() // zatvaranje odgovora GitHub API-ja
 	}()
-
 	if odgovor.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API je vratio status %d", odgovor.StatusCode)
 	}
-
 	var izdanje githubRelease
-	if err := json.NewDecoder(odgovor.Body).Decode(&izdanje); err != nil {
+	if err := json.NewDecoder(io.LimitReader(odgovor.Body, najveciOpis)).Decode(&izdanje); err != nil {
 		return nil, fmt.Errorf("dekodiranje GitHub odgovora: %w", err)
 	}
-
-	info := &InformacijeONadogradnji{
-		TrenutnaInacica:  TrenutnaInacica,
-		NajnovijaInacica: strings.TrimPrefix(izdanje.TagName, "v"),
-		NazivIzdanja:     izdanje.Name,
-		Biljeske:         izdanje.Body,
-		Poveznica:        izdanje.HTMLURL,
-	}
-
-	info.PoveznicaPreuzimanja, info.VelicinaBajta = pronadjiZipAsset(izdanje.Assets)
-	info.ImaNadogradnju = UsporediInacice(TrenutnaInacica, info.NajnovijaInacica)
-	return info, nil
+	return &izdanje, nil
 }
 
-func pronadjiZipAsset(assets []githubAsset) (string, int64) {
-	for _, a := range assets {
-		if strings.HasSuffix(a.Name, ".zip") {
-			return a.BrowserDownloadURL, a.Size
+// potpisanaArhiva vraća zip arhivu izdanja i njezin potpis (ime arhive + ".sig").
+func potpisanaArhiva(assets []githubAsset) (githubAsset, githubAsset, bool) {
+	for _, arhiva := range assets {
+		if !strings.HasSuffix(arhiva.Name, ".zip") {
+			continue
+		}
+		for _, potpis := range assets {
+			if potpis.Name == arhiva.Name+".sig" {
+				return arhiva, potpis, true
+			}
 		}
 	}
-	return "", 0
+	return githubAsset{}, githubAsset{}, false
 }
 
 // UsporediInacice vraća true ako je najnovija inačica veća od trenutne.
@@ -131,12 +195,88 @@ func dijeloviInacice(s string) [3]int {
 	return brojevi
 }
 
-// PrimijeniNadogradnju preuzima i instalira najnoviju inačicu u mapu aplikacije.
-func PrimijeniNadogradnju(downloadURL string) error {
-	if downloadURL == "" {
-		return fmt.Errorf("adresa za preuzimanje nije navedena")
+// PrimijeniNadogradnju sama dohvaća zadnje izdanje s GitHuba, provjerava potpis
+// arhive i tek tada zamjenjuje aplikaciju. Adresu arhive nikad ne prima od
+// sučelja, pa je ne može podmetnuti ni stranica ni drugi program.
+func PrimijeniNadogradnju() error {
+	izdanje, err := dohvatiZadnjeIzdanje()
+	if err != nil {
+		return err
 	}
+	if !UsporediInacice(TrenutnaInacica, izdanje.TagName) {
+		return fmt.Errorf("nema novije verzije za instalaciju")
+	}
+	arhiva, potpis, ok := potpisanaArhiva(izdanje.Assets)
+	if !ok {
+		return fmt.Errorf("izdanje %s nema potpisanu arhivu, pa ga preuzmite ručno sa stranice izdanja", izdanje.TagName)
+	}
+	sadrzaj, err := preuzmiProvjerenuArhivu(arhiva, potpis)
+	if err != nil {
+		return err
+	}
+	return instalirajIzArhive(sadrzaj)
+}
 
+func preuzmiProvjerenuArhivu(arhiva, potpis githubAsset) ([]byte, error) {
+	if !jeAdresaIzdanja(arhiva.BrowserDownloadURL) || !jeAdresaIzdanja(potpis.BrowserDownloadURL) {
+		return nil, fmt.Errorf("arhiva nije na stranici izdanja PometiME, pa nadogradnja nije pokrenuta")
+	}
+	tekstPotpisa, err := preuzmi(potpis.BrowserDownloadURL, najveciPotpis)
+	if err != nil {
+		return nil, fmt.Errorf("preuzimanje potpisa nije uspjelo: %w", err)
+	}
+	sadrzaj, err := preuzmi(arhiva.BrowserDownloadURL, najvecaArhiva)
+	if err != nil {
+		return nil, fmt.Errorf("preuzimanje arhive nije uspjelo: %w", err)
+	}
+	if err := provjeriPotpis(sadrzaj, tekstPotpisa); err != nil {
+		return nil, err
+	}
+	return sadrzaj, nil
+}
+
+func jeAdresaIzdanja(adresa string) bool {
+	return strings.HasPrefix(adresa, prefiksPreuzimanja) && !strings.Contains(adresa, "..")
+}
+
+// preuzmi čita najviše zadani broj bajtova. Rok vrijedi za cijelo preuzimanje,
+// a dovoljno je dug i za spore veze.
+func preuzmi(adresa string, najvise int64) ([]byte, error) {
+	ctx, otkazi := context.WithTimeout(context.Background(), rokPreuzimanja)
+	defer otkazi()
+	zahtjev, err := http.NewRequestWithContext(ctx, http.MethodGet, adresa, nil)
+	if err != nil {
+		return nil, err
+	}
+	odg, err := klijentNadogradnje.Do(zahtjev)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = odg.Body.Close() // zatvaranje odgovora preuzimanja
+	}()
+	if odg.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("poslužitelj je vratio status %d", odg.StatusCode)
+	}
+	sadrzaj, err := io.ReadAll(io.LimitReader(odg.Body, najvise+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(sadrzaj)) > najvise {
+		return nil, fmt.Errorf("datoteka je veća od %s, pa preuzimanje nije nastavljeno", FormatirajBajte(najvise))
+	}
+	return sadrzaj, nil
+}
+
+func provjeriPotpis(sadrzaj, tekstPotpisa []byte) error {
+	potpis, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(tekstPotpisa)))
+	if err != nil || !ed25519.Verify(javniKljucNadogradnje, sadrzaj, potpis) {
+		return fmt.Errorf("potpis arhive ne odgovara, pa nadogradnja nije instalirana; preuzmite PometiME ručno sa stranice izdanja")
+	}
+	return nil
+}
+
+func instalirajIzArhive(sadrzaj []byte) error {
 	privremenaMapa, err := stvoriPrivremenuMapuFn()
 	if err != nil {
 		return fmt.Errorf("stvaranje privremene mape: %w", err)
@@ -145,16 +285,10 @@ func PrimijeniNadogradnju(downloadURL string) error {
 		_ = os.RemoveAll(privremenaMapa) // čišćenje privremene mape nadogradnje
 	}()
 
-	zipPutanja := filepath.Join(privremenaMapa, "pometime-nova.zip")
-	if err := preuzmiDatoteku(downloadURL, zipPutanja); err != nil {
-		return fmt.Errorf("preuzimanje arhive s GitHuba: %w", err)
-	}
-
 	raspakirano := filepath.Join(privremenaMapa, "raspakirano")
-	if err := raspakirajZip(zipPutanja, raspakirano); err != nil {
+	if err := raspakirajZip(sadrzaj, raspakirano); err != nil {
 		return fmt.Errorf("raspakiravanje preuzete arhive: %w", err)
 	}
-
 	return instalirajAppIzMape(raspakirano)
 }
 
@@ -163,7 +297,9 @@ func instalirajAppIzMape(raspakirano string) error {
 	if noviApp == "" {
 		return fmt.Errorf("u preuzetoj arhivi nije pronađen PometiME.app paket")
 	}
-
+	if err := provjeriNoviPaket(noviApp); err != nil {
+		return err
+	}
 	ciljApp := odrediPutanjuAplikacijeFn()
 	if err := zamijeniAplikaciju(noviApp, ciljApp); err != nil {
 		return fmt.Errorf("zamjena aplikacije na lokaciji %s: %w", ciljApp, err)
@@ -171,40 +307,24 @@ func instalirajAppIzMape(raspakirano string) error {
 	return nil
 }
 
-func preuzmiDatoteku(url, cilj string) error {
-	odg, err := klijentNadogradnje.Get(url)
-	if err != nil {
-		return err
+// provjeriNoviPaket sprječava da se potpisana, ali starija arhiva instalira
+// preko novije verzije.
+func provjeriNoviPaket(noviApp string) error {
+	meta := procitajInfoPlist(noviApp)
+	if meta.paketID != identifikatorPaketa {
+		return fmt.Errorf("preuzeta aplikacija nije PometiME")
 	}
-	defer func() {
-		_ = odg.Body.Close() // zatvaranje odgovora preuzimanja
-	}()
-
-	if odg.StatusCode != http.StatusOK {
-		return fmt.Errorf("preuzimanje nije uspjelo (status %d)", odg.StatusCode)
+	if !UsporediInacice(TrenutnaInacica, meta.inacica) {
+		return fmt.Errorf("preuzeta verzija %s nije novija od instalirane verzije %s", meta.inacica, TrenutnaInacica)
 	}
-
-	datoteka, err := os.Create(cilj)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = datoteka.Close() // zatvaranje preuzete datoteke
-	}()
-
-	_, err = io.Copy(datoteka, odg.Body)
-	return err
+	return nil
 }
 
-func raspakirajZip(zipPutanja, odrediste string) error {
-	r, err := zip.OpenReader(zipPutanja)
+func raspakirajZip(sadrzaj []byte, odrediste string) error {
+	r, err := zip.NewReader(bytes.NewReader(sadrzaj), int64(len(sadrzaj)))
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = r.Close() // zatvaranje zip arhive
-	}()
-
 	for _, f := range r.File {
 		if err := raspakirajJedanUnos(f, odrediste); err != nil {
 			return err

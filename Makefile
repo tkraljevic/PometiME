@@ -3,14 +3,17 @@ GREMLINS_VERSION := v0.6.0
 QUALITY_ROOT := $(CURDIR)
 QUALITY_OUT ?= $(QUALITY_ROOT)/.quality
 QUALITY_BASELINE ?= $(QUALITY_ROOT)/quality/baseline.json
+# Tajni ključ za potpis izdanja čuva se izvan repozitorija.
+KLJUC_POTPISA ?= $(HOME)/.config/pometime/nadogradnja-ed25519.key
+JAVNI_KLJUC := $(shell sed -n 's/^const javniKljucNadogradnjeB64 = "\(.*\)"$$/\1/p' internal/cistac/nadogradnja.go)
 
-.PHONY: build app run quality quality-tools quality-report quality-test quality-baseline quality-puni-race
+.PHONY: build app potpisi run quality quality-tools quality-report quality-test quality-baseline quality-puni-race
 
 build:
 	go build -o pometime ./cmd/pometime
 
 app: build
-	rm -rf dist/PometiME.app dist/PometiME-macOS.zip
+	rm -rf dist/PometiME.app dist/PometiME-macOS.zip dist/PometiME-macOS.zip.sig
 	mkdir -p dist/PometiME.app/Contents/MacOS dist/PometiME.app/Contents/Resources
 	cp pometime dist/PometiME.app/Contents/MacOS/pometime-server
 	clang -fobjc-arc -framework Cocoa -framework WebKit -O2 build/macos_webview.m -o dist/PometiME.app/Contents/MacOS/PometiME
@@ -20,6 +23,10 @@ app: build
 	codesign --force --deep --sign - dist/PometiME.app
 	ditto -c -k --sequesterRsrc --keepParent dist/PometiME.app dist/PometiME-macOS.zip
 
+potpisi:
+	@test -f dist/PometiME-macOS.zip || (echo 'Prvo pokrenite: make app'; exit 1)
+	cd dev/potpis && go run . potpisi -kljuc "$(KLJUC_POTPISA)" -javni "$(JAVNI_KLJUC)" "$(CURDIR)/dist/PometiME-macOS.zip"
+
 run: build
 	./pometime
 
@@ -28,6 +35,7 @@ quality-tools:
 
 quality-test:
 	cd dev/quality && go test -race ./...
+	cd dev/potpis && go test -race ./...
 
 quality: quality-test
 	cd dev/quality && go run . -root "$(QUALITY_ROOT)" -out "$(QUALITY_OUT)" -baseline "$(QUALITY_BASELINE)"
