@@ -5,9 +5,11 @@ QUALITY_OUT ?= $(QUALITY_ROOT)/.quality
 QUALITY_BASELINE ?= $(QUALITY_ROOT)/quality/baseline.json
 # Tajni ključ za potpis izdanja čuva se izvan repozitorija.
 KLJUC_POTPISA ?= $(HOME)/.config/pometime/nadogradnja-ed25519.key
+# Certifikat za potpis koda: macOS uz njega veže dozvole, pa one ostaju nakon nadogradnje.
+KEYCHAIN_IZDANJA ?= $(HOME)/.config/pometime/potpisivanje.keychain-db
 JAVNI_KLJUC := $(shell sed -n 's/^const javniKljucNadogradnjeB64 = "\(.*\)"$$/\1/p' internal/cistac/nadogradnja.go)
 
-.PHONY: build app potpisi run quality quality-tools quality-report quality-test quality-baseline quality-puni-race
+.PHONY: build app certifikat potpisi run quality quality-tools quality-report quality-test quality-baseline quality-puni-race
 
 build:
 	go build -o pometime ./cmd/pometime
@@ -20,11 +22,15 @@ app: build
 	cp build/Info.plist dist/PometiME.app/Contents/Info.plist
 	cp build/AppIcon.icns dist/PometiME.app/Contents/Resources/AppIcon.icns
 	cp LICENSE dist/PometiME.app/Contents/Resources/LICENSE
-	codesign --force --deep --sign - dist/PometiME.app
+	dev/potpis/potpisi-aplikaciju.sh "$(KEYCHAIN_IZDANJA)" dist/PometiME.app
 	ditto -c -k --sequesterRsrc --keepParent dist/PometiME.app dist/PometiME-macOS.zip
+
+certifikat:
+	dev/potpis/novi-certifikat.sh "$(KEYCHAIN_IZDANJA)"
 
 potpisi:
 	@test -f dist/PometiME-macOS.zip || (echo 'Prvo pokrenite: make app'; exit 1)
+	@codesign -d -r- dist/PometiME.app 2>&1 | grep -q 'certificate leaf' || (echo 'Izdanje mora biti potpisano certifikatom (make certifikat, pa make app).'; exit 1)
 	cd dev/potpis && go run . potpisi -kljuc "$(KLJUC_POTPISA)" -javni "$(JAVNI_KLJUC)" "$(CURDIR)/dist/PometiME-macOS.zip"
 
 run: build

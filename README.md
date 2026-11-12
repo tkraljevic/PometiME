@@ -64,9 +64,11 @@ Za razvoj bez paketa aplikacije pokrenite `make run`. Poslužitelj ispiše redak
 ## Izdavanje nove verzije
 
 1. Povećajte verziju u `build/Info.plist` i u `internal/cistac/nadogradnja.go` (`TrenutnaInacica`).
-2. Izgradite aplikaciju: `make app`.
-3. Potpišite arhivu: `make potpisi`. Nastaje `dist/PometiME-macOS.zip.sig`.
+2. Izgradite aplikaciju: `make app`. Kod se potpisuje certifikatom „PometiME izdanja”.
+3. Potpišite arhivu: `make potpisi`. Nastaje `dist/PometiME-macOS.zip.sig`. Ako aplikacija nije potpisana certifikatom, `make potpisi` odbija nastaviti.
 4. Uz izdanje na GitHubu objavite obje datoteke, `PometiME-macOS.zip` i `PometiME-macOS.zip.sig`. Izdanje bez potpisa aplikacija nudi samo za ručno preuzimanje.
+
+Certifikat za potpis koda izrađuje se jednom, naredbom `make certifikat`, i sprema u `~/.config/pometime/potpisivanje.keychain-db`. macOS dozvole poput Potpunog pristupa disku veže uz taj certifikat, pa one ostaju nakon nadogradnje. Uz ad-hoc potpis svaka bi nadogradnja tiho poništila dozvolu. Bez keychaina `make app` potpisuje ad-hoc, što je dovoljno samo za razvoj. Ako se certifikat izgubi, novi radi, ali korisnici moraju jednom ponovno dati dozvole.
 
 Tajni ključ za potpis nalazi se u `~/.config/pometime/nadogradnja-ed25519.key` i nije u repozitoriju. Čuvajte sigurnosnu kopiju, na primjer u upravitelju lozinki. Bez tog ključa instalirane aplikacije ne mogu prihvatiti nadogradnju, pa bi ih svi korisnici morali jednom zamijeniti ručno. Ako ključ procuri, izradite novi (`cd dev/potpis && go run . novi-kljuc -kljuc PUTANJA`), upišite ispisani javni ključ u `internal/cistac/nadogradnja.go` i to izdanje objavite za ručno preuzimanje.
 
