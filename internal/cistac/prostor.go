@@ -39,13 +39,15 @@ type IzvjestajProstora struct {
 	SkrivenoStavki int              `json:"hidden_count"`
 	SkrivenoBajta  int64            `json:"hidden_bytes"`
 	Izmjereno      string           `json:"measured_at"`
+	NedostupnoMapa int              `json:"blocked_count"`
 }
 
 // mjerenjeProstora je zadnje mjerenje: veličine mapa do zadane dubine ispod korijena.
 type mjerenjeProstora struct {
-	korijen  string
-	velicine map[string]int64
-	vrijeme  time.Time
+	korijen    string
+	velicine   map[string]int64
+	nedostupno int
+	vrijeme    time.Time
 }
 
 var (
@@ -68,10 +70,11 @@ func IstraziProstor(p Postavke, putanja string, osvjezi bool) (*IzvjestajProstor
 		return nil, fmt.Errorf("mapu %s nije moguće pročitati: %w", cista, err)
 	}
 	izvj := &IzvjestajProstora{
-		Putanja:       cista,
-		Naziv:         filepath.Base(cista),
-		VelicinaBajta: mjerenje.velicine[cista],
-		Izmjereno:     mjerenje.vrijeme.Format("15:04"),
+		Putanja:        cista,
+		Naziv:          filepath.Base(cista),
+		VelicinaBajta:  mjerenje.velicine[cista],
+		Izmjereno:      mjerenje.vrijeme.Format("15:04"),
+		NedostupnoMapa: mjerenje.nedostupno,
 	}
 	if cista != dom {
 		izvj.Nadredena = filepath.Dir(cista)
@@ -104,7 +107,8 @@ func mjerenjeZa(mapa string, osvjezi bool) mjerenjeProstora {
 	if !osvjezi && svjeze && pokrivaPodmape(zadnjeMjerenje, mapa) {
 		return zadnjeMjerenje
 	}
-	zadnjeMjerenje = mjerenjeProstora{korijen: mapa, velicine: izmjeriMape(mapa), vrijeme: sadaZaMjerenjeFn()}
+	velicine, nedostupno := izmjeriMape(mapa)
+	zadnjeMjerenje = mjerenjeProstora{korijen: mapa, velicine: velicine, nedostupno: nedostupno, vrijeme: sadaZaMjerenjeFn()}
 	return zadnjeMjerenje
 }
 
@@ -124,16 +128,18 @@ func dubinaIspod(korijen, mapa string) int {
 }
 
 // izmjeriMape vraća ukupnu veličinu korijena i svih mapa do dubinaPamcenjaProstora
-// ispod njega. Podmape prvog reda mjere se usporedno; poveznice se ne prate.
-func izmjeriMape(korijen string) map[string]int64 {
+// ispod njega te broj mapa koje nije moglo pročitati. Podmape prvog reda mjere se
+// usporedno; poveznice se ne prate.
+func izmjeriMape(korijen string) (map[string]int64, int) {
 	velicine := map[string]int64{}
 	ulazi, err := os.ReadDir(korijen)
 	if err != nil {
-		return velicine
+		return velicine, 0
 	}
 	var bravaZbroja sync.Mutex
 	var wg sync.WaitGroup
 	var datotekeKorijena int64
+	var nedostupno int
 	mjesta := make(chan struct{}, radnikaMjerenja)
 	for _, u := range ulazi {
 		put := filepath.Join(korijen, u.Name())
@@ -148,39 +154,55 @@ func izmjeriMape(korijen string) map[string]int64 {
 			djelomicno := izmjeriPodstablo(korijen, put)
 			<-mjesta
 			bravaZbroja.Lock()
-			for mapa, bajta := range djelomicno {
+			for mapa, bajta := range djelomicno.velicine {
 				velicine[mapa] += bajta
 			}
+			nedostupno += djelomicno.nedostupno
 			bravaZbroja.Unlock()
 		}()
 	}
 	wg.Wait()
 	velicine[korijen] += datotekeKorijena
-	return velicine
+	return velicine, nedostupno
 }
 
-// izmjeriPodstablo zbraja datoteke jedne podmape korijena i dodaje ih korijenu
+// mjerenjePodstabla zbraja datoteke jedne podmape korijena i dodaje ih korijenu
 // te svakoj nadređenoj mapi do dubinaPamcenjaProstora.
-func izmjeriPodstablo(korijen, podmapa string) map[string]int64 {
-	velicine := map[string]int64{podmapa: 0}
-	z := &zbrajalo{}
-	zbroji := func(put string, d fs.DirEntry, err error) error {
-		if err != nil || !d.Type().IsRegular() {
-			return nil // nedostupne mape i poveznice se preskaču
-		}
-		bajta := z.velicinaUlaza(d, nil)
-		velicine[korijen] += bajta
-		rel, _ := filepath.Rel(korijen, put) // put je uvijek unutar korijena
-		dijelovi := strings.Split(rel, string(filepath.Separator))
-		mapa := korijen
-		for i := 0; i < len(dijelovi)-1 && i < dubinaPamcenjaProstora; i++ {
-			mapa = filepath.Join(mapa, dijelovi[i])
-			velicine[mapa] += bajta
+type mjerenjePodstabla struct {
+	korijen    string
+	velicine   map[string]int64
+	nedostupno int
+	z          zbrajalo
+}
+
+func izmjeriPodstablo(korijen, podmapa string) *mjerenjePodstabla {
+	m := &mjerenjePodstabla{korijen: korijen, velicine: map[string]int64{podmapa: 0}}
+	_ = filepath.WalkDir(podmapa, m.obradi) // greške obilaska bilježi obradi i nastavlja dalje
+	return m
+}
+
+func (m *mjerenjePodstabla) obradi(put string, d fs.DirEntry, err error) error {
+	if err != nil {
+		if d != nil && d.IsDir() && jeOdbijenPristup(err) {
+			m.nedostupno++ // mapa bez dozvole se preskače, ali se broji
 		}
 		return nil
 	}
-	_ = filepath.WalkDir(podmapa, zbroji) // greške obilaska obrađuje zbroji: preskače nedostupno
-	return velicine
+	if d.Type().IsRegular() {
+		m.dodaj(put, m.z.velicinaUlaza(d, nil))
+	}
+	return nil // poveznice se ne prate
+}
+
+func (m *mjerenjePodstabla) dodaj(put string, bajta int64) {
+	m.velicine[m.korijen] += bajta
+	rel, _ := filepath.Rel(m.korijen, put) // put je uvijek unutar korijena
+	dijelovi := strings.Split(rel, string(filepath.Separator))
+	mapa := m.korijen
+	for i := 0; i < len(dijelovi)-1 && i < dubinaPamcenjaProstora; i++ {
+		mapa = filepath.Join(mapa, dijelovi[i])
+		m.velicine[mapa] += bajta
+	}
 }
 
 func velicinaUlazaPoImenu(put string) int64 {

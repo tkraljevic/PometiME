@@ -394,6 +394,7 @@ func SkenirajSve(p Postavke) IzvjestajSkeniranja {
 		KopijeIPrivici:        kopije,
 		InstalacijskeDatoteke: instalacije,
 		UkupnoZaOsloboditi:    ukupno,
+		NedostupneMape:        ProvjeriDozvole(p),
 	}
 }
 

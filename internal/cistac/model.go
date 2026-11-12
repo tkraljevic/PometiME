@@ -79,6 +79,7 @@ type IzvjestajSkeniranja struct {
 	KopijeIPrivici        []StavkaCiscenja `json:"backups_attachments"`
 	InstalacijskeDatoteke []StavkaCiscenja `json:"installers"`
 	UkupnoZaOsloboditi    int64            `json:"total_reclaimable_bytes"`
+	NedostupneMape        []NedostupnaMapa `json:"blocked_folders"`
 }
 
 // StavkaKosa opisuje stavku premještenu u Koš za smeće s izvornom putanjom za povrat.

@@ -613,6 +613,20 @@
       color: var(--primary);
     }
 
+    .upozorenje-dozvole {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--danger);
+      background: var(--bg-card);
+      font-size: 0.88rem;
+      color: var(--text-main);
+    }
+
     .naredba-alata {
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 0.76rem;
@@ -1394,6 +1408,8 @@
         </div>
       </div>
 
+      <div id="pregled-upozorenje-dozvole"></div>
+
       <!-- Brze radnje: Što još možete učiniti -->
       <div>
         <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">Što još možete učiniti</h3>
@@ -1473,6 +1489,7 @@
         </div>
       </div>
 
+      <div id="prostor-upozorenje-dozvole"></div>
       <div class="items-list" id="popis-prostora"></div>
 
       <div style="font-size: 0.78rem; color: var(--text-muted);">
@@ -2044,6 +2061,9 @@
     // 1. ISCRTAVANJE: PREGLED
     function iscrtajPregled() {
       if (!stanje.izvjestaj) return;
+      const mjestoDozvole = document.getElementById('pregled-upozorenje-dozvole');
+      const nedostupne = stanje.izvjestaj.blocked_folders || [];
+      mjestoDozvole.replaceChildren(...(nedostupne.length ? [napraviUpozorenjeDozvole(tekstNedostupnihMapa(nedostupne))] : []));
       const d = stanje.izvjestaj.disk || stanje.izvjestaj.disk_info;
       if (d) {
         const slobodno = d.avail_bytes !== undefined ? d.avail_bytes : (d.free_bytes !== undefined ? d.free_bytes : 0);
@@ -2336,6 +2356,8 @@
       document.getElementById('napredni-podnaslov').textContent = meta.opis;
       document.getElementById('napredni-podnaslov-info').textContent = uzBrojHR(meta.stavke.length, 'stavka', 'stavke', 'stavki');
       if (alatKljuc === 'dev_ai') iscrtajNaredbeAlata(spremnik);
+      const nedostupne = (stanje.izvjestaj && stanje.izvjestaj.blocked_folders) || [];
+      if (alatKljuc === 'kopije' && nedostupne.length) spremnik.appendChild(napraviUpozorenjeDozvole(tekstNedostupnihMapa(nedostupne)));
 
       if (meta.stavke.length === 0) {
         const prazno = document.createElement('div');
@@ -2542,6 +2564,45 @@
     }
 
     // 5. ISCRTAVANJE: KOŠ I POVRAT
+    // DOZVOLE: bez Potpunog pristupa disku macOS skriva neke mape, a one bi inače izgledale prazne.
+    function napraviUpozorenjeDozvole(tekst) {
+      const okvir = document.createElement('div');
+      okvir.className = 'upozorenje-dozvole';
+      const poruka = document.createElement('div');
+      poruka.textContent = tekst;
+      const uputa = document.createElement('div');
+      uputa.className = 'item-desc';
+      uputa.textContent = 'U Postavkama sustava uključite PometiME pod Potpuni pristup disku, zatim zatvorite PometiME i otvorite ga ponovno.';
+      const gumb = document.createElement('button');
+      gumb.type = 'button';
+      gumb.className = 'btn btn-sm';
+      gumb.textContent = 'Otvori Postavke sustava';
+      gumb.addEventListener('click', otvoriPostavkeDozvole);
+      okvir.append(poruka, uputa, gumb);
+      return okvir;
+    }
+
+    function tekstNedostupnihMapa(mape) {
+      return 'PometiME ne vidi sve. Bez Potpunog pristupa disku macOS ne da pročitati ove podatke: ' +
+        mape.map(m => m.name).join(', ') + '.';
+    }
+
+    async function otvoriPostavkeDozvole() {
+      try {
+        const odg = await apiFetch('/api/otvori-postavke-dozvole', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}'
+        });
+        if (!odg.ok) {
+          const rez = await odg.json();
+          throw new Error(rez.error || 'Postavke nisu otvorene.');
+        }
+      } catch (err) {
+        prikaziPoruku('Postavke sustava nisu otvorene: ' + err.message);
+      }
+    }
+
     // NAREDBE RAZVOJNIH ALATA: alat sam čisti svoje spremište, trajno i bez Koša.
     async function ucitajRazvojneAlate() {
       stanje.razvojniAlati = { ucitava: true, popis: [] };
@@ -2673,6 +2734,9 @@
       document.getElementById('prostor-ukupno').textContent = formatirajBajte(iz.size_bytes);
       document.getElementById('prostor-izmjereno').textContent = 'Izmjereno u ' + iz.measured_at;
       document.getElementById('prostor-gumb-natrag').style.display = iz.parent ? 'inline-flex' : 'none';
+      document.getElementById('prostor-upozorenje-dozvole').replaceChildren(...(iz.blocked_count > 0
+        ? [napraviUpozorenjeDozvole(uzBrojHR(iz.blocked_count, 'mapa nije izmjerena', 'mape nisu izmjerene', 'mapa nije izmjereno') + ' jer ih macOS ne da pročitati. Ukupna veličina zato može biti manja od stvarne.')]
+        : []));
 
       if (!iz.items || iz.items.length === 0) {
         spremnik.innerHTML = '<div class="empty-state">Ova mapa je prazna.</div>';

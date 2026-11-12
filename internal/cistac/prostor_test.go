@@ -114,7 +114,10 @@ func TestIstraziProstorOdbija(t *testing.T) {
 	if izvj, err := IstraziProstor(p, "", false); err != nil || izvj.VelicinaBajta != zauzeto(t, filepath.Join(dom, "datoteka.txt")) {
 		t.Errorf("nedostupna podmapa se preskače, ostatak se mjeri: %+v (%v)", izvj, err)
 	}
-	if len(izmjeriMape(filepath.Join(dom, "nema"))) != 0 {
+	if izvj, err := IstraziProstor(p, "", true); err != nil || izvj.NedostupnoMapa != 1 {
+		t.Errorf("mapa bez dozvole mora se prebrojiti: %+v (%v)", izvj, err)
+	}
+	if velicine, _ := izmjeriMape(filepath.Join(dom, "nema")); len(velicine) != 0 {
 		t.Errorf("nepostojeća mapa nema veličina")
 	}
 }

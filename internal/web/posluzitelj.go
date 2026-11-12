@@ -93,6 +93,7 @@ func NoviPosluzitelj(p cistac.Postavke, z Zastita) *Posluzitelj {
 	mux.HandleFunc("GET /api/razvojni-alati", pos.obradiRazvojneAlate)
 	mux.HandleFunc("POST /api/razvojni-alati/ocisti", pos.obradiCiscenjeAlata)
 	mux.HandleFunc("POST /api/prikazi-u-finderu", pos.obradiPrikaziUFinderu)
+	mux.HandleFunc("POST /api/otvori-postavke-dozvole", pos.obradiOtvaranjePostavki)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
 	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
 	mux.HandleFunc("POST /api/kos/izbrisi", pos.obradiTrajnoBrisanje)
@@ -211,6 +212,14 @@ func (p *Posluzitelj) obradiProstor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	posluziJSON(w, http.StatusOK, izvj)
+}
+
+func (p *Posluzitelj) obradiOtvaranjePostavki(w http.ResponseWriter, _ *http.Request) {
+	if err := cistac.OtvoriPostavkeDozvole(); err != nil {
+		posluziJSON(w, http.StatusInternalServerError, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
 func (p *Posluzitelj) obradiRazvojneAlate(w http.ResponseWriter, _ *http.Request) {

@@ -528,3 +528,20 @@ func TestAPIRazvojniAlati(t *testing.T) {
 		t.Errorf("pokrenuta je kriva naredba: %v", pokrenuto)
 	}
 }
+
+func TestAPIOtvoriPostavkeDozvole(t *testing.T) {
+	pos, _, _ := postaviTestniPosluzitelj(t)
+	greska := error(nil)
+	defer cistac.PostaviPokretacNaredbiZaTest(func(string, ...string) error { return greska })()
+	for _, s := range []struct {
+		greska error
+		status int
+	}{{nil, http.StatusOK}, {os.ErrNotExist, http.StatusInternalServerError}} {
+		greska = s.greska
+		odg := httptest.NewRecorder()
+		pos.ServeHTTP(odg, httptest.NewRequest(http.MethodPost, "/api/otvori-postavke-dozvole", strings.NewReader("{}")))
+		if odg.Code != s.status {
+			t.Errorf("očekivan status %d, dobiveno %d", s.status, odg.Code)
+		}
+	}
+}
