@@ -3,12 +3,21 @@ package cistac
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
 const datotekaPovijestiKosa = ".pometime_povijest.json"
+
+// formatVremenaBrisanja je oblik u kojem povijest Koša pamti vrijeme premještanja.
+const formatVremenaBrisanja = "02.01.2006. 15:04:05"
+
+// bravaKosa štiti povijest Koša: čita se i sprema cijela, pa bi istodobni
+// zahtjevi inače gazili zapise jedan drugome.
+var bravaKosa sync.Mutex
 
 func mapaKosa(p Postavke) string {
 	return filepath.Join(filepath.Clean(p.KorijenKorisnika), ".Trash")
@@ -43,13 +52,15 @@ func PremjestiUKos(p Postavke, cistaPutanja string, velicina int64) error {
 		IzvornaPutanja:  cistaPutanja,
 		PutanjaUKosu:    cilj,
 		VelicinaBajta:   velicina,
-		VrijemeBrisanja: time.Now().Format("02.01.2006. 15:04:05"),
+		VrijemeBrisanja: time.Now().Format(formatVremenaBrisanja),
 	}
 	dodajUPovijestKosa(p, stavka)
 	return nil
 }
 
 func dodajUPovijestKosa(p Postavke, nova StavkaKosa) {
+	bravaKosa.Lock()
+	defer bravaKosa.Unlock()
 	postojece := IzlistajKos(p)
 	noviPopis := make([]StavkaKosa, 0, 1+len(postojece))
 	noviPopis = append(noviPopis, nova)
@@ -57,12 +68,18 @@ func dodajUPovijestKosa(p Postavke, nova StavkaKosa) {
 	spremiPovijestKosa(p, noviPopis)
 }
 
+// spremiPovijestKosa zapisuje privremenu datoteku i preimenuje je, pa čitatelj
+// nikad ne vidi napola zapisanu povijest.
 func spremiPovijestKosa(p Postavke, stavke []StavkaKosa) {
 	podaci, err := json.MarshalIndent(stavke, "", "  ")
 	if err != nil {
 		return
 	}
-	_ = os.WriteFile(putanjaPovijesti(p), podaci, 0o600) // evidencija povrata ne smije prekinuti već izvršenu operaciju u Košu
+	privremena := putanjaPovijesti(p) + ".novo"
+	if err := os.WriteFile(privremena, podaci, 0o600); err != nil {
+		return
+	}
+	_ = os.Rename(privremena, putanjaPovijesti(p)) // evidencija povrata ne smije prekinuti već izvršenu operaciju u Košu
 }
 
 // IzlistajKos vraća sve stavke u ~/.Trash koje je PometiME premjestio i koje se još nalaze u Košu.
@@ -78,40 +95,70 @@ func IzlistajKos(p Postavke) []StavkaKosa {
 	prisutne := make([]StavkaKosa, 0, len(sve))
 	for _, st := range sve {
 		if _, statErr := os.Lstat(st.PutanjaUKosu); statErr == nil {
+			st.DanaUKosu = danaOd(st.VrijemeBrisanja, time.Now())
 			prisutne = append(prisutne, st)
 		}
 	}
 	return prisutne
 }
 
-// VratiIzKosa vraća odabrane stavke iz ~/.Trash natrag na njihove izvorne putanje.
-func VratiIzKosa(p Postavke, putanjeUKosu []string) RezultatCiscenja {
+// danaOd vraća broj punih dana od zapisanog vremena; nečitljivo vrijeme daje 0.
+func danaOd(zapis string, sada time.Time) int {
+	vrijeme, err := time.ParseInLocation(formatVremenaBrisanja, zapis, time.Local)
+	if err != nil || vrijeme.After(sada) {
+		return 0
+	}
+	return int(sada.Sub(vrijeme).Hours() / 24)
+}
+
+// obradiStavkeKosa primjenjuje radnju na tražene stavke iz povijesti i sprema
+// povijest bez stavki koje su uspješno obrađene.
+func obradiStavkeKosa(p Postavke, putanjeUKosu []string, radnja func(Postavke, StavkaKosa) error) (int, int64, []string) {
+	bravaKosa.Lock()
+	defer bravaKosa.Unlock()
 	trazene := skupPutanja(putanjeUKosu)
-	povijest := IzlistajKos(p)
 	var preostale []StavkaKosa
-	var vraceno int
-	var vracenoBajta int64
+	var obradeno int
+	var obradenoBajta int64
 	var greske []string
 
-	for _, st := range povijest {
+	for _, st := range IzlistajKos(p) {
 		if !trazene[st.PutanjaUKosu] {
 			preostale = append(preostale, st)
 			continue
 		}
-		if err := vratiJednuStavkuIzKosa(p, st); err != nil {
+		if err := radnja(p, st); err != nil {
 			greske = append(greske, err.Error())
 			preostale = append(preostale, st)
 			continue
 		}
-		vraceno++
-		vracenoBajta += st.VelicinaBajta
+		obradeno++
+		obradenoBajta += st.VelicinaBajta
 	}
-
 	spremiPovijestKosa(p, preostale)
+	return obradeno, obradenoBajta, greske
+}
+
+// VratiIzKosa vraća odabrane stavke iz ~/.Trash natrag na njihove izvorne putanje.
+func VratiIzKosa(p Postavke, putanjeUKosu []string) RezultatCiscenja {
+	vraceno, bajta, greske := obradiStavkeKosa(p, putanjeUKosu, vratiJednuStavkuIzKosa)
 	return RezultatCiscenja{
 		ObrisanoStavki:  vraceno,
-		OslobodenoBajta: vracenoBajta,
-		Poruka:          PorukaPovrata(vraceno, vracenoBajta),
+		OslobodenoBajta: bajta,
+		Poruka:          PorukaPovrata(vraceno, bajta),
+		Greske:          greske,
+		Disk:            DohvatiStanjeDiska(p.KorijenKorisnika),
+	}
+}
+
+// TrajnoIzbrisiIzKosa trajno briše odabrane stavke i tek tada oslobađa prostor.
+// Briše samo stavke iz povijesti PometiME-a, pa ne dira ništa drugo u Košu.
+func TrajnoIzbrisiIzKosa(p Postavke, putanjeUKosu []string) RezultatCiscenja {
+	izbrisano, bajta, greske := obradiStavkeKosa(p, putanjeUKosu, izbrisiJednuStavkuIzKosa)
+	return RezultatCiscenja{
+		ObrisanoStavki:  izbrisano,
+		OslobodenoBajta: bajta,
+		Poruka:          PorukaTrajnogBrisanja(izbrisano, bajta),
 		Greske:          greske,
 		Disk:            DohvatiStanjeDiska(p.KorijenKorisnika),
 	}
@@ -134,6 +181,37 @@ func vratiJednuStavkuIzKosa(p Postavke, st StavkaKosa) error {
 	}
 	if err := os.Rename(st.PutanjaUKosu, st.IzvornaPutanja); err != nil {
 		return fmt.Errorf("povrat %s: %w", st.Naziv, err)
+	}
+	return nil
+}
+
+func izbrisiJednuStavkuIzKosa(p Postavke, st StavkaKosa) error {
+	cista := filepath.Clean(st.PutanjaUKosu)
+	if !JeUnutarKorijena(cista, mapaKosa(p)) {
+		return fmt.Errorf("stavka %s nije u Košu, pa nije izbrisana", st.Naziv)
+	}
+	if err := ukloniTrajno(cista); err != nil {
+		return fmt.Errorf("trajno brisanje %s: %w", st.Naziv, err)
+	}
+	return nil
+}
+
+// ukloniTrajno briše stavku i kad sadrži mape samo za čitanje, kakve ostavlja
+// npr. Go modcache. Simboličke poveznice briše same, bez odredišta.
+func ukloniTrajno(putanja string) error {
+	if err := os.RemoveAll(putanja); err == nil {
+		return nil
+	}
+	_ = filepath.WalkDir(putanja, dopustiPisanjeMapi) // mape samo za čitanje dobivaju dozvolu pisanja za vlasnika
+	return os.RemoveAll(putanja)
+}
+
+func dopustiPisanjeMapi(put string, d fs.DirEntry, err error) error {
+	if err != nil || !d.IsDir() {
+		return nil
+	}
+	if info, errInfo := d.Info(); errInfo == nil {
+		_ = os.Chmod(put, info.Mode().Perm()|0o700) // vlasnik smije čitati, pisati i ući u mapu
 	}
 	return nil
 }

@@ -83,6 +83,7 @@ func NoviPosluzitelj(p cistac.Postavke, z Zastita) *Posluzitelj {
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("POST /api/ocisti", pos.obradiOcisti)
 	mux.HandleFunc("POST /api/vrati", pos.obradiVrati)
+	mux.HandleFunc("POST /api/kos/izbrisi", pos.obradiTrajnoBrisanje)
 	mux.HandleFunc("POST /api/deinstaliraj", pos.obradiDeinstaliraj)
 	mux.HandleFunc("POST /api/optimiziraj", pos.obradiOptimiziraj)
 	mux.HandleFunc("POST /api/nadogradnja/primijeni", pos.obradiPrimjenuNadogradnje)
@@ -190,23 +191,26 @@ func (p *Posluzitelj) obradiKos(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (p *Posluzitelj) obradiOcisti(w http.ResponseWriter, r *http.Request) {
-	var zah zahtjevCiscenja
-	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
-		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za čišćenje."})
-		return
-	}
-	rezultat := cistac.OcistiPutanje(p.postavke, zah.Putanje)
-	posluziJSON(w, http.StatusOK, rezultat)
+	p.obradiPopisPutanja(w, r, "Neispravan JSON zahtjev za čišćenje.", cistac.OcistiPutanje)
 }
 
 func (p *Posluzitelj) obradiVrati(w http.ResponseWriter, r *http.Request) {
+	p.obradiPopisPutanja(w, r, "Neispravan JSON zahtjev za povrat iz Koša.", cistac.VratiIzKosa)
+}
+
+func (p *Posluzitelj) obradiTrajnoBrisanje(w http.ResponseWriter, r *http.Request) {
+	p.obradiPopisPutanja(w, r, "Neispravan JSON zahtjev za trajno brisanje.", cistac.TrajnoIzbrisiIzKosa)
+}
+
+// obradiPopisPutanja čita popis putanja iz zahtjeva i predaje ga zadanoj radnji.
+func (p *Posluzitelj) obradiPopisPutanja(w http.ResponseWriter, r *http.Request, porukaGreske string,
+	radnja func(cistac.Postavke, []string) cistac.RezultatCiscenja) {
 	var zah zahtjevCiscenja
 	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
-		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za povrat iz Koša."})
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: porukaGreske})
 		return
 	}
-	rezultat := cistac.VratiIzKosa(p.postavke, zah.Putanje)
-	posluziJSON(w, http.StatusOK, rezultat)
+	posluziJSON(w, http.StatusOK, radnja(p.postavke, zah.Putanje))
 }
 
 func (p *Posluzitelj) obradiDeinstaliraj(w http.ResponseWriter, r *http.Request) {

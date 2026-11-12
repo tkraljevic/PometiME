@@ -409,3 +409,37 @@ func TestAPINadogradnja(t *testing.T) {
 		t.Errorf("očekivan status 200 za uspješnu primjenu nadogradnje, dobiveno %d (%s)", odgOk.Code, odgOk.Body.String())
 	}
 }
+
+func TestAPITrajnoBrisanjeIzKosa(t *testing.T) {
+	pos, dom, _ := postaviTestniPosluzitelj(t)
+	stavka := filepath.Join(dom, "Library", "Caches", "Stara")
+	if err := os.MkdirAll(stavka, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stavka, "f.bin"), make([]byte, 64), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tijelo, _ := json.Marshal(zahtjevCiscenja{Putanje: []string{stavka}}) // poznata struktura bez greške serijalizacije
+	pos.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/api/ocisti", bytes.NewReader(tijelo)))
+	stavke := cistac.IzlistajKos(cistac.Postavke{KorijenKorisnika: dom})
+	if len(stavke) != 1 {
+		t.Fatalf("očekivana jedna stavka u Košu, dobiveno %d", len(stavke))
+	}
+
+	los := httptest.NewRecorder()
+	pos.ServeHTTP(los, httptest.NewRequest(http.MethodPost, "/api/kos/izbrisi", strings.NewReader("{neispravno")))
+	if los.Code != http.StatusBadRequest {
+		t.Errorf("očekivan 400 za neispravan JSON, dobiveno %d", los.Code)
+	}
+
+	tijelo, _ = json.Marshal(zahtjevCiscenja{Putanje: []string{stavke[0].PutanjaUKosu}}) // poznata struktura bez greške serijalizacije
+	odg := httptest.NewRecorder()
+	pos.ServeHTTP(odg, httptest.NewRequest(http.MethodPost, "/api/kos/izbrisi", bytes.NewReader(tijelo)))
+	var rez cistac.RezultatCiscenja
+	if err := json.Unmarshal(odg.Body.Bytes(), &rez); err != nil || odg.Code != http.StatusOK || rez.ObrisanoStavki != 1 {
+		t.Fatalf("očekivano trajno brisanje jedne stavke, dobiveno %d %s (%v)", odg.Code, odg.Body.String(), err)
+	}
+	if _, err := os.Lstat(stavke[0].PutanjaUKosu); !os.IsNotExist(err) {
+		t.Errorf("stavka mora biti trajno izbrisana iz Koša: %v", err)
+	}
+}

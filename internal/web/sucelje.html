@@ -577,6 +577,20 @@
       background: var(--primary-active);
     }
 
+    .btn-opasno {
+      color: var(--danger);
+    }
+
+    .btn-opasno:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .stavka-stara {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
     .btn-sm {
       padding: 6px 12px;
       font-size: 0.78rem;
@@ -1498,9 +1512,12 @@
       <div class="card" style="background: var(--bg-card); display: flex; justify-content: space-between; align-items: center;">
         <div>
           <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-main);" id="kos-status-naslov">Stavke spremne za povrat</div>
-          <div style="font-size: 0.82rem; color: var(--text-muted);" id="kos-status-opis">Stavke se mogu jednim klikom vratiti u izvorne mape.</div>
+          <div style="font-size: 0.82rem; color: var(--text-muted);" id="kos-status-opis">Vratite ih jednim klikom. Prostor se oslobađa tek kad ih trajno izbrišete.</div>
         </div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: var(--primary);" id="kos-ukupna-velicina">0 B</div>
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button type="button" class="btn btn-sm" id="kos-gumb-starije" style="display: none;">Odaberi starije od 7 dana</button>
+          <div style="font-size: 1.35rem; font-weight: 700; color: var(--primary); white-space: nowrap;" id="kos-ukupna-velicina">0 B</div>
+        </div>
       </div>
 
       <div class="items-list" id="popis-kosa"></div>
@@ -1522,7 +1539,7 @@
           <button type="button" class="btn btn-primary" id="uspjeh-gumb-pregled">Natrag na pregled</button>
           <button type="button" class="btn" id="uspjeh-gumb-kos">Otvori Koš i povrat</button>
         </div>
-        <div class="success-foot">Prostor na disku se u potpunosti oslobađa nakon pražnjenja macOS Koša.</div>
+        <div class="success-foot">Prostor se oslobađa kad stavke trajno izbrišete u kartici Koš i povrat.</div>
       </div>
     </section>
 
@@ -1534,6 +1551,7 @@
       </div>
       <div style="display: flex; gap: 10px;">
         <button type="button" class="btn" id="traka-gumb-odabir-sve">Odaberi sve</button>
+        <button type="button" class="btn btn-opasno" id="traka-gumb-trajno" style="display: none;">Trajno izbriši</button>
         <button type="button" class="btn btn-primary" id="traka-gumb-akcija">Očisti odabrano &rarr;</button>
       </div>
     </div>
@@ -1558,7 +1576,7 @@
   <dialog id="potvrda-dijalog" aria-labelledby="potvrda-naslov">
     <div class="dialog-header">
       <h2 class="dialog-title" id="potvrda-naslov">Pometimo odabrane stavke?</h2>
-      <p class="dialog-desc" id="potvrda-opis">Stavke ćemo premjestiti u macOS Koš. Možete ih vratiti kroz Koš i povrat.</p>
+      <p class="dialog-desc" id="potvrda-opis" style="white-space: pre-line;">Stavke ćemo premjestiti u macOS Koš. Možete ih vratiti kroz Koš i povrat.</p>
     </div>
     <div class="dialog-body" id="potvrda-detalji"></div>
     <div class="dialog-footer">
@@ -1910,9 +1928,12 @@
     function osvjeziDonjuTraku() {
       const kljucUcitavanja = stanje.aktivniTab === 'kos' ? 'kos' : 'ciscenje';
       const unosUcitavanja = ucitavanja[kljucUcitavanja];
+      const trakaGumbTrajno = document.getElementById('traka-gumb-trajno');
+      trakaGumbTrajno.style.display = stanje.aktivniTab === 'kos' ? 'inline-flex' : 'none';
       if (unosUcitavanja && (unosUcitavanja.aktivno || unosUcitavanja.greska)) {
         document.getElementById('traka-gumb-akcija').disabled = true;
         document.getElementById('traka-gumb-odabir-sve').disabled = true;
+        trakaGumbTrajno.disabled = true;
         return;
       }
       document.getElementById('traka-gumb-odabir-sve').disabled = false;
@@ -1924,9 +1945,10 @@
       if (stanje.aktivniTab === 'kos') {
         const brOdabranih = stanje.odabraniKos.size;
         trakaOdabrano.textContent = 'Odabrano ' + uzBrojHR(brOdabranih, 'stavka', 'stavke', 'stavki');
-        trakaHint.textContent = 'Stavke se vraćaju na izvorno mjesto na disku.';
+        trakaHint.textContent = 'Vratite ih na izvorno mjesto ili ih trajno izbrišite.';
         trakaGumbAkcija.textContent = 'Vrati odabrano';
         trakaGumbAkcija.disabled = (brOdabranih === 0);
+        trakaGumbTrajno.disabled = (brOdabranih === 0);
         trakaGumbSve.textContent = (brOdabranih === stanje.kos.length && brOdabranih > 0) ? 'Odznači sve' : 'Odaberi sve';
       } else {
         let zbroj = 0;
@@ -2437,7 +2459,32 @@
     }
 
     // 5. ISCRTAVANJE: KOŠ I POVRAT
+    // Stavka u Košu ovoliko dana dobiva oznaku i ulazi u brzi odabir za trajno brisanje.
+    const DANA_DO_STARE_STAVKE = 7;
+
+    // Kartica na Pregledu kaže koliko prostora čeka u Košu, jer se on oslobađa tek trajnim brisanjem.
+    function osvjeziKarticuKosa() {
+      const kartica = document.getElementById('brza-akcija-kos');
+      if (!kartica) return;
+      let zbroj = 0;
+      for (const st of (stanje.kos || [])) zbroj += st.size_bytes;
+      const naslov = kartica.querySelector('.quick-card-title span');
+      const opis = kartica.querySelector('.quick-card-desc');
+      if (zbroj > 0) {
+        naslov.textContent = 'U Košu čeka ' + formatirajBajte(zbroj) + ' \u2192';
+        opis.textContent = 'Taj prostor oslobađate tek kad stavke trajno izbrišete.';
+      } else {
+        naslov.textContent = 'Vratite očišćene stavke \u2192';
+        opis.textContent = 'Pronađite ih i jednim klikom vratite iz Koša.';
+      }
+    }
+
+    function stareStavkeKosa() {
+      return (stanje.kos || []).filter(st => (st.days_in_trash || 0) >= DANA_DO_STARE_STAVKE);
+    }
+
     function iscrtajKos() {
+      osvjeziKarticuKosa();
       const spremnik = document.getElementById('popis-kosa');
       if (prikaziLoader('kos', spremnik)) return;
       spremnik.replaceChildren();
@@ -2445,6 +2492,10 @@
       let zbroj = 0;
       for (const st of (stanje.kos || [])) zbroj += st.size_bytes;
       document.getElementById('kos-ukupna-velicina').textContent = formatirajBajte(zbroj);
+      const brojStarih = stareStavkeKosa().length;
+      const gumbStarije = document.getElementById('kos-gumb-starije');
+      gumbStarije.style.display = brojStarih > 0 ? 'inline-flex' : 'none';
+      gumbStarije.textContent = 'Odaberi starije od 7 dana (' + brojStarih + ')';
 
       if (!stanje.kos || stanje.kos.length === 0) {
         spremnik.innerHTML = '<div class="empty-state">Koš PometiME je prazan. Ovdje se pojavljuju očišćene stavke koje možete vratiti.</div>';
@@ -2474,8 +2525,11 @@
 
         const opis = document.createElement('span');
         opis.className = 'item-desc';
-        const datum = st.deleted_at || st.moved_at;
-        opis.textContent = (datum ? datum + ' \u00B7 ' : '') + 'Izvorna lokacija: ' + (st.original_path || 'nepoznato');
+        const dana = st.days_in_trash || 0;
+        const starost = document.createElement('span');
+        starost.textContent = dana > 0 ? 'U Košu ' + uzBrojHR(dana, 'dan', 'dana', 'dana') : 'U Košu od danas';
+        if (dana >= DANA_DO_STARE_STAVKE) starost.className = 'stavka-stara';
+        opis.append(starost, ' \u00B7 Izvorna lokacija: ' + (st.original_path || 'nepoznato'));
 
         tijelo.append(naslov, opis);
 
@@ -2771,6 +2825,39 @@
     }
 
     // Akcija povrata iz Koša
+    function zatraziPotvrduTrajnogBrisanja() {
+      const putanje = Array.from(stanje.odabraniKos);
+      if (putanje.length === 0) return;
+      let zbroj = 0;
+      for (const st of (stanje.kos || [])) {
+        if (stanje.odabraniKos.has(st.trash_path)) zbroj += st.size_bytes;
+      }
+      otvoriDijalogPotvrde(
+        'Trajno izbrisati odabrane stavke?',
+        uzBrojHR(putanje.length, 'stavka', 'stavke', 'stavki') + ' \u00B7 ' + formatirajBajte(zbroj) +
+          '\n\nStavke se brišu s diska i više ih nećete moći vratiti. Tek tada se oslobađa prostor.',
+        'Trajno izbriši',
+        async () => {
+          try {
+            prikaziPoruku('Brišem stavke iz Koša\u2026');
+            const odg = await apiFetch('/api/kos/izbrisi', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paths: putanje })
+            });
+            const rez = await odg.json();
+            if (!odg.ok) throw new Error(rez.error || 'Brisanje nije uspjelo.');
+            const greske = rez.errors || [];
+            prikaziPoruku(greske.length ? rez.message + ' Neke stavke nisu izbrisane: ' + greske[0] : rez.message);
+            stanje.odabraniKos.clear();
+            await Promise.all([ucitajSkeniranje(), ucitajKos()]);
+          } catch (err) {
+            prikaziPoruku('Stavke nisu izbrisane: ' + err.message);
+          }
+        }
+      );
+    }
+
     async function vratiOdabranoIzKosa() {
       const putanje = Array.from(stanje.odabraniKos);
       if (putanje.length === 0) return;
@@ -3151,6 +3238,12 @@
       document.getElementById('traka-gumb-akcija').addEventListener('click', () => {
         if (stanje.aktivniTab === 'kos') vratiOdabranoIzKosa();
         else zatraziPotvrduCiscenja();
+      });
+      document.getElementById('traka-gumb-trajno').addEventListener('click', zatraziPotvrduTrajnogBrisanja);
+      document.getElementById('kos-gumb-starije').addEventListener('click', () => {
+        for (const st of stareStavkeKosa()) stanje.odabraniKos.add(st.trash_path);
+        iscrtajKos();
+        osvjeziDonjuTraku();
       });
 
       document.getElementById('traka-gumb-odabir-sve').addEventListener('click', () => {

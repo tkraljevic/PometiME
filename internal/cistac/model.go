@@ -88,6 +88,7 @@ type StavkaKosa struct {
 	PutanjaUKosu    string `json:"trash_path"`
 	VelicinaBajta   int64  `json:"size_bytes"`
 	VrijemeBrisanja string `json:"deleted_at"`
+	DanaUKosu       int    `json:"days_in_trash"`
 }
 
 // PokretacSustava opisuje stavku iz LaunchAgents koja se pokreće sa sustavom ili prijavom.
@@ -178,6 +179,15 @@ func PorukaPovrata(vraceno int, vracenoBajta int64) string {
 	stavkeTekst := UzBrojHR(vraceno, "stavka", "stavke", "stavki")
 	velicinaTekst := FormatirajBajte(vracenoBajta)
 	return fmt.Sprintf("Uspješno vraćeno na izvorno mjesto %s (%s).", stavkeTekst, velicinaTekst)
+}
+
+// PorukaTrajnogBrisanja vraća cijelu rečenicu o trajnom brisanju stavki iz Koša.
+func PorukaTrajnogBrisanja(izbrisano int, bajta int64) string {
+	if izbrisano == 0 {
+		return "Nijedna stavka nije trajno izbrisana."
+	}
+	stavkeTekst := UzBrojHR(izbrisano, "stavka", "stavke", "stavki")
+	return fmt.Sprintf("Trajno izbrisano %s. Oslobođeno je %s na disku.", stavkeTekst, FormatirajBajte(bajta))
 }
 
 // FormatirajBajte pretvara broj bajtova u čitljiv prikaz (KB, MB, GB).
