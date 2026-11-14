@@ -366,7 +366,7 @@ func TestSkenirajPokretaceIOptimizaciju(t *testing.T) {
 	}
 
 	// Test nečitljivog pokretača
-	necitljiv := obradiJedanPokretac(filepath.Join(dom, "nepostojeci.plist"), "nepostojeci.plist", true)
+	necitljiv := obradiJedanPokretac(dom, filepath.Join(dom, "nepostojeci.plist"), "nepostojeci.plist", true)
 	if necitljiv.Status != "nepoznato" {
 		t.Errorf("očekivan status nepoznato za nepostojeću datoteku, dobiveno %s", necitljiv.Status)
 	}

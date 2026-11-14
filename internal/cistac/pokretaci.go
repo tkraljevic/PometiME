@@ -34,7 +34,7 @@ func PostaviPokretacNaredbiZaTest(fn func(name string, args ...string) error) fu
 func SkenirajPokretace(p Postavke) []PokretacSustava {
 	var svi []PokretacSustava
 	korisnickaMapa := filepath.Join(p.KorijenKorisnika, "Library", "LaunchAgents")
-	svi = append(svi, prikupiPokretaceIzMape(korisnickaMapa, true)...)
+	svi = append(svi, prikupiPokretaceIzMape(p.KorijenKorisnika, korisnickaMapa, true)...)
 
 	sort.Slice(svi, func(i, j int) bool {
 		if svi[i].Status != svi[j].Status {
@@ -45,7 +45,7 @@ func SkenirajPokretace(p Postavke) []PokretacSustava {
 	return svi
 }
 
-func prikupiPokretaceIzMape(mapa string, jeKorisnicki bool) []PokretacSustava {
+func prikupiPokretaceIzMape(dom, mapa string, jeKorisnicki bool) []PokretacSustava {
 	ulazi, err := os.ReadDir(mapa)
 	if err != nil {
 		return nil
@@ -56,18 +56,18 @@ func prikupiPokretaceIzMape(mapa string, jeKorisnicki bool) []PokretacSustava {
 			continue
 		}
 		put := filepath.Join(mapa, u.Name())
-		izlaz = append(izlaz, obradiJedanPokretac(put, u.Name(), jeKorisnicki))
+		izlaz = append(izlaz, obradiJedanPokretac(dom, put, u.Name(), jeKorisnicki))
 	}
 	return izlaz
 }
 
-func obradiJedanPokretac(putanja, ime string, jeKorisnicki bool) PokretacSustava {
+func obradiJedanPokretac(dom, putanja, ime string, jeKorisnicki bool) PokretacSustava {
 	sadrzaj, err := os.ReadFile(putanja)
 	if err != nil {
 		return PokretacSustava{ID: putanja, Naziv: ime, Putanja: putanja, Status: "nepoznato", Opis: T("Datoteka nije čitljiva.")}
 	}
 	izvrsna := izvuciIzvrsnuPutanju(string(sadrzaj))
-	postoji, status, opis := odrediStatusPokretaca(izvrsna)
+	postoji, status, opis := odrediStatusPokretaca(dom, izvrsna)
 	return PokretacSustava{
 		ID:             putanja,
 		Naziv:          ime,
@@ -90,12 +90,51 @@ func izvuciIzvrsnuPutanju(xmlTekst string) string {
 	return ""
 }
 
-func odrediStatusPokretaca(izvrsna string) (bool, string, string) {
+// mapeProgramaSustava su mape u kojima launchd i Homebrew drže programe koje
+// pokretač može zadati samo imenom, na primjer „node”.
+var mapeProgramaSustava = []string{"/usr/bin", "/bin", "/usr/sbin", "/sbin", "/usr/local/bin", "/opt/homebrew/bin"}
+
+// korisnickeMapePrograma su uobičajene mape alata u kućnoj mapi.
+var korisnickeMapePrograma = []string{".local/bin", "bin", "go/bin", ".cargo/bin"}
+
+// kandidatiPrograma vraća gdje bi program pokretača mogao biti i je li to
+// jedino moguće mjesto. Program zadan imenom ili relativnom putanjom launchd
+// može naći i ondje gdje PometiME ne gleda, na primjer u PATH-u pokretača.
+func kandidatiPrograma(dom, izvrsna string) ([]string, bool) {
+	switch {
+	case filepath.IsAbs(izvrsna):
+		return []string{izvrsna}, true
+	case strings.HasPrefix(izvrsna, "~/"):
+		return []string{filepath.Join(dom, izvrsna[2:])}, true
+	case strings.Contains(izvrsna, "/"):
+		return nil, false
+	}
+	kandidati := make([]string, 0, len(mapeProgramaSustava)+len(korisnickeMapePrograma))
+	for _, mapa := range mapeProgramaSustava {
+		kandidati = append(kandidati, filepath.Join(mapa, izvrsna))
+	}
+	for _, mapa := range korisnickeMapePrograma {
+		kandidati = append(kandidati, filepath.Join(dom, mapa, izvrsna))
+	}
+	return kandidati, false
+}
+
+// odrediStatusPokretaca zaostalim proglašava samo pokretač čiji program sigurno
+// više nije na disku, jer se zaostali pokretači nude za uklanjanje.
+func odrediStatusPokretaca(dom, izvrsna string) (bool, string, string) {
 	if izvrsna == "" {
 		return true, "aktivan", T("Pokretač koristi sustavske servise ili ugrađeni XPC.")
 	}
-	if _, err := os.Stat(izvrsna); err == nil {
-		return true, "aktivan", T("Aktivni pokretač instaliranog programa.")
+	kandidati, sigurno := kandidatiPrograma(dom, izvrsna)
+	for _, kandidat := range kandidati {
+		_, err := os.Stat(kandidat)
+		if err == nil {
+			return true, "aktivan", T("Aktivni pokretač instaliranog programa.")
+		}
+		sigurno = sigurno && os.IsNotExist(err)
+	}
+	if !sigurno {
+		return false, "nepoznato", fmt.Sprintf(T("PometiME ne može provjeriti postoji li program %s, pa ovaj pokretač ne nudi za uklanjanje."), izvrsna)
 	}
 	return false, "siroce", T("Program je uklonjen s diska; preporučeno premjestiti u Koš.")
 }

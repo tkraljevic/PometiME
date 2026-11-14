@@ -1866,6 +1866,7 @@
       "Nije moguće dohvatiti podatke o novim izdanjima s GitHuba.": "Could not get release information from GitHub.",
       "Nije pronađen nijedan podržani alat (Homebrew, Go, pnpm).": "No supported tool was found (Homebrew, Go, pnpm).",
       "Nije pronađena nijedna aplikacija prema zadanom pojmu pretrage.": "No apps match your search.",
+      "Nije provjeren": "Not checked",
       "Nova verzija je spremna.": "A new version is ready.",
       "Novosti u izdanju": "What's new",
       "Odaberi starije od 7 dana": "Select older than 7 days",
@@ -2928,7 +2929,7 @@
 
         const opis = document.createElement('span');
         opis.className = 'item-desc';
-        opis.textContent = p.status === 'siroce' ? t('Program više ne postoji na disku: {putanja}', { putanja: p.program_path }) : (p.description || p.plist_path);
+        opis.textContent = p.status === 'siroce' ? t('Program više ne postoji na disku: {putanja}', { putanja: p.executable_path }) : (p.description || p.path);
 
         tijelo.append(naslov, opis);
 
@@ -2944,7 +2945,7 @@
         } else {
           statusTag.style.background = 'var(--bg-card-subtle)';
           statusTag.style.color = 'var(--text-muted)';
-          statusTag.textContent = t('Aktivan');
+          statusTag.textContent = p.status === 'nepoznato' ? t('Nije provjeren') : t('Aktivan');
         }
 
         red.append(tijelo, statusTag);
@@ -3567,14 +3568,14 @@
     function zatraziPotvrduUklanjanjaPokretaca(p) {
       otvoriDijalogPotvrde(
         t('Uklanjanje pokretača: {ime}', { ime: p.name }),
-        t('Konfiguracijska datoteka ({putanja}) premjestit će se u Koš.', { putanja: p.plist_path }),
+        t('Konfiguracijska datoteka ({putanja}) premjestit će se u Koš.', { putanja: p.path }),
         t('Premjesti u Koš'),
         async () => {
           try {
             const odg = await apiFetch('/api/ocisti', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paths: [p.plist_path] })
+              body: JSON.stringify({ paths: [p.path] })
             });
             const rez = await odg.json();
             prikaziPoruku(rez.message || t('Pokretač je premješten u Koš.'));
@@ -3587,7 +3588,7 @@
     }
 
     function zatraziPotvrduUklanjanjaSvihSirocadi(sirocad) {
-      const putanje = sirocad.map(s => s.plist_path);
+      const putanje = sirocad.map(s => s.path);
       otvoriDijalogPotvrde(
         t('Uklanjanje zaostalih pokretača'),
         t('Premjestit ćete {n} u Koš. Njihovi programi više ne postoje na disku.', { n: uzBrojHR(putanje.length, 'zaostali pokretač', 'zaostala pokretača', 'zaostalih pokretača') }),
