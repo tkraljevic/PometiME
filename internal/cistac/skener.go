@@ -75,12 +75,12 @@ func jePreporucenaPredmemorija(ime string) bool {
 
 func opisPredmemorije(ime string) string {
 	if strings.HasSuffix(ime, ".ShipIt") || strings.Contains(strings.ToLower(ime), "updater") {
-		return "Privremeni instalacijski paketi ažuriranja aplikacije."
+		return T("Privremeni instalacijski paketi ažuriranja aplikacije.")
 	}
 	if predmemorijePreglednika[ime] {
-		return "Predmemorija web-preglednika (preporučeno zatvoriti preglednik prije čišćenja)."
+		return T("Predmemorija web-preglednika (preporučeno zatvoriti preglednik prije čišćenja).")
 	}
-	return "Korisnička predmemorija aplikacije u ~/Library/Caches."
+	return T("Korisnička predmemorija aplikacije u ~/Library/Caches.")
 }
 
 // SkenirajPredmemoriju pronalazi stavke u ~/Library/Caches i ~/Library/Logs veće od praga.
@@ -104,10 +104,10 @@ func prilagodiPreporukePredmemorije(stavke []StavkaCiscenja, mapaCaches string, 
 		switch {
 		case jeUPokrenutojAplikaciji(st.Naziv, pokrenute):
 			st.Preporuceno = false
-			st.Opis += " Aplikacija je pokrenuta i koristi ovu predmemoriju."
+			st.Opis += T(" Aplikacija je pokrenuta i koristi ovu predmemoriju.")
 		case st.DanaOdIzmjene < danaDoStarePredmemorije:
 			st.Preporuceno = false
-			st.Opis += " " + opisNedavneIzmjene(st.DanaOdIzmjene) + " Brzo bi se ponovno napunila."
+			st.Opis += " " + opisNedavneIzmjene(st.DanaOdIzmjene) + T(" Brzo bi se ponovno napunila.")
 		}
 	}
 	return stavke
@@ -115,9 +115,9 @@ func prilagodiPreporukePredmemorije(stavke []StavkaCiscenja, mapaCaches string, 
 
 func opisNedavneIzmjene(dana int) string {
 	if dana <= 0 {
-		return "Mijenjana je danas."
+		return T("Mijenjana je danas.")
 	}
-	return fmt.Sprintf("Mijenjana je prije %s.", UzBrojHR(dana, "dan", "dana", "dana"))
+	return fmt.Sprintf(T("Mijenjana je prije %s."), UzBrojHR(dana, "dan", "dana", "dana"))
 }
 
 // jeUPokrenutojAplikaciji prepoznaje mapu nazvanu po identifikatoru pokrenute
@@ -192,9 +192,9 @@ func prikupiKandidateLogova(mapaLogova string) []kandidatCiscenja {
 		}
 		izlaz = append(izlaz, kandidatCiscenja{
 			putanja:     filepath.Join(mapaLogova, ime),
-			naziv:       "Logovi: " + ime,
+			naziv:       T("Logovi: ") + ime,
 			kategorija:  "system_caches",
-			opis:        "Zapisnici i dijagnostički izvještaji u ~/Library/Logs.",
+			opis:        T("Zapisnici i dijagnostički izvještaji u ~/Library/Logs."),
 			preporuceno: true,
 		})
 	}
@@ -212,26 +212,26 @@ func SkenirajRazvojneAlate(p Postavke) []StavkaCiscenja {
 
 func fiksniRazvojniKandidati(k string) []kandidatCiscenja {
 	return []kandidatCiscenja{
-		{filepath.Join(k, "Library", "Developer", "Xcode", "DerivedData"), "Xcode DerivedData", "dev_ai", "Međuspremnik prevedenih Xcode projekata i indeksa.", true},
-		{filepath.Join(k, "Library", "Developer", "Xcode", "Archives"), "Xcode Archives", "dev_ai", "Stare arhive izdanja iz Xcodea.", false},
-		{filepath.Join(k, "Library", "Developer", "Xcode", "iOS DeviceSupport"), "Xcode iOS DeviceSupport", "dev_ai", "Simboli za otklanjanje grešaka starih iOS verzija.", false},
-		{filepath.Join(k, "Library", "Developer", "CoreSimulator", "Caches"), "CoreSimulator Cache", "dev_ai", "Korisnička predmemorija za iOS simulator.", true},
-		{filepath.Join(k, "Library", "Caches", "CocoaPods"), "CocoaPods Cache", "dev_ai", "Međuspremnik preuzetih iOS/macOS CocoaPods paketa.", true},
-		{filepath.Join(k, "Library", "Caches", "go-build"), "Go Build Cache", "dev_ai", "Međuspremnik prevedenih Go paketa (go clean -cache).", false},
-		{filepath.Join(k, "go", "pkg", "mod", "cache"), "Go Module Cache", "dev_ai", "Arhive preuzetih Go modula (go clean -modcache).", false},
-		{filepath.Join(k, "Library", "Caches", "Homebrew", "downloads"), "Homebrew Downloads", "dev_ai", "Preuzete instalacijske arhive u Homebrewu.", true},
-		{filepath.Join(k, ".npm", "_cacache"), "NPM Package Cache", "dev_ai", "Međuspremnik preuzetih Node.js paketa.", true},
-		{filepath.Join(k, "Library", "Caches", "Yarn"), "Yarn Cache", "dev_ai", "Međuspremnik preuzetih Yarn paketa.", true},
-		{filepath.Join(k, "Library", "pnpm", "store"), "PNPM Store", "dev_ai", "Globalno spremište PNPM paketa.", false},
-		{filepath.Join(k, "Library", "Caches", "pip"), "Python Pip Cache", "dev_ai", "Međuspremnik preuzetih Python paketa.", true},
-		{filepath.Join(k, ".cargo", "registry", "cache"), "Rust Cargo Cache", "dev_ai", "Preuzete arhive Rust paketa.", true},
-		{filepath.Join(k, ".gradle", "caches"), "Gradle Cache", "dev_ai", "Međuspremnik preuzetih Java/Android Gradle paketa.", false},
-		{filepath.Join(k, ".m2", "repository"), "Maven Repository", "dev_ai", "Lokalno spremište Java Maven ovisnosti.", false},
-		{filepath.Join(k, "Library", "Caches", "goimports"), "Goimports Cache", "dev_ai", "Privremeni indeks za goimports alat.", true},
-		{filepath.Join(k, "Library", "Caches", "golangci-lint"), "GolangCI-Lint Cache", "dev_ai", "Međuspremnik za statičku analizu Go koda.", true},
-		{filepath.Join(k, "Library", "Caches", "gopls"), "Gopls Cache", "dev_ai", "Privremena predmemorija za Go Language Server.", true},
-		{filepath.Join(k, "Library", "Caches", "Codex"), "Codex App Cache", "dev_ai", "Predmemorija za Codex AI aplikaciju.", true},
-		{filepath.Join(k, ".cache", "codex-runtimes"), "Codex Runtimes", "dev_ai", "Privremena okruženja za Codex CLI.", false},
+		{filepath.Join(k, "Library", "Developer", "Xcode", "DerivedData"), "Xcode DerivedData", "dev_ai", T("Međuspremnik prevedenih Xcode projekata i indeksa."), true},
+		{filepath.Join(k, "Library", "Developer", "Xcode", "Archives"), "Xcode Archives", "dev_ai", T("Stare arhive izdanja iz Xcodea."), false},
+		{filepath.Join(k, "Library", "Developer", "Xcode", "iOS DeviceSupport"), "Xcode iOS DeviceSupport", "dev_ai", T("Simboli za otklanjanje grešaka starih iOS verzija."), false},
+		{filepath.Join(k, "Library", "Developer", "CoreSimulator", "Caches"), "CoreSimulator Cache", "dev_ai", T("Korisnička predmemorija za iOS simulator."), true},
+		{filepath.Join(k, "Library", "Caches", "CocoaPods"), "CocoaPods Cache", "dev_ai", T("Međuspremnik preuzetih iOS/macOS CocoaPods paketa."), true},
+		{filepath.Join(k, "Library", "Caches", "go-build"), "Go Build Cache", "dev_ai", T("Međuspremnik prevedenih Go paketa (go clean -cache)."), false},
+		{filepath.Join(k, "go", "pkg", "mod", "cache"), "Go Module Cache", "dev_ai", T("Arhive preuzetih Go modula (go clean -modcache)."), false},
+		{filepath.Join(k, "Library", "Caches", "Homebrew", "downloads"), "Homebrew Downloads", "dev_ai", T("Preuzete instalacijske arhive u Homebrewu."), true},
+		{filepath.Join(k, ".npm", "_cacache"), "NPM Package Cache", "dev_ai", T("Međuspremnik preuzetih Node.js paketa."), true},
+		{filepath.Join(k, "Library", "Caches", "Yarn"), "Yarn Cache", "dev_ai", T("Međuspremnik preuzetih Yarn paketa."), true},
+		{filepath.Join(k, "Library", "pnpm", "store"), "PNPM Store", "dev_ai", T("Globalno spremište PNPM paketa."), false},
+		{filepath.Join(k, "Library", "Caches", "pip"), "Python Pip Cache", "dev_ai", T("Međuspremnik preuzetih Python paketa."), true},
+		{filepath.Join(k, ".cargo", "registry", "cache"), "Rust Cargo Cache", "dev_ai", T("Preuzete arhive Rust paketa."), true},
+		{filepath.Join(k, ".gradle", "caches"), "Gradle Cache", "dev_ai", T("Međuspremnik preuzetih Java/Android Gradle paketa."), false},
+		{filepath.Join(k, ".m2", "repository"), "Maven Repository", "dev_ai", T("Lokalno spremište Java Maven ovisnosti."), false},
+		{filepath.Join(k, "Library", "Caches", "goimports"), "Goimports Cache", "dev_ai", T("Privremeni indeks za goimports alat."), true},
+		{filepath.Join(k, "Library", "Caches", "golangci-lint"), "GolangCI-Lint Cache", "dev_ai", T("Međuspremnik za statičku analizu Go koda."), true},
+		{filepath.Join(k, "Library", "Caches", "gopls"), "Gopls Cache", "dev_ai", T("Privremena predmemorija za Go Language Server."), true},
+		{filepath.Join(k, "Library", "Caches", "Codex"), "Codex App Cache", "dev_ai", T("Predmemorija za Codex AI aplikaciju."), true},
+		{filepath.Join(k, ".cache", "codex-runtimes"), "Codex Runtimes", "dev_ai", T("Privremena okruženja za Codex CLI."), false},
 	}
 }
 
@@ -275,7 +275,7 @@ func claudePodmapeSesije(putanjaSesije, nazivProjekta string) []kandidatCiscenja
 				putanja:     p,
 				naziv:       "Claude " + pod + " (" + nazivProjekta + ")",
 				kategorija:  "dev_ai",
-				opis:        "Privremeni zapisi pod-agenata i alata (mapa memory ostaje sačuvana).",
+				opis:        T("Privremeni zapisi pod-agenata i alata (mapa memory ostaje sačuvana)."),
 				preporuceno: true,
 			})
 		}
@@ -338,9 +338,9 @@ func prikupiKandidateIOSBackupova(mapaBackup string) []kandidatCiscenja {
 		}
 		izlaz = append(izlaz, kandidatCiscenja{
 			putanja:     filepath.Join(mapaBackup, u.Name()),
-			naziv:       "iOS Sigurnosna Kopija: " + skratiIdentifikator(u.Name()),
+			naziv:       T("iOS Sigurnosna Kopija: ") + skratiIdentifikator(u.Name()),
 			kategorija:  "backups_attachments",
-			opis:        "Lokalna sigurnosna kopija iPhone ili iPad uređaja.",
+			opis:        T("Lokalna sigurnosna kopija iPhone ili iPad uređaja."),
 			preporuceno: false,
 		})
 	}
@@ -366,9 +366,9 @@ func prikupiKandidateMailDownloads(mapaMail string) []kandidatCiscenja {
 		}
 		izlaz = append(izlaz, kandidatCiscenja{
 			putanja:     filepath.Join(mapaMail, u.Name()),
-			naziv:       "Mail Privitak: " + u.Name(),
+			naziv:       T("Mail Privitak: ") + u.Name(),
 			kategorija:  "backups_attachments",
-			opis:        "Lokalna kopija privitaka preuzetih unutar aplikacije Apple Mail.",
+			opis:        T("Lokalna kopija privitaka preuzetih unutar aplikacije Apple Mail."),
 			preporuceno: true,
 		})
 	}

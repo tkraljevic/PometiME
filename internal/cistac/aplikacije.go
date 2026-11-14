@@ -2,6 +2,7 @@ package cistac
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -454,7 +455,7 @@ func kandidatiOstatakaUMapi(oznaka, mapa string, poznati map[string]bool) []kand
 			putanja:     filepath.Join(mapa, ime),
 			naziv:       ime + " (" + oznaka + ")",
 			kategorija:  "leftovers",
-			opis:        "Zaostali podaci u ~/Library/" + oznaka + " bez pronađene aplikacije.",
+			opis:        fmt.Sprintf(T(T("Zaostali podaci u ~/Library/%s bez pronađene aplikacije.")), oznaka),
 			preporuceno: false,
 		})
 	}

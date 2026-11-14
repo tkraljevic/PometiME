@@ -40,11 +40,11 @@ func odrediCiljUKosu(kos, osnovnoIme string) string {
 func PremjestiUKos(p Postavke, cistaPutanja string, velicina int64) error {
 	kos := mapaKosa(p)
 	if err := os.MkdirAll(kos, 0o700); err != nil {
-		return fmt.Errorf("priprema mape Koša %s: %w", kos, err)
+		return fmt.Errorf(T("priprema mape Koša %s: %w"), kos, err)
 	}
 	cilj := odrediCiljUKosu(kos, filepath.Base(cistaPutanja))
 	if err := os.Rename(cistaPutanja, cilj); err != nil {
-		return fmt.Errorf("premještanje u Koš %s: %w", cistaPutanja, err)
+		return fmt.Errorf(T("premještanje u Koš %s: %w"), cistaPutanja, err)
 	}
 	stavka := StavkaKosa{
 		ID:              cilj,
@@ -174,13 +174,13 @@ func skupPutanja(putanje []string) map[string]bool {
 
 func vratiJednuStavkuIzKosa(p Postavke, st StavkaKosa) error {
 	if !JeUnutarKorijena(filepath.Clean(st.PutanjaUKosu), mapaKosa(p)) || !JeSigurnaPutanja(p, st.IzvornaPutanja) {
-		return fmt.Errorf("nevaljana putanja za povrat: %s", st.IzvornaPutanja)
+		return fmt.Errorf(T("nevaljana putanja za povrat: %s"), st.IzvornaPutanja)
 	}
 	if err := os.MkdirAll(filepath.Dir(st.IzvornaPutanja), 0o755); err != nil {
-		return fmt.Errorf("stvaranje izvorne mape za %s: %w", st.IzvornaPutanja, err)
+		return fmt.Errorf(T("stvaranje izvorne mape za %s: %w"), st.IzvornaPutanja, err)
 	}
 	if err := os.Rename(st.PutanjaUKosu, st.IzvornaPutanja); err != nil {
-		return fmt.Errorf("povrat %s: %w", st.Naziv, err)
+		return fmt.Errorf(T("povrat %s: %w"), st.Naziv, err)
 	}
 	return nil
 }
@@ -188,10 +188,10 @@ func vratiJednuStavkuIzKosa(p Postavke, st StavkaKosa) error {
 func izbrisiJednuStavkuIzKosa(p Postavke, st StavkaKosa) error {
 	cista := filepath.Clean(st.PutanjaUKosu)
 	if !JeUnutarKorijena(cista, mapaKosa(p)) {
-		return fmt.Errorf("stavka %s nije u Košu, pa nije izbrisana", st.Naziv)
+		return fmt.Errorf(T("stavka %s nije u Košu, pa nije izbrisana"), st.Naziv)
 	}
 	if err := ukloniTrajno(cista); err != nil {
-		return fmt.Errorf("trajno brisanje %s: %w", st.Naziv, err)
+		return fmt.Errorf(T("trajno brisanje %s: %w"), st.Naziv, err)
 	}
 	return nil
 }

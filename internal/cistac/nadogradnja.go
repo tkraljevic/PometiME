@@ -7,6 +7,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -134,24 +135,24 @@ func dohvatiZadnjeIzdanje() (*githubRelease, error) {
 	defer otkazi()
 	zahtjev, err := http.NewRequestWithContext(ctx, http.MethodGet, urlGitHubReleases, nil)
 	if err != nil {
-		return nil, fmt.Errorf("priprema zahtjeva za GitHub: %w", err)
+		return nil, fmt.Errorf(T("priprema zahtjeva za GitHub: %w"), err)
 	}
 	zahtjev.Header.Set("User-Agent", "PometiME-Updater")
 	zahtjev.Header.Set("Accept", "application/vnd.github.v3+json")
 
 	odgovor, err := klijentNadogradnje.Do(zahtjev)
 	if err != nil {
-		return nil, fmt.Errorf("povezivanje s GitHub API-jem: %w", err)
+		return nil, fmt.Errorf(T("povezivanje s GitHub API-jem: %w"), err)
 	}
 	defer func() {
 		_ = odgovor.Body.Close() // zatvaranje odgovora GitHub API-ja
 	}()
 	if odgovor.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GitHub API je vratio status %d", odgovor.StatusCode)
+		return nil, fmt.Errorf(T("GitHub API je vratio status %d"), odgovor.StatusCode)
 	}
 	var izdanje githubRelease
 	if err := json.NewDecoder(io.LimitReader(odgovor.Body, najveciOpis)).Decode(&izdanje); err != nil {
-		return nil, fmt.Errorf("dekodiranje GitHub odgovora: %w", err)
+		return nil, fmt.Errorf(T("dekodiranje GitHub odgovora: %w"), err)
 	}
 	return &izdanje, nil
 }
@@ -204,11 +205,11 @@ func PrimijeniNadogradnju() error {
 		return err
 	}
 	if !UsporediInacice(TrenutnaInacica, izdanje.TagName) {
-		return fmt.Errorf("nema novije verzije za instalaciju")
+		return errors.New(T("nema novije verzije za instalaciju"))
 	}
 	arhiva, potpis, ok := potpisanaArhiva(izdanje.Assets)
 	if !ok {
-		return fmt.Errorf("izdanje %s nema potpisanu arhivu, pa ga preuzmite ručno sa stranice izdanja", izdanje.TagName)
+		return fmt.Errorf(T("izdanje %s nema potpisanu arhivu, pa ga preuzmite ručno sa stranice izdanja"), izdanje.TagName)
 	}
 	sadrzaj, err := preuzmiProvjerenuArhivu(arhiva, potpis)
 	if err != nil {
@@ -219,15 +220,15 @@ func PrimijeniNadogradnju() error {
 
 func preuzmiProvjerenuArhivu(arhiva, potpis githubAsset) ([]byte, error) {
 	if !jeAdresaIzdanja(arhiva.BrowserDownloadURL) || !jeAdresaIzdanja(potpis.BrowserDownloadURL) {
-		return nil, fmt.Errorf("arhiva nije na stranici izdanja PometiME, pa nadogradnja nije pokrenuta")
+		return nil, errors.New(T("arhiva nije na stranici izdanja PometiME, pa nadogradnja nije pokrenuta"))
 	}
 	tekstPotpisa, err := preuzmi(potpis.BrowserDownloadURL, najveciPotpis)
 	if err != nil {
-		return nil, fmt.Errorf("preuzimanje potpisa nije uspjelo: %w", err)
+		return nil, fmt.Errorf(T("preuzimanje potpisa nije uspjelo: %w"), err)
 	}
 	sadrzaj, err := preuzmi(arhiva.BrowserDownloadURL, najvecaArhiva)
 	if err != nil {
-		return nil, fmt.Errorf("preuzimanje arhive nije uspjelo: %w", err)
+		return nil, fmt.Errorf(T("preuzimanje arhive nije uspjelo: %w"), err)
 	}
 	if err := provjeriPotpis(sadrzaj, tekstPotpisa); err != nil {
 		return nil, err
@@ -256,14 +257,14 @@ func preuzmi(adresa string, najvise int64) ([]byte, error) {
 		_ = odg.Body.Close() // zatvaranje odgovora preuzimanja
 	}()
 	if odg.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("poslužitelj je vratio status %d", odg.StatusCode)
+		return nil, fmt.Errorf(T("poslužitelj je vratio status %d"), odg.StatusCode)
 	}
 	sadrzaj, err := io.ReadAll(io.LimitReader(odg.Body, najvise+1))
 	if err != nil {
 		return nil, err
 	}
 	if int64(len(sadrzaj)) > najvise {
-		return nil, fmt.Errorf("datoteka je veća od %s, pa preuzimanje nije nastavljeno", FormatirajBajte(najvise))
+		return nil, fmt.Errorf(T("datoteka je veća od %s, pa preuzimanje nije nastavljeno"), FormatirajBajte(najvise))
 	}
 	return sadrzaj, nil
 }
@@ -271,7 +272,7 @@ func preuzmi(adresa string, najvise int64) ([]byte, error) {
 func provjeriPotpis(sadrzaj, tekstPotpisa []byte) error {
 	potpis, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(tekstPotpisa)))
 	if err != nil || !ed25519.Verify(javniKljucNadogradnje, sadrzaj, potpis) {
-		return fmt.Errorf("potpis arhive ne odgovara, pa nadogradnja nije instalirana; preuzmite PometiME ručno sa stranice izdanja")
+		return errors.New(T("potpis arhive ne odgovara, pa nadogradnja nije instalirana; preuzmite PometiME ručno sa stranice izdanja"))
 	}
 	return nil
 }
@@ -279,7 +280,7 @@ func provjeriPotpis(sadrzaj, tekstPotpisa []byte) error {
 func instalirajIzArhive(sadrzaj []byte) error {
 	privremenaMapa, err := stvoriPrivremenuMapuFn()
 	if err != nil {
-		return fmt.Errorf("stvaranje privremene mape: %w", err)
+		return fmt.Errorf(T("stvaranje privremene mape: %w"), err)
 	}
 	defer func() {
 		_ = os.RemoveAll(privremenaMapa) // čišćenje privremene mape nadogradnje
@@ -287,7 +288,7 @@ func instalirajIzArhive(sadrzaj []byte) error {
 
 	raspakirano := filepath.Join(privremenaMapa, "raspakirano")
 	if err := raspakirajZip(sadrzaj, raspakirano); err != nil {
-		return fmt.Errorf("raspakiravanje preuzete arhive: %w", err)
+		return fmt.Errorf(T("raspakiravanje preuzete arhive: %w"), err)
 	}
 	return instalirajAppIzMape(raspakirano)
 }
@@ -295,14 +296,14 @@ func instalirajIzArhive(sadrzaj []byte) error {
 func instalirajAppIzMape(raspakirano string) error {
 	noviApp := pronadjiAppPaket(raspakirano)
 	if noviApp == "" {
-		return fmt.Errorf("u preuzetoj arhivi nije pronađen PometiME.app paket")
+		return errors.New(T("u preuzetoj arhivi nije pronađen PometiME.app paket"))
 	}
 	if err := provjeriNoviPaket(noviApp); err != nil {
 		return err
 	}
 	ciljApp := odrediPutanjuAplikacijeFn()
 	if err := zamijeniAplikaciju(noviApp, ciljApp); err != nil {
-		return fmt.Errorf("zamjena aplikacije na lokaciji %s: %w", ciljApp, err)
+		return fmt.Errorf(T("zamjena aplikacije na lokaciji %s: %w"), ciljApp, err)
 	}
 	return nil
 }
@@ -312,10 +313,10 @@ func instalirajAppIzMape(raspakirano string) error {
 func provjeriNoviPaket(noviApp string) error {
 	meta := procitajInfoPlist(noviApp)
 	if meta.paketID != identifikatorPaketa {
-		return fmt.Errorf("preuzeta aplikacija nije PometiME")
+		return errors.New(T("preuzeta aplikacija nije PometiME"))
 	}
 	if !UsporediInacice(TrenutnaInacica, meta.inacica) {
-		return fmt.Errorf("preuzeta verzija %s nije novija od instalirane verzije %s", meta.inacica, TrenutnaInacica)
+		return fmt.Errorf(T("preuzeta verzija %s nije novija od instalirane verzije %s"), meta.inacica, TrenutnaInacica)
 	}
 	return nil
 }

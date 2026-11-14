@@ -633,6 +633,31 @@
       color: var(--text-muted);
     }
 
+    .side-jezik {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .side-jezik-btn {
+      flex: 1;
+      padding: 4px 0;
+      font: inherit;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .side-jezik-btn.active {
+      color: #ffffff;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
     .stavka-stara {
       color: var(--danger);
       font-weight: 600;
@@ -1366,6 +1391,10 @@
         <svg id="ikona-provjere-nadogradnje" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         <span>Provjeri nadogradnju</span>
       </button>
+      <div class="side-jezik" role="group" aria-label="Jezik">
+        <button type="button" class="side-jezik-btn" data-jezik="hr" lang="hr">HR</button>
+        <button type="button" class="side-jezik-btn" data-jezik="en" lang="en">EN</button>
+      </div>
     </div>
   </aside>
 
@@ -1742,6 +1771,368 @@
   <script>
     'use strict';
 
+    // PRIJEVOD: početak
+    // Tekst u kodu je hrvatski i služi kao ključ; engleski se čita iz PRIJEVODI_EN.
+    // Jezik bira poslužitelj (oznaka lang na <html>), a korisnik ga mijenja prekidačem HR/EN.
+    const jezik = (typeof document !== 'undefined' && document.documentElement && document.documentElement.lang === 'en') ? 'en' : 'hr';
+    const PRIJEVODI_EN = {
+      " · Izvorna lokacija: {putanja}": " · Original location: {putanja}",
+      " · uklanjanje traži lozinku": " · removal needs your password",
+      "0 B odabrano": "0 B selected",
+      "0 B premješteno u Koš": "0 B moved to the Trash",
+      "0 aplikacija": "0 apps",
+      "0 preporučenih stavki · 0 B odabrano": "0 recommended items · 0 B selected",
+      "0 stavki": "0 items",
+      "1 datoteka": "1 file",
+      "4K Zračne Pozadine i Čuvari (Aerials)": "4K Aerial Wallpapers and Screen Savers",
+      "Ako ih ikada ponovno zatrebate, možete ih vratiti kroz karticu Koš i povrat.": "If you ever need them again, restore them from the Trash & Restore tab.",
+      "Aktivan": "Active",
+      "Alat sam briše ono što mu više ne treba. Brisanje je trajno, stavke ne idu u Koš.": "Each tool removes what it no longer needs. Deletion is permanent; nothing goes to the Trash.",
+      "Alati nisu provjereni: {greska}": "Tools were not checked: {greska}",
+      "Aplikacija je premještena u Koš.": "The app was moved to the Trash.",
+      "Aplikacije": "Applications",
+      "Aplikacije koje više ne trebate.": "Apps you no longer need.",
+      "Aplikaciju {ime} instalirao je sustav ili instalacijski paket, pa je PometiME ne može premjestiti bez administratorske lozinke.": "{ime} was installed by the system or an installer package, so PometiME cannot move it without an administrator password.",
+      "Aplikaciju {ime} sad povucite u Koš u Finderu.": "Now drag {ime} to the Trash in Finder.",
+      "Ažuriraj odmah": "Update Now",
+      "Bilješke uz izdanje trenutačno nisu dostupne. Više informacija potražite na stranici izdanja.": "Release notes are not available right now. See the release page for details.",
+      "Brisanje nije uspjelo.": "Deleting failed.",
+      "Briše stare i nedostupne iOS/watchOS simulatore čiji runtime više nije instaliran u Xcodeu.": "Removes old and unavailable iOS/watchOS simulators whose runtime is no longer installed in Xcode.",
+      "Brišem stavke iz Koša…": "Deleting items from the Trash…",
+      "Brz pregled diska i jednostavan početak čišćenja.": "A quick look at your disk and an easy start to cleaning.",
+      "Brzo osvježavanje predmemorije macOS-a i upravljanje zaostalim pokretačima.": "Quick macOS cache refreshes and managing leftover launch agents.",
+      "Deinstalacija: {ime}": "Uninstall: {ime}",
+      "Dodatno čišćenje i održavanje kada vam zatreba.": "Extra cleanup and maintenance when you need it.",
+      "Dohvat podataka nije uspio. Pokušajte ponovno.": "Could not load the data. Please try again.",
+      "Dostupna verzija": "Available version",
+      "Finder nije otvoren.": "Finder did not open.",
+      "Finder nije otvoren: {greska}": "Finder did not open: {greska}",
+      "GitHub poslužitelj nije dostupan.": "The GitHub server is not available.",
+      "Glavna navigacija": "Main navigation",
+      "Greška pri deinstalaciji: {greska}": "Uninstall error: {greska}",
+      "Greška pri povratu: {greska}": "Restore error: {greska}",
+      "Greška pri provjeri.": "Error while checking.",
+      "Greška pri skeniranju: {greska}": "Scan error: {greska}",
+      "Greška pri čišćenju: {greska}": "Cleanup error: {greska}",
+      "Greška: {greska}": "Error: {greska}",
+      "I još {n} ({velicina}).": "And {n} more ({velicina}).",
+      "Instalacija nije uspjela.": "The installation failed.",
+      "Instalacijske datoteke (.dmg, .pkg, .iso, .xip) u mapi Preuzimanja.": "Installer files (.dmg, .pkg, .iso, .xip) in your Downloads folder.",
+      "Instalacijske datoteke (.dmg, .pkg, .iso, .xip) u ~/Downloads.": "Installer files (.dmg, .pkg, .iso, .xip) in ~/Downloads.",
+      "Instalirana verzija": "Installed version",
+      "Instalirana verzija {verzija}": "Installed version {verzija}",
+      "Iskorištenost diska": "Disk usage",
+      "Isprazni DNS": "Flush DNS",
+      "Izmjereno u {vrijeme}": "Measured at {vrijeme}",
+      "Izmjeri ponovno": "Measure Again",
+      "Izvršavam: {akcija}…": "Running: {akcija}…",
+      "Jezik": "Language",
+      "Jezik nije promijenjen.": "The language was not changed.",
+      "Jezik nije promijenjen: {greska}": "The language was not changed: {greska}",
+      "Još učitavam podatke. Hvala na strpljenju.": "Still loading. Thank you for your patience.",
+      "Kasnije": "Later",
+      "Kliknite gumb info za potpuni pregled stavke": "Click the info button for the full item view",
+      "Kliknite na “Pojedinosti” uz bilo koju stavku za pregled pripadajućih mapa i lokacija na disku.": "Click “Details” next to any item to see its folders and locations on disk.",
+      "Konfiguracijska datoteka ({putanja}) premjestit će se u Koš.": "The configuration file ({putanja}) will be moved to the Trash.",
+      "Kopije i privici": "Backups & Attachments",
+      "Korisnička mapa": "Home folder",
+      "Korisnička mapa ({ime})": "Home folder ({ime})",
+      "Koš PometiME je prazan. Ovdje se pojavljuju očišćene stavke koje možete vratiti.": "The PometiME Trash is empty. Cleaned items you can restore appear here.",
+      "Koš i povrat": "Trash & Restore",
+      "Lokacija: {putanja}": "Location: {putanja}",
+      "Malo čišćenja. Više prostora.": "A little cleaning. More space.",
+      "Mape koje idu u Koš": "Folders that go to the Trash",
+      "Međuspremnici programskih jezika, simulatori i Claude radne sesije.": "Programming language caches, simulators and Claude work sessions.",
+      "Mjerenje nije uspjelo. Pokušajte ponovno.": "Measuring failed. Please try again.",
+      "Mjerim zauzeće prostora…": "Measuring disk usage…",
+      "Nadogradnja aplikacije": "App update",
+      "Nadogradnja je instalirana.": "The update is installed.",
+      "Nadogradnja je u tijeku.": "Updating.",
+      "Nadogradnju možete pokušati ponovno.": "You can try the update again.",
+      "Najveće mape i datoteke u vašoj korisničkoj mapi.": "The largest folders and files in your home folder.",
+      "Najveće mape i datoteke u vašoj korisničkoj mapi. Kliknite mapu da vidite što je u njoj. Ovdje se ništa ne briše: stavku otvorite u Finderu i ondje odlučite.": "The largest folders and files in your home folder. Click a folder to see what is inside. Nothing is deleted here: open an item in Finder and decide there.",
+      "Nakon pražnjenja macOS Koša (~/.Trash) stavke više nije moguće vratiti.": "Once the macOS Trash (~/.Trash) is emptied, items can no longer be restored.",
+      "Napredni alati": "Advanced Tools",
+      "Napredni alati, jasno objašnjeni.": "Advanced tools, clearly explained.",
+      "Naredba nije uspjela.": "The command failed.",
+      "Naredba nije uspjela: {greska}": "The command failed: {greska}",
+      "Naredba trajno briše datoteke. One ne idu u Koš i ne mogu se vratiti.": "The command deletes files permanently. They do not go to the Trash and cannot be restored.",
+      "Natrag na odabir": "Back to Selection",
+      "Natrag na pregled": "Back to Overview",
+      "Neke stavke nisu izbrisane: {greska}": "Some items were not deleted: {greska}",
+      "Nema pronađenih stavki za ovu kategoriju.": "No items found in this category.",
+      "Nema stavki za prikaz u ovom filtru. Vaš Mac je već čist!": "Nothing to show in this filter. Your Mac is already clean!",
+      "Neuspjelo ažuriranje datoteka.": "Updating the files failed.",
+      "Nije moguće dohvatiti podatke o novim izdanjima s GitHuba.": "Could not get release information from GitHub.",
+      "Nije pronađen nijedan podržani alat (Homebrew, Go, pnpm).": "No supported tool was found (Homebrew, Go, pnpm).",
+      "Nije pronađena nijedna aplikacija prema zadanom pojmu pretrage.": "No apps match your search.",
+      "Nova verzija je spremna.": "A new version is ready.",
+      "Novosti u izdanju": "What's new",
+      "Odaberi starije od 7 dana": "Select older than 7 days",
+      "Odaberi starije od 7 dana ({n})": "Select older than 7 days ({n})",
+      "Odaberi sve": "Select All",
+      "Odaberite što želite očistiti.": "Choose what to clean.",
+      "Odabrane stavke su očišćene i sigurno premještene u macOS Koš.": "The selected items were cleaned and safely moved to the macOS Trash.",
+      "Odabrano {n}": "{n} selected",
+      "Održavanje": "Maintenance",
+      "Održavanje sustava i pokretači": "System maintenance and launch agents",
+      "Odustani": "Cancel",
+      "Odznači sve": "Deselect All",
+      "Optimizacija uspješno izvršena.": "Maintenance finished.",
+      "Oslobodi APFS snimke (Time Machine)": "Free APFS snapshots (Time Machine)",
+      "Oslobodi snimke": "Free Snapshots",
+      "Ostaci aplikacija": "App Leftovers",
+      "Ostaci uklonjenih aplikacija": "Leftovers of removed apps",
+      "Osvježi QuickLook": "Refresh Quick Look",
+      "Osvježi QuickLook i ikone Finder-a": "Refresh Quick Look and Finder icons",
+      "Osvježi mrežni DNS (Flush DNS)": "Refresh network DNS (Flush DNS)",
+      "Otvori Koš i povrat": "Open Trash & Restore",
+      "Otvori Postavke sustava": "Open System Settings",
+      "Otvori mapu {ime}": "Open folder {ime}",
+      "Ova mapa je prazna.": "This folder is empty.",
+      "Ovu verziju preuzmite sa stranice izdanja na GitHubu.": "Download this version from its release page on GitHub.",
+      "Očisti nedostupne": "Remove Unavailable",
+      "Očisti odabrano →": "Clean Selected →",
+      "Očisti pozadine": "Remove Wallpapers",
+      "Očišćene stavke čekaju u Košu i povratu.": "Cleaned items wait in Trash & Restore.",
+      "Očišćeno, ali još dostupno.": "Cleaned, but still available.",
+      "Podaci aplikacija koje više nisu instalirane na Macu.": "Data of apps that are no longer installed on this Mac.",
+      "Podaci nisu premješteni.": "The data was not moved.",
+      "Podaci nisu premješteni: {greska}": "The data was not moved: {greska}",
+      "Pojedinačna datoteka: {putanja}": "Single file: {putanja}",
+      "Pojedinosti stavke": "Item details",
+      "Pokreni": "Run",
+      "Pokreni naredbu": "Run Command",
+      "Pokrenite PometiME ponovno kako biste koristili novu verziju.": "Relaunch PometiME to use the new version.",
+      "Pokrenuti {naredba}?": "Run {naredba}?",
+      "Pokretanje i sustav": "Startup & System",
+      "Pokretač je premješten u Koš.": "The launch agent was moved to the Trash.",
+      "Pokrećem {naredba}… Ovo može potrajati nekoliko minuta.": "Running {naredba}… This can take a few minutes.",
+      "Pokušaj ponovno": "Try Again",
+      "PometiME ne vidi sve. Bez Potpunog pristupa disku macOS ne da pročitati ove podatke: {mape}.": "PometiME cannot see everything. Without Full Disk Access, macOS blocks reading this data: {mape}.",
+      "PometiME će u Koš premjestiti {n} ({velicina}). Zatim će otvoriti Finder s označenom aplikacijom: povucite je u Koš i upišite lozinku.": "PometiME will move {n} belonging to the app ({velicina}) to the Trash. Then Finder opens with the app selected: drag it to the Trash and enter your password.",
+      "PometiME — Čistač diska i aplikacija": "PometiME — Disk and App Cleaner",
+      "Pometimo odabrane stavke?": "Clean up the selected items?",
+      "Ponovno pokreni PometiME": "Relaunch PometiME",
+      "Ponovno pokretanje nije uspjelo. Zatvorite PometiME s ⌘Q i otvorite ga ponovno.": "Relaunch failed. Quit PometiME with ⌘Q and open it again.",
+      "Ponovno pokretanje…": "Relaunching…",
+      "Popis nije učitan": "List not loaded",
+      "Posljednji pregled: danas u {vrijeme}": "Last scan: today at {vrijeme}",
+      "Posljednji pregled: maloprije": "Last scan: just now",
+      "Postavke nisu otvorene.": "Settings did not open.",
+      "Postavke sustava nisu otvorene: {greska}": "System Settings did not open: {greska}",
+      "Povezivanje s izdanjima na GitHubu…": "Connecting to releases on GitHub…",
+      "Prazni macOS mrežni DNS međuspremnik (dscacheutil -flushcache). Rješava probleme sa zastarjelim IP adresama.": "Empties the macOS network DNS cache (dscacheutil -flushcache). Fixes problems with outdated IP addresses.",
+      "Predmemorija sustava": "System caches",
+      "Predmemorije Xcode, CocoaPods, Go, Cargo, simulatori, emulatori i AI sesije.": "Caches for Xcode, CocoaPods, Go and Cargo, simulators, emulators and AI sessions.",
+      "Pregled": "Overview",
+      "Pregled diska nije uspio. Pokušajte ponovno.": "The disk scan failed. Please try again.",
+      "Pregledaj stavke →": "Review Items →",
+      "Pregledajte novosti i ažurirajte PometiME.": "See what is new and update PometiME.",
+      "Pregledajte pronađene stavke i sami odaberite što želite očistiti.": "Review what was found and choose what to clean.",
+      "Pregledavam disk…": "Scanning the disk…",
+      "Premjesti podatke u Koš": "Move Data to Trash",
+      "Premjesti u Koš": "Move to Trash",
+      "Premjestit će se aplikacija {ime} i {n} u ~/Library (ukupno {velicina}) u Koš za smeće.": "{ime} and {n} in ~/Library ({velicina} in total) will be moved to the Trash.",
+      "Premjestit ćete {n} u Koš. Njihovi programi više ne postoje na disku.": "You will move {n} to the Trash. Their programs no longer exist on disk.",
+      "Preporučene stavke već su označene. Ostale pregledajte prije odabira.": "Recommended items are already selected. Review the others before you select them.",
+      "Preporučeno": "Recommended",
+      "Pretraži aplikacije": "Search apps",
+      "Pretraži aplikacije…": "Search apps…",
+      "Preuzeti instaleri (.dmg, .pkg, .iso) u mapi Preuzimanja.": "Downloaded installers (.dmg, .pkg, .iso) in your Downloads folder.",
+      "Preuzeti paketi alata, simulatori i završene AI sesije.": "Downloaded tool packages, simulators and finished AI sessions.",
+      "Preuzimamo i instaliramo novu verziju.": "Downloading and installing the new version.",
+      "Preuzimanje ili instalacija arhive nije dovršena.": "Downloading or installing the archive did not finish.",
+      "Prije deinstalacije pregledajte aplikaciju i podatke koji joj pripadaju u ~/Library. Sve se sigurno premješta u Koš.": "Before uninstalling, review the app and its data in ~/Library. Everything is moved safely to the Trash.",
+      "Prikaži izdanje na GitHubu ↗": "View Release on GitHub ↗",
+      "Prikaži stablo i lokaciju": "Show tree and location",
+      "Prikaži stablo izvora i pojedinosti": "Show source tree and details",
+      "Prikaži u Finderu": "Show in Finder",
+      "Prikupljam popis, ikonice i podatke o zauzeću.": "Collecting the list, icons and disk usage.",
+      "Primljen je neispravan popis. Pokušajte ponovno.": "Received an invalid list. Please try again.",
+      "Pričekajte da instalacija završi…": "Wait for the installation to finish…",
+      "Program više ne postoji na disku: {putanja}": "The program no longer exists on disk: {putanja}",
+      "Pronađena stavka na disku sa stablom izvora.": "An item found on disk, with its source tree.",
+      "Pronađeno: {n}": "Found: {n}",
+      "Pronađeno: {n} ({velicina})": "Found: {n} ({velicina})",
+      "Pronađite ih i jednim klikom vratite iz Koša.": "Find them and restore them from the Trash with one click.",
+      "Proređuje lokalne APFS snimke (tmutil thinlocalsnapshots /). Vraća prostor iz System Data.": "Thins local APFS snapshots (tmutil thinlocalsnapshots /). Frees space counted as System Data.",
+      "Prostor se oslobađa kad stavke trajno izbrišete u kartici Koš i povrat.": "Space is freed when you delete the items permanently in the Trash & Restore tab.",
+      "Provjera nije uspjela.": "The check failed.",
+      "Provjeravam instalirane alate…": "Checking installed tools…",
+      "Provjeravam nadogradnje…": "Checking for updates…",
+      "Provjeravam stavke koje možete vratiti.": "Checking items you can restore.",
+      "Provjeri nadogradnju": "Check for Updates",
+      "Provjerite internetsku vezu i pokušajte ponovno.": "Check your internet connection and try again.",
+      "Prvi pregled može potrajati malo dulje.": "The first scan can take a little longer.",
+      "Prvo mjerenje može potrajati minutu ili dvije. macOS pritom može tražiti dozvolu za mape Dokumenti, Radna površina i Preuzimanja.": "The first measurement can take a minute or two. macOS may ask for permission to access your Documents, Desktop and Downloads folders.",
+      "Različite mape sustava": "Various system folders",
+      "Razvojna i AI predmemorija": "Developer and AI caches",
+      "Razvojni i AI alati": "Developer & AI Tools",
+      "Resetira predmemoriju pregleda i ikona (qlmanage -r cache && qlmanage -r). Ispravlja neispravne sličice.": "Resets the preview and icon cache (qlmanage -r cache && qlmanage -r). Fixes broken thumbnails.",
+      "SPREMNO ZA PREGLED": "READY TO REVIEW",
+      "Sigurnosne kopije i privici": "Backups and attachments",
+      "Skeniraj ponovno": "Scan Again",
+      "Skeniranje u tijeku...": "Scanning...",
+      "Stablo i lokacija za {ime}": "Tree and location for {ime}",
+      "Stablo izvora": "Source tree",
+      "Stablo izvora aplikacije i knjižnice": "Source tree of the app and its Library data",
+      "Stablo izvora i pojedinosti za {ime}": "Source tree and details for {ime}",
+      "Stablo izvora za {ime}": "Source tree for {ime}",
+      "Stare iOS sigurnosne kopije i preuzeti Mail privici.": "Old iOS backups and downloaded Mail attachments.",
+      "Stare instalacijske datoteke": "Old installer files",
+      "Stare lokalne iOS sigurnosne kopije (MobileSync) i preuzeti privici Maila.": "Old local iOS backups (MobileSync) and downloaded Mail attachments.",
+      "Stare lokalne iOS sigurnosne kopije i Mail privici.": "Old local iOS backups and Mail attachments.",
+      "Stari instaleri": "Old Installers",
+      "Stari instaleri u Preuzimanjima": "Old installers in Downloads",
+      "Stavke nisu izbrisane: {greska}": "The items were not deleted: {greska}",
+      "Stavke se brišu s diska i više ih nećete moći vratiti. Tek tada se oslobađa prostor.": "The items are deleted from the disk and cannot be restored. Only then is the space freed.",
+      "Stavke se premještaju u Koš.": "Items are moved to the Trash.",
+      "Stavke spremne za povrat": "Items ready to restore",
+      "Stavke su vraćene na izvorno mjesto.": "The items were restored to their original place.",
+      "Stavke ćemo premjestiti u macOS Koš. Možete ih vratiti kroz Koš i povrat.": "The items will be moved to the macOS Trash. You can restore them from Trash & Restore.",
+      "Sustavski zapisnici i privremeni podaci macOS-a.": "macOS logs and temporary data.",
+      "Sve je ažurno.": "You are up to date.",
+      "Sve kategorije": "All categories",
+      "Taj prostor oslobađate tek kad stavke trajno izbrišete.": "You free this space only when you delete the items permanently.",
+      "Trajno izbrisati odabrane stavke?": "Delete the selected items permanently?",
+      "Trajno izbriši": "Delete Permanently",
+      "Tražim stavke koje možete očistiti.": "Looking for items you can clean.",
+      "Tražimo najnovije izdanje za vaš Mac.": "Looking for the latest release for your Mac.",
+      "U Košu od danas": "In the Trash since today",
+      "U Košu {n}": "In the Trash for {n}",
+      "U Košu čeka {velicina} →": "{velicina} waiting in the Trash →",
+      "U Postavkama sustava uključite PometiME pod Potpuni pristup disku, zatim zatvorite PometiME i otvorite ga ponovno. Ako je već uključen, a ova poruka ostaje, maknite PometiME s popisa tipkom − i dodajte ga ponovno tipkom +.": "In System Settings, turn on PometiME under Full Disk Access, then quit PometiME and open it again. If it is already on and this message stays, remove PometiME from the list with − and add it again with +.",
+      "U redu": "OK",
+      "Uklanjanje aplikacije: {ime}…": "Removing {ime}…",
+      "Uklanjanje pokretača: {ime}": "Remove launch agent: {ime}",
+      "Uklanjanje zaostalih pokretača": "Remove leftover launch agents",
+      "Uklanjanje: {ime}": "Removing: {ime}",
+      "Ukloni": "Remove",
+      "Ukloni sve zaostale pokretače": "Remove All Leftover Launch Agents",
+      "Uklonite aplikacije →": "Remove apps →",
+      "Uklonite aplikaciju i pregledajte njezine pripadajuće podatke na jednom mjestu.": "Remove an app and review its data in one place.",
+      "Uvijek možete vratiti.": "You can always restore.",
+      "Učitavam Koš i povrat…": "Loading Trash & Restore…",
+      "Učitavam aplikacije…": "Loading apps…",
+      "Učitavanje diska...": "Loading disk...",
+      "Učitavanje nije uspjelo.": "Loading failed.",
+      "Učitavanje pronađenih stavki…": "Loading items…",
+      "Učitavanje stabla izvora...": "Loading source tree...",
+      "Učitavanje…": "Loading…",
+      "Vaš Mac, malo prostraniji.": "Your Mac, a little roomier.",
+      "Već koristite najnoviju verziju PometiME.": "You already have the latest version of PometiME.",
+      "Vi odlučujete što se uklanja.": "You decide what gets removed.",
+      "Više mjesta. Manje brige.": "More space. Less worry.",
+      "Vrati odabrano": "Restore Selected",
+      "Vratite ih jednim klikom. Prostor se oslobađa tek kad ih trajno izbrišete.": "Restore them with one click. Space is freed only when you delete them permanently.",
+      "Vratite ih na izvorno mjesto ili ih trajno izbrišite.": "Restore them to their original place or delete them permanently.",
+      "Vratite očišćene stavke →": "Restore cleaned items →",
+      "Vratite stavke na izvorno mjesto dok se nalaze u Košu.": "Restore items to their original place while they are in the Trash.",
+      "Vraćanje stavki na izvorno mjesto…": "Restoring items to their original place…",
+      "Zajedno s pripadajućim podacima u biblioteci.": "Together with their data in the Library.",
+      "Zaostale datoteke i postavke aplikacija koje su ranije uklonjene s Maca.": "Leftover files and settings of apps removed from this Mac.",
+      "Zaostale mape aplikacija koje su uklonjene iz mape Applications.": "Leftover folders of apps removed from the Applications folder.",
+      "Zaostali pokretači (LaunchAgents), DNS predmemorija, QuickLook, APFS snimke i 4K pozadine.": "Leftover launch agents, DNS cache, Quick Look, APFS snapshots and 4K wallpapers.",
+      "Zaostali pokretači programa (LaunchAgents)": "Leftover program launch agents (LaunchAgents)",
+      "Zaostali pokretači su premješteni u Koš.": "The leftover launch agents were moved to the Trash.",
+      "Zaostao": "Leftover",
+      "Zatvori": "Close",
+      "Zauzeće prostora": "Disk Usage",
+      "Zbrajam veličine mapa u vašoj korisničkoj mapi.": "Adding up folder sizes in your home folder.",
+      "iOS Simulatori (simctl)": "iOS Simulators (simctl)",
+      "macOS preuzima 4K videozapise iz zraka (često 40+ GB). Ovdje možete osloboditi prostor.": "macOS downloads 4K aerial videos (often 40+ GB). You can free that space here.",
+      "nepoznato": "unknown",
+      "od ukupno {ukupno} ({posto}% slobodno)": "of {ukupno} total ({posto}% free)",
+      "od ukupno...": "of total...",
+      "{n} jer ih macOS ne da pročitati. Ukupna veličina zato može biti manja od stvarne.": "{n} could not be measured because macOS denies access. The total may be smaller than the actual size.",
+      "{n} · {velicina} odabrano": "{n} · {velicina} selected",
+      "{posto} % ove mape": "{posto}% of this folder",
+      "{velicina} možete osloboditi": "{velicina} can be freed",
+      "{velicina} odabrano ({n})": "{velicina} selected ({n})",
+      "{velicina} premješteno u Koš": "{velicina} moved to the Trash",
+      "{velicina} slobodno": "{velicina} free",
+      "Čišćenje": "Cleanup",
+      "Čišćenje je u tijeku…": "Cleaning…",
+      "Čišćenje je uspješno završeno.": "Cleanup finished.",
+      "Čišćenje naredbama alata": "Cleanup with tool commands",
+      "Čišćenje uspješno završeno.": "Cleanup finished.",
+      "Što još možete učiniti": "What else you can do",
+      "Što zauzima prostor?": "What is using space?",
+      "Što zauzima prostor? →": "What is using space? →",
+      "← Natrag": "← Back",
+      "← Svi napredni alati": "← All advanced tools",
+      "● Nova": "● New",
+      "✓ Preporučeno": "✓ Recommended"
+    };
+    // Engleski oblik jednine i množine za hrvatsku riječ koju uzBrojHR dobije u jednini.
+    const PLURALI_EN = {
+      "aplikacija": ["app", "apps"],
+      "dan": ["day", "days"],
+      "lokalna snimka": ["local snapshot", "local snapshots"],
+      "manja stavka": ["smaller item", "smaller items"],
+      "mapa nije izmjerena": ["folder", "folders"],
+      "njezinu mapu": ["folder", "folders"],
+      "podstavka": ["sub-item", "sub-items"],
+      "povezana putanja": ["related path", "related paths"],
+      "preporučena stavka": ["recommended item", "recommended items"],
+      "pripadajuća mapa": ["related folder", "related folders"],
+      "stavka": ["item", "items"],
+      "videozapis": ["video", "videos"],
+      "zaostali pokretač": ["leftover launch agent", "leftover launch agents"]
+    };
+
+    function imaPrijevod(tekst) {
+      return Object.prototype.hasOwnProperty.call(PRIJEVODI_EN, tekst);
+    }
+
+    // t vraća tekst na odabranom jeziku i umeće vrijednosti na mjesta {ime}.
+    function t(tekst, vrijednosti = {}) {
+      const izvor = jezik === 'en' && imaPrijevod(tekst) ? PRIJEVODI_EN[tekst] : tekst;
+      return izvor.replace(/\{(\w+)\}/g, (cijelo, ime) => (ime in vrijednosti ? String(vrijednosti[ime]) : cijelo));
+    }
+
+    // prevediElement prevodi nepromjenjiv tekst i atribute u HTML-u stranice i predložaka kartica.
+    function prevediElement(korijen) {
+      if (jezik !== 'en' || !korijen) return;
+      const setac = document.createTreeWalker(korijen, NodeFilter.SHOW_TEXT);
+      const cvorovi = [];
+      while (setac.nextNode()) cvorovi.push(setac.currentNode);
+      for (const cvor of cvorovi) {
+        const roditelj = cvor.parentNode ? cvor.parentNode.nodeName : '';
+        const tekst = cvor.nodeValue.replace(/\s+/g, ' ').trim();
+        if (roditelj === 'SCRIPT' || roditelj === 'STYLE' || !imaPrijevod(tekst)) continue;
+        const rubovi = cvor.nodeValue.match(/^(\s*)[\s\S]*?(\s*)$/);
+        cvor.nodeValue = rubovi[1] + PRIJEVODI_EN[tekst] + rubovi[2];
+      }
+      const elementi = [korijen, ...korijen.querySelectorAll('[placeholder],[title],[aria-label]')];
+      for (const el of elementi) {
+        for (const atribut of ['placeholder', 'title', 'aria-label']) {
+          const vrijednost = el.getAttribute ? el.getAttribute(atribut) : null;
+          if (vrijednost && imaPrijevod(vrijednost)) el.setAttribute(atribut, PRIJEVODI_EN[vrijednost]);
+        }
+      }
+    }
+
+    async function promijeniJezik(novi) {
+      if (novi === jezik) return;
+      try {
+        const odg = await apiFetch('/api/jezik', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: novi })
+        });
+        if (!odg.ok) {
+          const rez = await odg.json();
+          throw new Error(rez.error || t('Jezik nije promijenjen.'));
+        }
+        window.location.reload();
+      } catch (err) {
+        prikaziPoruku(t('Jezik nije promijenjen: {greska}', { greska: err.message }));
+      }
+    }
+    // PRIJEVOD: kraj
+
     // Ključ sesije dolazi u adresi stranice (?k=…). Bez njega poslužitelj odbija
     // svaki zahtjev, pa naredbe ne može slati druga stranica ni drugi program.
     const kljucSesije = new URLSearchParams(window.location.search).get('k') || '';
@@ -1783,10 +2174,10 @@
     // Učitavanje popisa: kratki zahtjevi ne prikazuju loader, a pogreška nije prazan popis.
     const ucitavanja = {};
     const prikaziUcitavanja = {
-      aplikacije: { naslov: 'Učitavam aplikacije…', opis: 'Prikupljam popis, ikonice i podatke o zauzeću.', iscrtaj: () => iscrtajAplikacije(), ponovi: () => ucitajAplikacije() },
-      ciscenje: { naslov: 'Pregledavam disk…', opis: 'Tražim stavke koje možete očistiti.', iscrtaj: () => { iscrtajCiscenje(); if (stanje.aktivniTab === 'napredni') iscrtajNapredneAlate(); }, ponovi: () => ucitajSkeniranje() },
-      prostor: { naslov: 'Mjerim zauzeće prostora…', opis: 'Zbrajam veličine mapa u vašoj korisničkoj mapi.', iscrtaj: () => iscrtajProstor(), ponovi: () => ucitajProstor(stanje.prostorPutanja || '') },
-      kos: { naslov: 'Učitavam Koš i povrat…', opis: 'Provjeravam stavke koje možete vratiti.', iscrtaj: () => iscrtajKos(), ponovi: () => ucitajKos() }
+      aplikacije: { naslov: t('Učitavam aplikacije…'), opis: t('Prikupljam popis, ikonice i podatke o zauzeću.'), iscrtaj: () => iscrtajAplikacije(), ponovi: () => ucitajAplikacije() },
+      ciscenje: { naslov: t('Pregledavam disk…'), opis: t('Tražim stavke koje možete očistiti.'), iscrtaj: () => { iscrtajCiscenje(); if (stanje.aktivniTab === 'napredni') iscrtajNapredneAlate(); }, ponovi: () => ucitajSkeniranje() },
+      prostor: { naslov: t('Mjerim zauzeće prostora…'), opis: t('Zbrajam veličine mapa u vašoj korisničkoj mapi.'), iscrtaj: () => iscrtajProstor(), ponovi: () => ucitajProstor(stanje.prostorPutanja || '') },
+      kos: { naslov: t('Učitavam Koš i povrat…'), opis: t('Provjeravam stavke koje možete vratiti.'), iscrtaj: () => iscrtajKos(), ponovi: () => ucitajKos() }
     };
 
     function zapocniUcitavanje(vrsta) {
@@ -1821,7 +2212,7 @@
       const unos = ucitavanja[vrsta];
       spremnik.setAttribute('aria-busy', String(!!unos?.aktivno));
       if (!unos || (!unos.aktivno && !unos.greska)) return false;
-      if (vrsta === 'aplikacije') document.getElementById('broj-aplikacija-tekst').textContent = unos.aktivno ? 'Učitavanje…' : 'Popis nije učitan';
+      if (vrsta === 'aplikacije') document.getElementById('broj-aplikacija-tekst').textContent = unos.aktivno ? t('Učitavanje…') : t('Popis nije učitan');
       if (unos.aktivno && !unos.vidljivo) return true;
       spremnik.replaceChildren();
       const kartica = document.createElement('div');
@@ -1841,7 +2232,7 @@
       const tekst = document.createElement('div');
       const naslov = document.createElement('div');
       naslov.className = 'loading-title';
-      naslov.textContent = unos.greska ? 'Učitavanje nije uspjelo.' : prikaziUcitavanja[vrsta].naslov;
+      naslov.textContent = unos.greska ? t('Učitavanje nije uspjelo.') : prikaziUcitavanja[vrsta].naslov;
       const opis = document.createElement('div');
       opis.className = 'loading-description';
       opis.textContent = unos.greska || prikaziUcitavanja[vrsta].opis;
@@ -1853,7 +2244,7 @@
         const gumb = document.createElement('button');
         gumb.type = 'button';
         gumb.className = 'btn';
-        gumb.textContent = 'Pokušaj ponovno';
+        gumb.textContent = t('Pokušaj ponovno');
         gumb.addEventListener('click', prikaziUcitavanja[vrsta].ponovi);
         spremnik.append(gumb);
       } else {
@@ -1863,7 +2254,7 @@
         obrisi.innerHTML = Array.from({ length: 3 }, () => '<div class="loading-row"><div class="loading-avatar"></div><div class="loading-lines"><div></div><div></div></div><div class="loading-size"></div></div>').join('');
         const poruka = document.createElement('div');
         poruka.className = 'loading-description';
-        poruka.textContent = unos.dulje ? 'Još učitavam podatke. Hvala na strpljenju.' : 'Prvi pregled može potrajati malo dulje.';
+        poruka.textContent = unos.dulje ? t('Još učitavam podatke. Hvala na strpljenju.') : t('Prvi pregled može potrajati malo dulje.');
         spremnik.append(obrisi, poruka);
       }
       return true;
@@ -1876,9 +2267,9 @@
         let greska = '';
         try {
           const odg = await apiFetch(url);
-          if (!odg.ok) throw new Error('Dohvat podataka nije uspio. Pokušajte ponovno.');
+          if (!odg.ok) throw new Error(t('Dohvat podataka nije uspio. Pokušajte ponovno.'));
           const podaci = await odg.json();
-          if (!Array.isArray(podaci)) throw new Error('Primljen je neispravan popis. Pokušajte ponovno.');
+          if (!Array.isArray(podaci)) throw new Error(t('Primljen je neispravan popis. Pokušajte ponovno.'));
           stanje[kljuc] = podaci;
           postaviBadge(badge, podaci.length);
         } catch (err) {
@@ -1897,11 +2288,13 @@
       const velicine = ['B', 'KB', 'MB', 'GB', 'TB'];
       const i = Math.floor(Math.log(bajti) / Math.log(k));
       const br = bajti / Math.pow(k, i);
-      return br.toFixed(i === 0 ? 0 : 1).replace('.', ',') + ' ' + velicine[i];
+      const broj = br.toFixed(i === 0 ? 0 : 1);
+      return (jezik === 'en' ? broj : broj.replace('.', ',')) + ' ' + velicine[i];
     }
 
     // Hrvatska gramatika za brojeve
     function uzBrojHR(broj, jedan, dva, pet) {
+      if (jezik === 'en' && PLURALI_EN[jedan]) return broj + ' ' + PLURALI_EN[jedan][Math.abs(broj) === 1 ? 0 : 1];
       const aps = Math.abs(broj);
       const mod100 = aps % 100;
       const mod10 = aps % 10;
@@ -2040,21 +2433,21 @@
 
       if (stanje.aktivniTab === 'kos') {
         const brOdabranih = stanje.odabraniKos.size;
-        trakaOdabrano.textContent = 'Odabrano ' + uzBrojHR(brOdabranih, 'stavka', 'stavke', 'stavki');
-        trakaHint.textContent = 'Vratite ih na izvorno mjesto ili ih trajno izbrišite.';
-        trakaGumbAkcija.textContent = 'Vrati odabrano';
+        trakaOdabrano.textContent = t('Odabrano {n}', { n: uzBrojHR(brOdabranih, 'stavka', 'stavke', 'stavki') });
+        trakaHint.textContent = t('Vratite ih na izvorno mjesto ili ih trajno izbrišite.');
+        trakaGumbAkcija.textContent = t('Vrati odabrano');
         trakaGumbAkcija.disabled = (brOdabranih === 0);
         trakaGumbTrajno.disabled = (brOdabranih === 0);
-        trakaGumbSve.textContent = (brOdabranih === stanje.kos.length && brOdabranih > 0) ? 'Odznači sve' : 'Odaberi sve';
+        trakaGumbSve.textContent = (brOdabranih === stanje.kos.length && brOdabranih > 0) ? t('Odznači sve') : t('Odaberi sve');
       } else {
         let zbroj = 0;
         for (const v of stanje.odabranePutanje.values()) zbroj += v;
         const brStavki = stanje.odabranePutanje.size;
-        trakaOdabrano.textContent = formatirajBajte(zbroj) + ' odabrano (' + uzBrojHR(brStavki, 'stavka', 'stavke', 'stavki') + ')';
-        trakaHint.textContent = 'Stavke se premještaju u Koš.';
-        trakaGumbAkcija.textContent = 'Očisti odabrano \u2192';
+        trakaOdabrano.textContent = t('{velicina} odabrano ({n})', { velicina: formatirajBajte(zbroj), n: uzBrojHR(brStavki, 'stavka', 'stavke', 'stavki') });
+        trakaHint.textContent = t('Stavke se premještaju u Koš.');
+        trakaGumbAkcija.textContent = t('Očisti odabrano \u2192');
         trakaGumbAkcija.disabled = (brStavki === 0);
-        trakaGumbSve.textContent = 'Odaberi sve';
+        trakaGumbSve.textContent = t('Odaberi sve');
       }
     }
 
@@ -2068,8 +2461,8 @@
       if (d) {
         const slobodno = d.avail_bytes !== undefined ? d.avail_bytes : (d.free_bytes !== undefined ? d.free_bytes : 0);
         const pctSlobodno = d.total_bytes > 0 ? Math.round((slobodno / d.total_bytes) * 100) : 0;
-        document.getElementById('disk-slobodno').textContent = formatirajBajte(slobodno) + ' slobodno';
-        document.getElementById('disk-ukupno').textContent = 'od ukupno ' + formatirajBajte(d.total_bytes) + ' (' + pctSlobodno + '% slobodno)';
+        document.getElementById('disk-slobodno').textContent = t('{velicina} slobodno', { velicina: formatirajBajte(slobodno) });
+        document.getElementById('disk-ukupno').textContent = t('od ukupno {ukupno} ({posto}% slobodno)', { ukupno: formatirajBajte(d.total_bytes), posto: pctSlobodno });
         
         let preporucenoBajta = 0;
         const sveKategorije = [
@@ -2089,13 +2482,13 @@
         document.getElementById('disk-bar-used').style.width = pctUsed.toFixed(1) + '%';
         document.getElementById('disk-bar-recoverable').style.width = pctRec.toFixed(1) + '%';
         
-        document.getElementById('hero-velicina').textContent = formatirajBajte(preporucenoBajta) + ' možete osloboditi';
+        document.getElementById('hero-velicina').textContent = t('{velicina} možete osloboditi', { velicina: formatirajBajte(preporucenoBajta) });
       }
 
       if (stanje.zadnjeSkeniranje) {
         const sat = String(stanje.zadnjeSkeniranje.getHours()).padStart(2, '0');
         const min = String(stanje.zadnjeSkeniranje.getMinutes()).padStart(2, '0');
-        document.getElementById('hero-vrijeme-skeniranja').textContent = 'Posljednji pregled: danas u ' + sat + ':' + min;
+        document.getElementById('hero-vrijeme-skeniranja').textContent = t('Posljednji pregled: danas u {vrijeme}', { vrijeme: sat + ':' + min });
       }
     }
 
@@ -2106,16 +2499,16 @@
       spremnik.replaceChildren();
 
       if (!stanje.izvjestaj) {
-        spremnik.innerHTML = '<div class="empty-state">Učitavanje pronađenih stavki…</div>';
+        spremnik.innerHTML = '<div class="empty-state">' + t('Učitavanje pronađenih stavki…') + '</div>';
         return;
       }
 
       const kategorije = [
-        { kljuc: 'system_caches', naziv: 'Predmemorija sustava', opis: 'Sustavski zapisnici i privremeni podaci macOS-a.', stavke: (stanje.izvjestaj.system_caches || stanje.izvjestaj.system_cache || []) },
-        { kljuc: 'dev_ai_junk', naziv: 'Razvojna i AI predmemorija', opis: 'Preuzeti paketi alata, simulatori i završene AI sesije.', stavke: (stanje.izvjestaj.dev_ai_junk || []) },
-        { kljuc: 'leftovers', naziv: 'Ostaci uklonjenih aplikacija', opis: 'Podaci aplikacija koje više nisu instalirane na Macu.', stavke: (stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers || []) },
-        { kljuc: 'backups_attachments', naziv: 'Sigurnosne kopije i privici', opis: 'Stare iOS sigurnosne kopije i preuzeti Mail privici.', stavke: (stanje.izvjestaj.backups_attachments || []) },
-        { kljuc: 'installers', naziv: 'Stare instalacijske datoteke', opis: 'Preuzeti instaleri (.dmg, .pkg, .iso) u mapi Preuzimanja.', stavke: (stanje.izvjestaj.installers || stanje.izvjestaj.installer_files || []) }
+        { kljuc: 'system_caches', naziv: t('Predmemorija sustava'), opis: t('Sustavski zapisnici i privremeni podaci macOS-a.'), stavke: (stanje.izvjestaj.system_caches || stanje.izvjestaj.system_cache || []) },
+        { kljuc: 'dev_ai_junk', naziv: t('Razvojna i AI predmemorija'), opis: t('Preuzeti paketi alata, simulatori i završene AI sesije.'), stavke: (stanje.izvjestaj.dev_ai_junk || []) },
+        { kljuc: 'leftovers', naziv: t('Ostaci uklonjenih aplikacija'), opis: t('Podaci aplikacija koje više nisu instalirane na Macu.'), stavke: (stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers || []) },
+        { kljuc: 'backups_attachments', naziv: t('Sigurnosne kopije i privici'), opis: t('Stare iOS sigurnosne kopije i preuzeti Mail privici.'), stavke: (stanje.izvjestaj.backups_attachments || []) },
+        { kljuc: 'installers', naziv: t('Stare instalacijske datoteke'), opis: t('Preuzeti instaleri (.dmg, .pkg, .iso) u mapi Preuzimanja.'), stavke: (stanje.izvjestaj.installers || stanje.izvjestaj.installer_files || []) }
       ];
 
       let ukupnoPreporucenih = 0;
@@ -2167,7 +2560,7 @@
             preporukaOznaka.style.background = 'var(--primary-subtle)';
             preporukaOznaka.style.padding = '1px 6px';
             preporukaOznaka.style.borderRadius = '4px';
-            preporukaOznaka.textContent = 'Preporučeno';
+            preporukaOznaka.textContent = t('Preporučeno');
             naslovRed.appendChild(preporukaOznaka);
           }
 
@@ -2184,8 +2577,8 @@
           const infoGumb = document.createElement('button');
           infoGumb.type = 'button';
           infoGumb.className = 'item-action-icon';
-          infoGumb.title = 'Prikaži stablo izvora i pojedinosti';
-          infoGumb.setAttribute('aria-label', 'Stablo izvora i pojedinosti za ' + st.name);
+          infoGumb.title = t('Prikaži stablo izvora i pojedinosti');
+          infoGumb.setAttribute('aria-label', t('Stablo izvora i pojedinosti za {ime}', { ime: st.name }));
           infoGumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
           infoGumb.addEventListener('mouseenter', (e) => prikaziStabloPopover(e, st));
           infoGumb.addEventListener('mouseleave', sakrijStabloPopover);
@@ -2197,7 +2590,7 @@
       }
 
       if (prikazanoStavki === 0) {
-        spremnik.innerHTML = '<div class="empty-state">Nema stavki za prikaz u ovom filtru. Vaš Mac je već čist!</div>';
+        spremnik.innerHTML = '<div class="empty-state">' + t('Nema stavki za prikaz u ovom filtru. Vaš Mac je već čist!') + '</div>';
       }
 
       osvjeziSazetakCiscenja(ukupnoPreporucenih);
@@ -2207,8 +2600,7 @@
       let zbroj = 0;
       for (const v of stanje.odabranePutanje.values()) zbroj += v;
       document.getElementById('ciscenje-sazetak-tekst').textContent =
-        uzBrojHR(brPreporucenih, 'preporučena stavka', 'preporučene stavke', 'preporučenih stavki') +
-        ' \u00B7 ' + formatirajBajte(zbroj) + ' odabrano';
+        t('{n} \u00B7 {velicina} odabrano', { n: uzBrojHR(brPreporucenih, 'preporučena stavka', 'preporučene stavke', 'preporučenih stavki'), velicina: formatirajBajte(zbroj) });
     }
 
     // 3. ISCRTAVANJE: APLIKACIJE
@@ -2226,7 +2618,7 @@
       document.getElementById('broj-aplikacija-tekst').textContent = uzBrojHR(filtrirane.length, 'aplikacija', 'aplikacije', 'aplikacija');
 
       if (filtrirane.length === 0) {
-        spremnik.innerHTML = '<div class="empty-state">Nije pronađena nijedna aplikacija prema zadanom pojmu pretrage.</div>';
+        spremnik.innerHTML = '<div class="empty-state">' + t('Nije pronađena nijedna aplikacija prema zadanom pojmu pretrage.') + '</div>';
         return;
       }
 
@@ -2268,7 +2660,7 @@
         opis.className = 'item-desc';
         const povezaneBroj = (app.related_paths || []).length;
         opis.textContent = (app.bundle_id ? app.bundle_id + ' \u00B7 ' + uzBrojHR(povezaneBroj, 'pripadajuća mapa', 'pripadajuće mape', 'pripadajućih mapa') : app.app_path) +
-          (app.needs_admin ? ' \u00B7 uklanjanje traži lozinku' : '');
+          (app.needs_admin ? t(' \u00B7 uklanjanje traži lozinku') : '');
 
         tijelo.append(naslov, opis);
 
@@ -2279,8 +2671,8 @@
         const infoGumb = document.createElement('button');
         infoGumb.type = 'button';
         infoGumb.className = 'item-action-icon';
-        infoGumb.title = 'Stablo izvora aplikacije i knjižnice';
-        infoGumb.setAttribute('aria-label', 'Stablo izvora za ' + app.name);
+        infoGumb.title = t('Stablo izvora aplikacije i knjižnice');
+        infoGumb.setAttribute('aria-label', t('Stablo izvora za {ime}', { ime: app.name }));
         infoGumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
         const appMeta = stvoriStabloZaAplikaciju(app);
         infoGumb.addEventListener('mouseenter', (e) => prikaziStabloPopover(e, appMeta));
@@ -2290,7 +2682,7 @@
         const gumbPregled = document.createElement('button');
         gumbPregled.type = 'button';
         gumbPregled.className = 'btn btn-sm';
-          gumbPregled.textContent = 'Ukloni';
+          gumbPregled.textContent = t('Ukloni');
         gumbPregled.addEventListener('click', () => zatraziPotvrduDeinstalacije(app));
 
         red.append(avatar, tijelo, velicina, infoGumb, gumbPregled);
@@ -2320,8 +2712,8 @@
       if (!stanje.aktivniNapredniAlat) {
         mreza.style.display = 'flex';
         podprikaz.style.display = 'none';
-        naslov.textContent = 'Napredni alati, jasno objašnjeni.';
-        podnaslov.textContent = 'Dodatno čišćenje i održavanje kada vam zatreba.';
+        naslov.textContent = t('Napredni alati, jasno objašnjeni.');
+        podnaslov.textContent = t('Dodatno čišćenje i održavanje kada vam zatreba.');
         document.getElementById('donja-akcijska-traka').style.display = 'none';
         return;
       }
@@ -2344,10 +2736,10 @@
 
     function iscrtajAlatStavke(alatKljuc, spremnik) {
       const mapaNaziva = {
-        dev_ai: { naslov: 'Razvojni i AI alati', opis: 'Međuspremnici programskih jezika, simulatori i Claude radne sesije.', stavke: (stanje.izvjestaj && stanje.izvjestaj.dev_ai_junk) || [] },
-        ostaci: { naslov: 'Ostaci uklonjenih aplikacija', opis: 'Zaostale mape aplikacija koje su uklonjene iz mape Applications.', stavke: (stanje.izvjestaj && (stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers)) || [] },
-        kopije: { naslov: 'Kopije i privici', opis: 'Stare lokalne iOS sigurnosne kopije i Mail privici.', stavke: (stanje.izvjestaj && stanje.izvjestaj.backups_attachments) || [] },
-        instaleri: { naslov: 'Stari instaleri u Preuzimanjima', opis: 'Instalacijske datoteke (.dmg, .pkg, .iso, .xip) u ~/Downloads.', stavke: (stanje.izvjestaj && (stanje.izvjestaj.installers || stanje.izvjestaj.installer_files)) || [] }
+        dev_ai: { naslov: t('Razvojni i AI alati'), opis: t('Međuspremnici programskih jezika, simulatori i Claude radne sesije.'), stavke: (stanje.izvjestaj && stanje.izvjestaj.dev_ai_junk) || [] },
+        ostaci: { naslov: t('Ostaci uklonjenih aplikacija'), opis: t('Zaostale mape aplikacija koje su uklonjene iz mape Applications.'), stavke: (stanje.izvjestaj && (stanje.izvjestaj.leftovers || stanje.izvjestaj.app_leftovers)) || [] },
+        kopije: { naslov: t('Kopije i privici'), opis: t('Stare lokalne iOS sigurnosne kopije i Mail privici.'), stavke: (stanje.izvjestaj && stanje.izvjestaj.backups_attachments) || [] },
+        instaleri: { naslov: t('Stari instaleri u Preuzimanjima'), opis: t('Instalacijske datoteke (.dmg, .pkg, .iso, .xip) u ~/Downloads.'), stavke: (stanje.izvjestaj && (stanje.izvjestaj.installers || stanje.izvjestaj.installer_files)) || [] }
       };
 
       const meta = mapaNaziva[alatKljuc];
@@ -2363,7 +2755,7 @@
       if (meta.stavke.length === 0) {
         const prazno = document.createElement('div');
         prazno.className = 'empty-state';
-        prazno.textContent = 'Nema pronađenih stavki za ovu kategoriju.';
+        prazno.textContent = t('Nema pronađenih stavki za ovu kategoriju.');
         spremnik.appendChild(prazno);
         return;
       }
@@ -2402,8 +2794,8 @@
         const infoGumb = document.createElement('button');
         infoGumb.type = 'button';
         infoGumb.className = 'item-action-icon';
-        infoGumb.title = 'Prikaži stablo izvora i pojedinosti';
-        infoGumb.setAttribute('aria-label', 'Stablo izvora i pojedinosti za ' + st.name);
+        infoGumb.title = t('Prikaži stablo izvora i pojedinosti');
+        infoGumb.setAttribute('aria-label', t('Stablo izvora i pojedinosti za {ime}', { ime: st.name }));
         infoGumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
         infoGumb.addEventListener('mouseenter', (e) => prikaziStabloPopover(e, st));
         infoGumb.addEventListener('mouseleave', sakrijStabloPopover);
@@ -2415,8 +2807,8 @@
     }
 
     function iscrtajAlatSustav(spremnik) {
-      document.getElementById('napredni-naslov').textContent = 'Održavanje sustava i pokretači';
-      document.getElementById('napredni-podnaslov').textContent = 'Brzo osvježavanje predmemorije macOS-a i upravljanje zaostalim pokretačima.';
+      document.getElementById('napredni-naslov').textContent = t('Održavanje sustava i pokretači');
+      document.getElementById('napredni-podnaslov').textContent = t('Brzo osvježavanje predmemorije macOS-a i upravljanje zaostalim pokretačima.');
       document.getElementById('napredni-podnaslov-info').textContent = '';
 
       // Grid brzih akcija sustava
@@ -2431,6 +2823,7 @@
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">Prazni macOS mrežni DNS međuspremnik (dscacheutil -flushcache). Rješava probleme sa zastarjelim IP adresama.</p>
         <button type="button" class="btn btn-sm btn-primary" id="akcija-dns">Isprazni DNS</button>
       `;
+      prevediElement(dnsKarta);
       dnsKarta.querySelector('#akcija-dns').addEventListener('click', () => pokreniOptimizaciju('dns'));
 
       // 2. QuickLook
@@ -2441,6 +2834,7 @@
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">Resetira predmemoriju pregleda i ikona (qlmanage -r cache && qlmanage -r). Ispravlja neispravne sličice.</p>
         <button type="button" class="btn btn-sm btn-primary" id="akcija-ql">Osvježi QuickLook</button>
       `;
+      prevediElement(qlKarta);
       qlKarta.querySelector('#akcija-ql').addEventListener('click', () => pokreniOptimizaciju('quicklook'));
 
       // 3. APFS Snimke
@@ -2450,9 +2844,10 @@
       tmKarta.innerHTML = `
         <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Oslobodi APFS snimke (Time Machine)</div>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">Proređuje lokalne APFS snimke (tmutil thinlocalsnapshots /). Vraća prostor iz System Data.</p>
-        <div style="font-size: 0.74rem; color: var(--primary); margin-bottom: 14px;">Pronađeno: ${uzBrojHR(brSnimaka, 'lokalna snimka', 'lokalne snimke', 'lokalnih snimaka')}</div>
+        <div style="font-size: 0.74rem; color: var(--primary); margin-bottom: 14px;">${t('Pronađeno: {n}', { n: uzBrojHR(brSnimaka, 'lokalna snimka', 'lokalne snimke', 'lokalnih snimaka') })}</div>
         <button type="button" class="btn btn-sm btn-primary" id="akcija-tm">Oslobodi snimke</button>
       `;
+      prevediElement(tmKarta);
       tmKarta.querySelector('#akcija-tm').addEventListener('click', async () => {
         await pokreniOptimizaciju('snapshots');
         await ucitajSnimke();
@@ -2465,12 +2860,13 @@
       aerKarta.innerHTML = `
         <div style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">4K Zračne Pozadine i Čuvari (Aerials)</div>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">macOS preuzima 4K videozapise iz zraka (često 40+ GB). Ovdje možete osloboditi prostor.</p>
-        <div style="font-size: 0.74rem; color: var(--primary); margin-bottom: 14px;">Pronađeno: ${uzBrojHR(ae.video_count, 'videozapis', 'videozapisa', 'videozapisa')} (${formatirajBajte(ae.total_bytes)})</div>
+        <div style="font-size: 0.74rem; color: var(--primary); margin-bottom: 14px;">${t('Pronađeno: {n} ({velicina})', { n: uzBrojHR(ae.video_count, 'videozapis', 'videozapisa', 'videozapisa'), velicina: formatirajBajte(ae.total_bytes) })}</div>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn btn-sm btn-primary" id="akcija-aer-ocisti">Očisti pozadine</button>
           <button type="button" class="btn btn-sm" id="akcija-aer-otvori">Prikaži u Finderu</button>
         </div>
       `;
+      prevediElement(aerKarta);
       aerKarta.querySelector('#akcija-aer-ocisti').addEventListener('click', async () => {
         await pokreniOptimizaciju('aerials');
         await ucitajAerials();
@@ -2485,6 +2881,7 @@
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">Briše stare i nedostupne iOS/watchOS simulatore čiji runtime više nije instaliran u Xcodeu.</p>
         <button type="button" class="btn btn-sm btn-primary" id="akcija-sim">Očisti nedostupne</button>
       `;
+      prevediElement(simKarta);
       simKarta.querySelector('#akcija-sim').addEventListener('click', async () => {
         await pokreniOptimizaciju('simulators');
         await ucitajSkeniranje();
@@ -2499,7 +2896,7 @@
       pokretaciNaslov.style.fontWeight = '600';
       pokretaciNaslov.style.marginTop = '24px';
       pokretaciNaslov.style.marginBottom = '12px';
-      pokretaciNaslov.textContent = 'Zaostali pokretači programa (LaunchAgents)';
+      pokretaciNaslov.textContent = t('Zaostali pokretači programa (LaunchAgents)');
       spremnik.appendChild(pokretaciNaslov);
 
       const sirocad = (stanje.pokretaci || []).filter(p => p.status === 'siroce');
@@ -2510,9 +2907,10 @@
         sirocadBar.style.alignItems = 'center';
         sirocadBar.style.marginBottom = '10px';
         sirocadBar.innerHTML = `
-          <span style="font-size: 0.84rem; color: var(--danger); font-weight: 600;">Pronađeno: ${uzBrojHR(sirocad.length, 'zaostali pokretač', 'zaostala pokretača', 'zaostalih pokretača')}</span>
+          <span style="font-size: 0.84rem; color: var(--danger); font-weight: 600;">${t('Pronađeno: {n}', { n: uzBrojHR(sirocad.length, 'zaostali pokretač', 'zaostala pokretača', 'zaostalih pokretača') })}</span>
           <button type="button" class="btn btn-sm btn-primary" id="gumb-ukloni-sve-pokretace">Ukloni sve zaostale pokretače</button>
         `;
+        prevediElement(sirocadBar);
         sirocadBar.querySelector('#gumb-ukloni-sve-pokretace').addEventListener('click', () => zatraziPotvrduUklanjanjaSvihSirocadi(sirocad));
         spremnik.appendChild(sirocadBar);
       }
@@ -2530,7 +2928,7 @@
 
         const opis = document.createElement('span');
         opis.className = 'item-desc';
-        opis.textContent = p.status === 'siroce' ? 'Program više ne postoji na disku: ' + p.program_path : (p.description || p.plist_path);
+        opis.textContent = p.status === 'siroce' ? t('Program više ne postoji na disku: {putanja}', { putanja: p.program_path }) : (p.description || p.plist_path);
 
         tijelo.append(naslov, opis);
 
@@ -2542,11 +2940,11 @@
         if (p.status === 'siroce') {
           statusTag.style.background = 'rgba(238, 107, 97, 0.15)';
           statusTag.style.color = 'var(--danger)';
-          statusTag.textContent = 'Zaostao';
+          statusTag.textContent = t('Zaostao');
         } else {
           statusTag.style.background = 'var(--bg-card-subtle)';
           statusTag.style.color = 'var(--text-muted)';
-          statusTag.textContent = 'Aktivan';
+          statusTag.textContent = t('Aktivan');
         }
 
         red.append(tijelo, statusTag);
@@ -2555,7 +2953,7 @@
           const gumbUkloni = document.createElement('button');
           gumbUkloni.type = 'button';
           gumbUkloni.className = 'btn btn-sm';
-          gumbUkloni.textContent = 'Ukloni';
+          gumbUkloni.textContent = t('Ukloni');
           gumbUkloni.addEventListener('click', () => zatraziPotvrduUklanjanjaPokretaca(p));
           red.appendChild(gumbUkloni);
         }
@@ -2573,20 +2971,19 @@
       poruka.textContent = tekst;
       const uputa = document.createElement('div');
       uputa.className = 'item-desc';
-      uputa.textContent = 'U Postavkama sustava uključite PometiME pod Potpuni pristup disku, zatim zatvorite PometiME i otvorite ga ponovno. ' +
-        'Ako je već uključen, a ova poruka ostaje, maknite PometiME s popisa tipkom \u2212 i dodajte ga ponovno tipkom +.';
+      uputa.textContent = t('U Postavkama sustava uključite PometiME pod Potpuni pristup disku, zatim zatvorite PometiME i otvorite ga ponovno. ' +
+        'Ako je već uključen, a ova poruka ostaje, maknite PometiME s popisa tipkom \u2212 i dodajte ga ponovno tipkom +.');
       const gumb = document.createElement('button');
       gumb.type = 'button';
       gumb.className = 'btn btn-sm';
-      gumb.textContent = 'Otvori Postavke sustava';
+      gumb.textContent = t('Otvori Postavke sustava');
       gumb.addEventListener('click', otvoriPostavkeDozvole);
       okvir.append(poruka, uputa, gumb);
       return okvir;
     }
 
     function tekstNedostupnihMapa(mape) {
-      return 'PometiME ne vidi sve. Bez Potpunog pristupa disku macOS ne da pročitati ove podatke: ' +
-        mape.map(m => m.name).join(', ') + '.';
+      return t('PometiME ne vidi sve. Bez Potpunog pristupa disku macOS ne da pročitati ove podatke: {mape}.', { mape: mape.map(m => m.name).join(', ') });
     }
 
     async function otvoriPostavkeDozvole() {
@@ -2598,10 +2995,10 @@
         });
         if (!odg.ok) {
           const rez = await odg.json();
-          throw new Error(rez.error || 'Postavke nisu otvorene.');
+          throw new Error(rez.error || t('Postavke nisu otvorene.'));
         }
       } catch (err) {
-        prikaziPoruku('Postavke sustava nisu otvorene: ' + err.message);
+        prikaziPoruku(t('Postavke sustava nisu otvorene: {greska}', { greska: err.message }));
       }
     }
 
@@ -2613,7 +3010,7 @@
         const popis = await odg.json();
         stanje.razvojniAlati = { ucitava: false, popis: Array.isArray(popis) ? popis : [] };
       } catch (err) {
-        stanje.razvojniAlati = { ucitava: false, popis: [], greska: 'Alati nisu provjereni: ' + err.message };
+        stanje.razvojniAlati = { ucitava: false, popis: [], greska: t('Alati nisu provjereni: {greska}', { greska: err.message }) };
       }
       if (stanje.aktivniTab === 'napredni' && stanje.aktivniNapredniAlat === 'dev_ai') iscrtajNapredneAlate();
     }
@@ -2621,10 +3018,10 @@
     function iscrtajNaredbeAlata(spremnik) {
       const naslov = document.createElement('div');
       naslov.className = 'item-title';
-      naslov.textContent = 'Čišćenje naredbama alata';
+      naslov.textContent = t('Čišćenje naredbama alata');
       const uputa = document.createElement('div');
       uputa.className = 'item-desc';
-      uputa.textContent = 'Alat sam briše ono što mu više ne treba. Brisanje je trajno, stavke ne idu u Koš.';
+      uputa.textContent = t('Alat sam briše ono što mu više ne treba. Brisanje je trajno, stavke ne idu u Koš.');
       spremnik.append(naslov, uputa);
 
       if (!stanje.razvojniAlati) ucitajRazvojneAlate();
@@ -2632,7 +3029,7 @@
       if (ra.ucitava || ra.greska || ra.popis.length === 0) {
         const poruka = document.createElement('div');
         poruka.className = 'item-desc';
-        poruka.textContent = ra.ucitava ? 'Provjeravam instalirane alate\u2026' : (ra.greska || 'Nije pronađen nijedan podržani alat (Homebrew, Go, pnpm).');
+        poruka.textContent = ra.ucitava ? t('Provjeravam instalirane alate\u2026') : (ra.greska || t('Nije pronađen nijedan podržani alat (Homebrew, Go, pnpm).'));
         spremnik.appendChild(poruka);
         return;
       }
@@ -2659,7 +3056,7 @@
         const gumb = document.createElement('button');
         gumb.type = 'button';
         gumb.className = 'btn btn-sm btn-opasno';
-        gumb.textContent = 'Pokreni';
+        gumb.textContent = t('Pokreni');
         gumb.disabled = !alat.can_clean;
         gumb.addEventListener('click', () => zatraziPotvrduNaredbeAlata(alat));
 
@@ -2669,28 +3066,28 @@
       const razdjelnik = document.createElement('div');
       razdjelnik.className = 'item-title';
       razdjelnik.style.marginTop = '8px';
-      razdjelnik.textContent = 'Mape koje idu u Koš';
+      razdjelnik.textContent = t('Mape koje idu u Koš');
       spremnik.appendChild(razdjelnik);
     }
 
     function zatraziPotvrduNaredbeAlata(alat) {
       otvoriDijalogPotvrde(
-        'Pokrenuti ' + alat.command + '?',
-        alat.estimate + '\n\nNaredba trajno briše datoteke. One ne idu u Koš i ne mogu se vratiti.',
-        'Pokreni naredbu',
+        t('Pokrenuti {naredba}?', { naredba: alat.command }),
+        alat.estimate + '\n\n' + t('Naredba trajno briše datoteke. One ne idu u Koš i ne mogu se vratiti.'),
+        t('Pokreni naredbu'),
         async () => {
           try {
-            prikaziPoruku('Pokrećem ' + alat.command + '\u2026 Ovo može potrajati nekoliko minuta.');
+            prikaziPoruku(t('Pokrećem {naredba}\u2026 Ovo može potrajati nekoliko minuta.', { naredba: alat.command }));
             const odg = await apiFetch('/api/razvojni-alati/ocisti', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ id: alat.id })
             });
             const rez = await odg.json();
-            if (!odg.ok) throw new Error(rez.error || 'Naredba nije uspjela.');
+            if (!odg.ok) throw new Error(rez.error || t('Naredba nije uspjela.'));
             prikaziPoruku(rez.message);
           } catch (err) {
-            prikaziPoruku('Naredba nije uspjela: ' + err.message);
+            prikaziPoruku(t('Naredba nije uspjela: {greska}', { greska: err.message }));
           }
           stanje.razvojniAlati = null;
           await ucitajSkeniranje();
@@ -2707,7 +3104,7 @@
         try {
           const odg = await apiFetch('/api/prostor?putanja=' + encodeURIComponent(putanja) + (osvjezi ? '&osvjezi=1' : ''));
           const podaci = await odg.json();
-          if (!odg.ok) throw new Error(podaci.error || 'Mjerenje nije uspjelo. Pokušajte ponovno.');
+          if (!odg.ok) throw new Error(podaci.error || t('Mjerenje nije uspjelo. Pokušajte ponovno.'));
           stanje.prostor = podaci;
           stanje.prostorPutanja = podaci.path;
         } catch (err) {
@@ -2731,17 +3128,17 @@
       const iz = stanje.prostor;
       if (!iz) return;
 
-      document.getElementById('prostor-naslov').textContent = iz.parent ? iz.name : 'Korisnička mapa (' + iz.name + ')';
+      document.getElementById('prostor-naslov').textContent = iz.parent ? iz.name : t('Korisnička mapa ({ime})', { ime: iz.name });
       document.getElementById('prostor-putanja').textContent = iz.path;
       document.getElementById('prostor-ukupno').textContent = formatirajBajte(iz.size_bytes);
-      document.getElementById('prostor-izmjereno').textContent = 'Izmjereno u ' + iz.measured_at;
+      document.getElementById('prostor-izmjereno').textContent = t('Izmjereno u {vrijeme}', { vrijeme: iz.measured_at });
       document.getElementById('prostor-gumb-natrag').style.display = iz.parent ? 'inline-flex' : 'none';
       document.getElementById('prostor-upozorenje-dozvole').replaceChildren(...(iz.blocked_count > 0
-        ? [napraviUpozorenjeDozvole(uzBrojHR(iz.blocked_count, 'mapa nije izmjerena', 'mape nisu izmjerene', 'mapa nije izmjereno') + ' jer ih macOS ne da pročitati. Ukupna veličina zato može biti manja od stvarne.')]
+        ? [napraviUpozorenjeDozvole(t('{n} jer ih macOS ne da pročitati. Ukupna veličina zato može biti manja od stvarne.', { n: uzBrojHR(iz.blocked_count, 'mapa nije izmjerena', 'mape nisu izmjerene', 'mapa nije izmjereno') }))]
         : []));
 
       if (!iz.items || iz.items.length === 0) {
-        spremnik.innerHTML = '<div class="empty-state">Ova mapa je prazna.</div>';
+        spremnik.innerHTML = '<div class="empty-state">' + t('Ova mapa je prazna.') + '</div>';
         return;
       }
       for (const st of iz.items) {
@@ -2755,13 +3152,13 @@
         naslov.textContent = (st.is_dir ? '\uD83D\uDCC1 ' : '\uD83D\uDCC4 ') + st.name;
         if (st.is_dir) {
           naslov.type = 'button';
-          naslov.title = 'Otvori mapu ' + st.name;
+          naslov.title = t('Otvori mapu {ime}', { ime: st.name });
           naslov.addEventListener('click', () => ucitajProstor(st.path));
         }
         const udio = udioProstora(st.size_bytes, iz.size_bytes);
         const opis = document.createElement('span');
         opis.className = 'item-desc';
-        opis.textContent = Math.round(udio) + ' % ove mape';
+        opis.textContent = t('{posto} % ove mape', { posto: Math.round(udio) });
         const traka = document.createElement('div');
         traka.className = 'prostor-traka';
         const ispuna = document.createElement('div');
@@ -2776,7 +3173,7 @@
         const finder = document.createElement('button');
         finder.type = 'button';
         finder.className = 'btn btn-sm';
-        finder.textContent = 'Prikaži u Finderu';
+        finder.textContent = t('Prikaži u Finderu');
         finder.addEventListener('click', () => prikaziUFinderu(st.path));
 
         red.append(tijelo, velicina, finder);
@@ -2785,7 +3182,7 @@
       if (iz.hidden_count > 0) {
         const ostalo = document.createElement('div');
         ostalo.className = 'item-desc';
-        ostalo.textContent = 'I još ' + uzBrojHR(iz.hidden_count, 'manja stavka', 'manje stavke', 'manjih stavki') + ' (' + formatirajBajte(iz.hidden_bytes) + ').';
+        ostalo.textContent = t('I još {n} ({velicina}).', { n: uzBrojHR(iz.hidden_count, 'manja stavka', 'manje stavke', 'manjih stavki'), velicina: formatirajBajte(iz.hidden_bytes) });
         spremnik.appendChild(ostalo);
       }
     }
@@ -2799,10 +3196,10 @@
         });
         if (!odg.ok) {
           const rez = await odg.json();
-          throw new Error(rez.error || 'Finder nije otvoren.');
+          throw new Error(rez.error || t('Finder nije otvoren.'));
         }
       } catch (err) {
-        prikaziPoruku('Finder nije otvoren: ' + err.message);
+        prikaziPoruku(t('Finder nije otvoren: {greska}', { greska: err.message }));
       }
     }
 
@@ -2818,11 +3215,11 @@
       const naslov = kartica.querySelector('.quick-card-title span');
       const opis = kartica.querySelector('.quick-card-desc');
       if (zbroj > 0) {
-        naslov.textContent = 'U Košu čeka ' + formatirajBajte(zbroj) + ' \u2192';
-        opis.textContent = 'Taj prostor oslobađate tek kad stavke trajno izbrišete.';
+        naslov.textContent = t('U Košu čeka {velicina} \u2192', { velicina: formatirajBajte(zbroj) });
+        opis.textContent = t('Taj prostor oslobađate tek kad stavke trajno izbrišete.');
       } else {
-        naslov.textContent = 'Vratite očišćene stavke \u2192';
-        opis.textContent = 'Pronađite ih i jednim klikom vratite iz Koša.';
+        naslov.textContent = t('Vratite očišćene stavke \u2192');
+        opis.textContent = t('Pronađite ih i jednim klikom vratite iz Koša.');
       }
     }
 
@@ -2842,10 +3239,10 @@
       const brojStarih = stareStavkeKosa().length;
       const gumbStarije = document.getElementById('kos-gumb-starije');
       gumbStarije.style.display = brojStarih > 0 ? 'inline-flex' : 'none';
-      gumbStarije.textContent = 'Odaberi starije od 7 dana (' + brojStarih + ')';
+      gumbStarije.textContent = t('Odaberi starije od 7 dana ({n})', { n: brojStarih });
 
       if (!stanje.kos || stanje.kos.length === 0) {
-        spremnik.innerHTML = '<div class="empty-state">Koš PometiME je prazan. Ovdje se pojavljuju očišćene stavke koje možete vratiti.</div>';
+        spremnik.innerHTML = '<div class="empty-state">' + t('Koš PometiME je prazan. Ovdje se pojavljuju očišćene stavke koje možete vratiti.') + '</div>';
         return;
       }
 
@@ -2874,9 +3271,9 @@
         opis.className = 'item-desc';
         const dana = st.days_in_trash || 0;
         const starost = document.createElement('span');
-        starost.textContent = dana > 0 ? 'U Košu ' + uzBrojHR(dana, 'dan', 'dana', 'dana') : 'U Košu od danas';
+        starost.textContent = dana > 0 ? t('U Košu {n}', { n: uzBrojHR(dana, 'dan', 'dana', 'dana') }) : t('U Košu od danas');
         if (dana >= DANA_DO_STARE_STAVKE) starost.className = 'stavka-stara';
-        opis.append(starost, ' \u00B7 Izvorna lokacija: ' + (st.original_path || 'nepoznato'));
+        opis.append(starost, t(' \u00B7 Izvorna lokacija: {putanja}', { putanja: st.original_path || t('nepoznato') }));
 
         tijelo.append(naslov, opis);
 
@@ -2887,8 +3284,8 @@
         const infoGumb = document.createElement('button');
         infoGumb.type = 'button';
         infoGumb.className = 'item-action-icon';
-        infoGumb.title = 'Prikaži stablo i lokaciju';
-        infoGumb.setAttribute('aria-label', 'Stablo i lokacija za ' + st.name);
+        infoGumb.title = t('Prikaži stablo i lokaciju');
+        infoGumb.setAttribute('aria-label', t('Stablo i lokacija za {ime}', { ime: st.name }));
         infoGumb.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
         const kosMeta = {
           name: st.name,
@@ -2990,7 +3387,7 @@
       document.getElementById('popover-putanja').textContent = meta.path || '';
 
       const stabloKontejner = document.getElementById('popover-stablo');
-      stabloKontejner.innerHTML = '<div style="color: var(--text-muted); padding: 8px 0;">Učitavanje stabla izvora...</div>';
+      stabloKontejner.innerHTML = '<div style="color: var(--text-muted); padding: 8px 0;">' + t('Učitavanje stabla izvora...') + '</div>';
 
       const popoverWidth = 440;
       let top = rect.bottom + 8;
@@ -3008,7 +3405,7 @@
       } else if (meta.path) {
         dohvatiStablo(meta.path).then(data => {
           if (!data || !data.items || data.items.length === 0) {
-            stabloKontejner.innerHTML = '<div style="color: var(--text-muted); padding: 6px 0;">Pojedinačna datoteka: ' + meta.path + '</div>';
+            stabloKontejner.innerHTML = '<div style="color: var(--text-muted); padding: 6px 0;">' + escapirajHtml(t('Pojedinačna datoteka: {putanja}', { putanja: meta.path })) + '</div>';
             return;
           }
           stabloKontejner.innerHTML = iscrtajStabloHtml(data.items);
@@ -3027,12 +3424,12 @@
     function otvoriDijalogDetalji(st) {
       const d = document.getElementById('detalji-dijalog');
       document.getElementById('detalji-naslov').textContent = st.name;
-      document.getElementById('detalji-opis').textContent = st.description || 'Pronađena stavka na disku sa stablom izvora.';
+      document.getElementById('detalji-opis').textContent = st.description || t('Pronađena stavka na disku sa stablom izvora.');
       document.getElementById('detalji-ukupno-bajta').textContent = formatirajBajte(st.size_bytes);
 
       const popisPutanja = document.getElementById('detalji-popis-putanja');
-      popisPutanja.innerHTML = '<div style="color: var(--text-muted); padding: 8px;">Učitavanje stabla izvora...</div>';
-      document.getElementById('detalji-lokacija').textContent = 'Lokacija: ' + (st.path || 'Različite mape sustava');
+      popisPutanja.innerHTML = '<div style="color: var(--text-muted); padding: 8px;">' + t('Učitavanje stabla izvora...') + '</div>';
+      document.getElementById('detalji-lokacija').textContent = t('Lokacija: {putanja}', { putanja: st.path || t('Različite mape sustava') });
 
       if (st.items) {
         document.getElementById('detalji-broj-stavki').textContent = uzBrojHR(st.items.length, 'povezana putanja', 'povezane putanje', 'povezanih putanja');
@@ -3040,7 +3437,7 @@
       } else if (st.path) {
         dohvatiStablo(st.path).then(data => {
           if (!data || !data.items || data.items.length === 0) {
-            document.getElementById('detalji-broj-stavki').textContent = '1 datoteka';
+            document.getElementById('detalji-broj-stavki').textContent = t('1 datoteka');
             popisPutanja.innerHTML = '<div class="path-row"><span>' + escapirajHtml(st.path) + '</span><span>' + formatirajBajte(st.size_bytes) + '</span></div>';
             return;
           }
@@ -3071,13 +3468,13 @@
       for (const v of stanje.odabranePutanje.values()) zbroj += v;
 
       otvoriDijalogPotvrde(
-        'Pometimo odabrane stavke?',
+        t('Pometimo odabrane stavke?'),
         uzBrojHR(putanje.length, 'stavka', 'stavke', 'stavki') + ' \u00B7 ' + formatirajBajte(zbroj) +
-          '\n\nStavke ćemo premjestiti u macOS Koš. Možete ih vratiti kroz Koš i povrat.',
-        'Premjesti u Koš',
+          '\n\n' + t('Stavke ćemo premjestiti u macOS Koš. Možete ih vratiti kroz Koš i povrat.'),
+        t('Premjesti u Koš'),
         async () => {
           try {
-            prikaziPoruku('Čišćenje je u tijeku…');
+            prikaziPoruku(t('Čišćenje je u tijeku…'));
             const odg = await apiFetch('/api/ocisti', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -3086,13 +3483,13 @@
             const rez = await odg.json();
             
             // Prikaz uspjeha (Success view)
-            document.getElementById('uspjeh-velicina').textContent = formatirajBajte(rez.bytes_freed || zbroj) + ' premješteno u Koš';
+            document.getElementById('uspjeh-velicina').textContent = t('{velicina} premješteno u Koš', { velicina: formatirajBajte(rez.bytes_freed || zbroj) });
             stanje.odabranePutanje.clear();
             postaviAktivniTab('uspjeh');
-            prikaziPoruku(rez.message || 'Čišćenje uspješno završeno.');
+            prikaziPoruku(rez.message || t('Čišćenje uspješno završeno.'));
             await Promise.all([ucitajSkeniranje(), ucitajKos()]);
           } catch (err) {
-            prikaziPoruku('Greška pri čišćenju: ' + err.message);
+            prikaziPoruku(t('Greška pri čišćenju: {greska}', { greska: err.message }));
           }
         }
       );
@@ -3102,18 +3499,18 @@
     // a paket korisnik povlači u Koš u Finderu, koji traži lozinku.
     function zatraziPotvrduUklanjanjaUzLozinku(app) {
       const povezane = (app.related_paths || []).map(r => r.path);
-      const uvod = 'Aplikaciju ' + app.name + ' instalirao je sustav ili instalacijski paket, pa je PometiME ne može premjestiti bez administratorske lozinke.\n\n';
+      const uvod = t('Aplikaciju {ime} instalirao je sustav ili instalacijski paket, pa je PometiME ne može premjestiti bez administratorske lozinke.', { ime: app.name }) + '\n\n';
       if (povezane.length === 0) {
-        otvoriDijalogPotvrde('Uklanjanje: ' + app.name,
+        otvoriDijalogPotvrde(t('Uklanjanje: {ime}', { ime: app.name }),
           uvod + 'PometiME nije pronašao njezine podatke. Otvorit ćemo Finder s označenom aplikacijom: povucite je u Koš i upišite lozinku.',
-          'Prikaži u Finderu', () => prikaziUFinderu(app.app_path));
+          t('Prikaži u Finderu'), () => prikaziUFinderu(app.app_path));
         return;
       }
       otvoriDijalogPotvrde(
-        'Uklanjanje: ' + app.name,
-        uvod + 'PometiME će u Koš premjestiti ' + uzBrojHR(povezane.length, 'njezinu mapu', 'njezine mape', 'njezinih mapa') +
-          ' (' + formatirajBajte(app.support_size_bytes) + '). Zatim će otvoriti Finder s označenom aplikacijom: povucite je u Koš i upišite lozinku.',
-        'Premjesti podatke u Koš',
+        t('Uklanjanje: {ime}', { ime: app.name }),
+        uvod + t('PometiME će u Koš premjestiti {n} ({velicina}). Zatim će otvoriti Finder s označenom aplikacijom: povucite je u Koš i upišite lozinku.',
+          { n: uzBrojHR(povezane.length, 'njezinu mapu', 'njezine mape', 'njezinih mapa'), velicina: formatirajBajte(app.support_size_bytes) }),
+        t('Premjesti podatke u Koš'),
         async () => {
           try {
             const odg = await apiFetch('/api/deinstaliraj', {
@@ -3122,12 +3519,12 @@
               body: JSON.stringify({ app_path: app.app_path, related_paths: povezane, data_only: true })
             });
             const rez = await odg.json();
-            if (!odg.ok) throw new Error(rez.error || 'Podaci nisu premješteni.');
-            prikaziPoruku(rez.message + ' Aplikaciju ' + app.name + ' sad povucite u Koš u Finderu.');
+            if (!odg.ok) throw new Error(rez.error || t('Podaci nisu premješteni.'));
+            prikaziPoruku(rez.message + ' ' + t('Aplikaciju {ime} sad povucite u Koš u Finderu.', { ime: app.name }));
             await prikaziUFinderu(app.app_path);
             await Promise.all([ucitajSkeniranje(), ucitajAplikacije(), ucitajKos()]);
           } catch (err) {
-            prikaziPoruku('Podaci nisu premješteni: ' + err.message);
+            prikaziPoruku(t('Podaci nisu premješteni: {greska}', { greska: err.message }));
           }
         }
       );
@@ -3141,24 +3538,26 @@
       }
       const povezane = (app.related_paths || []).map(r => r.path);
       otvoriDijalogPotvrde(
-        'Deinstalacija: ' + app.name,
-        'Premjestit će se aplikacija ' + app.name + ' i ' +
-          uzBrojHR(povezane.length, 'pripadajuća mapa', 'pripadajuće mape', 'pripadajućih mapa') +
-          ' u ~/Library (ukupno ' + formatirajBajte(app.total_size_bytes) + ') u Koš za smeće.',
-        'Premjesti u Koš',
+        t('Deinstalacija: {ime}', { ime: app.name }),
+        t('Premjestit će se aplikacija {ime} i {n} u ~/Library (ukupno {velicina}) u Koš za smeće.', {
+          ime: app.name,
+          n: uzBrojHR(povezane.length, 'pripadajuća mapa', 'pripadajuće mape', 'pripadajućih mapa'),
+          velicina: formatirajBajte(app.total_size_bytes)
+        }),
+        t('Premjesti u Koš'),
         async () => {
           try {
-            prikaziPoruku('Uklanjanje aplikacije: ' + app.name + '…');
+            prikaziPoruku(t('Uklanjanje aplikacije: {ime}…', { ime: app.name }));
             const odg = await apiFetch('/api/deinstaliraj', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ app_path: app.app_path, related_paths: povezane })
             });
             const rez = await odg.json();
-            prikaziPoruku(rez.message || 'Aplikacija je premještena u Koš.');
+            prikaziPoruku(rez.message || t('Aplikacija je premještena u Koš.'));
             await Promise.all([ucitajSkeniranje(), ucitajAplikacije(), ucitajKos()]);
           } catch (err) {
-            prikaziPoruku('Greška pri deinstalaciji: ' + err.message);
+            prikaziPoruku(t('Greška pri deinstalaciji: {greska}', { greska: err.message }));
           }
         }
       );
@@ -3167,9 +3566,9 @@
     // Akcija uklanjanja pokretača
     function zatraziPotvrduUklanjanjaPokretaca(p) {
       otvoriDijalogPotvrde(
-        'Uklanjanje pokretača: ' + p.name,
-        'Konfiguracijska datoteka (' + p.plist_path + ') premjestit će se u Koš.',
-        'Premjesti u Koš',
+        t('Uklanjanje pokretača: {ime}', { ime: p.name }),
+        t('Konfiguracijska datoteka ({putanja}) premjestit će se u Koš.', { putanja: p.plist_path }),
+        t('Premjesti u Koš'),
         async () => {
           try {
             const odg = await apiFetch('/api/ocisti', {
@@ -3178,10 +3577,10 @@
               body: JSON.stringify({ paths: [p.plist_path] })
             });
             const rez = await odg.json();
-            prikaziPoruku(rez.message || 'Pokretač je premješten u Koš.');
+            prikaziPoruku(rez.message || t('Pokretač je premješten u Koš.'));
             await Promise.all([ucitajPokretace(), ucitajKos()]);
           } catch (err) {
-            prikaziPoruku('Greška: ' + err.message);
+            prikaziPoruku(t('Greška: {greska}', { greska: err.message }));
           }
         }
       );
@@ -3190,9 +3589,9 @@
     function zatraziPotvrduUklanjanjaSvihSirocadi(sirocad) {
       const putanje = sirocad.map(s => s.plist_path);
       otvoriDijalogPotvrde(
-        'Uklanjanje zaostalih pokretača',
-        'Premjestit ćete ' + uzBrojHR(putanje.length, 'zaostali pokretač', 'zaostala pokretača', 'zaostalih pokretača') + ' u Koš. Njihovi programi više ne postoje na disku.',
-        'Premjesti u Koš',
+        t('Uklanjanje zaostalih pokretača'),
+        t('Premjestit ćete {n} u Koš. Njihovi programi više ne postoje na disku.', { n: uzBrojHR(putanje.length, 'zaostali pokretač', 'zaostala pokretača', 'zaostalih pokretača') }),
+        t('Premjesti u Koš'),
         async () => {
           try {
             const odg = await apiFetch('/api/ocisti', {
@@ -3201,10 +3600,10 @@
               body: JSON.stringify({ paths: putanje })
             });
             const rez = await odg.json();
-            prikaziPoruku(rez.message || 'Zaostali pokretači su premješteni u Koš.');
+            prikaziPoruku(rez.message || t('Zaostali pokretači su premješteni u Koš.'));
             await Promise.all([ucitajPokretace(), ucitajKos()]);
           } catch (err) {
-            prikaziPoruku('Greška: ' + err.message);
+            prikaziPoruku(t('Greška: {greska}', { greska: err.message }));
           }
         }
       );
@@ -3219,26 +3618,26 @@
         if (stanje.odabraniKos.has(st.trash_path)) zbroj += st.size_bytes;
       }
       otvoriDijalogPotvrde(
-        'Trajno izbrisati odabrane stavke?',
+        t('Trajno izbrisati odabrane stavke?'),
         uzBrojHR(putanje.length, 'stavka', 'stavke', 'stavki') + ' \u00B7 ' + formatirajBajte(zbroj) +
-          '\n\nStavke se brišu s diska i više ih nećete moći vratiti. Tek tada se oslobađa prostor.',
-        'Trajno izbriši',
+          '\n\n' + t('Stavke se brišu s diska i više ih nećete moći vratiti. Tek tada se oslobađa prostor.'),
+        t('Trajno izbriši'),
         async () => {
           try {
-            prikaziPoruku('Brišem stavke iz Koša\u2026');
+            prikaziPoruku(t('Brišem stavke iz Koša\u2026'));
             const odg = await apiFetch('/api/kos/izbrisi', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ paths: putanje })
             });
             const rez = await odg.json();
-            if (!odg.ok) throw new Error(rez.error || 'Brisanje nije uspjelo.');
+            if (!odg.ok) throw new Error(rez.error || t('Brisanje nije uspjelo.'));
             const greske = rez.errors || [];
-            prikaziPoruku(greske.length ? rez.message + ' Neke stavke nisu izbrisane: ' + greske[0] : rez.message);
+            prikaziPoruku(greske.length ? rez.message + ' ' + t('Neke stavke nisu izbrisane: {greska}', { greska: greske[0] }) : rez.message);
             stanje.odabraniKos.clear();
             await Promise.all([ucitajSkeniranje(), ucitajKos()]);
           } catch (err) {
-            prikaziPoruku('Stavke nisu izbrisane: ' + err.message);
+            prikaziPoruku(t('Stavke nisu izbrisane: {greska}', { greska: err.message }));
           }
         }
       );
@@ -3249,34 +3648,34 @@
       if (putanje.length === 0) return;
 
       try {
-        prikaziPoruku('Vraćanje stavki na izvorno mjesto…');
+        prikaziPoruku(t('Vraćanje stavki na izvorno mjesto…'));
         const odg = await apiFetch('/api/vrati', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paths: putanje })
         });
         const rez = await odg.json();
-        prikaziPoruku(rez.message || 'Stavke su vraćene na izvorno mjesto.');
+        prikaziPoruku(rez.message || t('Stavke su vraćene na izvorno mjesto.'));
         stanje.odabraniKos.clear();
         await Promise.all([ucitajSkeniranje(), ucitajAplikacije(), ucitajKos(), ucitajPokretace()]);
       } catch (err) {
-        prikaziPoruku('Greška pri povratu: ' + err.message);
+        prikaziPoruku(t('Greška pri povratu: {greska}', { greska: err.message }));
       }
     }
 
     // Optimizacija sustava (DNS, QuickLook, Snapshots, Aerials, Simulators)
     async function pokreniOptimizaciju(akcija) {
       try {
-        prikaziPoruku('Izvršavam: ' + akcija + '…');
+        prikaziPoruku(t('Izvršavam: {akcija}…', { akcija }));
         const odg = await apiFetch('/api/optimiziraj', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: akcija })
         });
         const rez = await odg.json();
-        prikaziPoruku(rez.message || 'Optimizacija uspješno izvršena.');
+        prikaziPoruku(rez.message || t('Optimizacija uspješno izvršena.'));
       } catch (err) {
-        prikaziPoruku('Greška: ' + err.message);
+        prikaziPoruku(t('Greška: {greska}', { greska: err.message }));
       }
     }
 
@@ -3309,29 +3708,29 @@
       gumbInstaliraj.style.display = 'none';
       gumbRestart.style.display = 'none';
       gumbRestart.disabled = false;
-      gumbRestart.textContent = 'Ponovno pokreni PometiME';
+      gumbRestart.textContent = t('Ponovno pokreni PometiME');
       stanje.nadogradnjaInstalirana = vrsta === 'Installed';
 
       switch (vrsta) {
         case 'Checking':
           simbol.textContent = '\u21BB';
           simbol.classList.add('rotiraj');
-          naslov.textContent = 'Provjeravam nadogradnje\u2026';
-          podnaslov.textContent = 'Tražimo najnovije izdanje za vaš Mac.';
-          statusPoruka.textContent = 'Povezivanje s izdanjima na GitHubu\u2026';
+          naslov.textContent = t('Provjeravam nadogradnje\u2026');
+          podnaslov.textContent = t('Tražimo najnovije izdanje za vaš Mac.');
+          statusPoruka.textContent = t('Povezivanje s izdanjima na GitHubu\u2026');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           break;
 
         case 'Available':
           simbol.textContent = '\u2193';
-          naslov.textContent = 'Nova verzija je spremna.';
-          podnaslov.textContent = 'Pregledajte novosti i ažurirajte PometiME.';
+          naslov.textContent = t('Nova verzija je spremna.');
+          podnaslov.textContent = t('Pregledajte novosti i ažurirajte PometiME.');
           document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || '1.0.10';
           document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || '1.0.10';
           karticeVerzija.style.display = 'grid';
 
-          const biljeske = podaci.release_notes ? renderirajMarkdown(podaci.release_notes) : '<p>Bilješke uz izdanje trenutačno nisu dostupne. Više informacija potražite na stranici izdanja.</p>';
+          const biljeske = podaci.release_notes ? renderirajMarkdown(podaci.release_notes) : '<p>' + t('Bilješke uz izdanje trenutačno nisu dostupne. Više informacija potražite na stranici izdanja.') + '</p>';
           document.getElementById('nadogradnja-biljeske-tekst').innerHTML = biljeske;
           sekcijaBiljeske.style.display = 'block';
 
@@ -3343,16 +3742,16 @@
           if (podaci.download_url) {
             gumbInstaliraj.style.display = 'inline-flex';
           } else {
-            statusPoruka.textContent = 'Ovu verziju preuzmite sa stranice izdanja na GitHubu.';
+            statusPoruka.textContent = t('Ovu verziju preuzmite sa stranice izdanja na GitHubu.');
             statusPoruka.style.display = 'block';
           }
           break;
 
         case 'Current':
           simbol.textContent = '\u2713';
-          naslov.textContent = 'Sve je ažurno.';
-          podnaslov.textContent = 'Već koristite najnoviju verziju PometiME.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.current_version || '1.0.10');
+          naslov.textContent = t('Sve je ažurno.');
+          podnaslov.textContent = t('Već koristite najnoviju verziju PometiME.');
+          statusPoruka.textContent = t('Instalirana verzija {verzija}', { verzija: podaci.current_version || '1.0.10' });
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           break;
@@ -3360,17 +3759,17 @@
         case 'Installing':
           simbol.textContent = '\u21BB';
           simbol.classList.add('rotiraj');
-          naslov.textContent = 'Nadogradnja je u tijeku.';
-          podnaslov.textContent = 'Preuzimamo i instaliramo novu verziju.';
-          statusPoruka.textContent = 'Pričekajte da instalacija završi\u2026';
+          naslov.textContent = t('Nadogradnja je u tijeku.');
+          podnaslov.textContent = t('Preuzimamo i instaliramo novu verziju.');
+          statusPoruka.textContent = t('Pričekajte da instalacija završi\u2026');
           statusPoruka.style.display = 'block';
           break;
 
         case 'Installed':
           simbol.textContent = '\u2713';
-          naslov.textContent = 'Nadogradnja je instalirana.';
-          podnaslov.textContent = 'Pokrenite PometiME ponovno kako biste koristili novu verziju.';
-          statusPoruka.textContent = 'Instalirana verzija ' + (podaci.latest_version || '1.0.10');
+          naslov.textContent = t('Nadogradnja je instalirana.');
+          podnaslov.textContent = t('Pokrenite PometiME ponovno kako biste koristili novu verziju.');
+          statusPoruka.textContent = t('Instalirana verzija {verzija}', { verzija: podaci.latest_version || '1.0.10' });
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           if (window.webkit?.messageHandlers?.pometimeRestart) gumbRestart.style.display = 'inline-flex';
@@ -3378,9 +3777,9 @@
 
         case 'UpdateError':
           simbol.textContent = '!';
-          naslov.textContent = 'Provjera nije uspjela.';
-          podnaslov.textContent = 'Provjerite internetsku vezu i pokušajte ponovno.';
-          statusPoruka.textContent = podaci.greska || 'Nije moguće dohvatiti podatke o novim izdanjima s GitHuba.';
+          naslov.textContent = t('Provjera nije uspjela.');
+          podnaslov.textContent = t('Provjerite internetsku vezu i pokušajte ponovno.');
+          statusPoruka.textContent = podaci.greska || t('Nije moguće dohvatiti podatke o novim izdanjima s GitHuba.');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           gumbPonovi.style.display = 'inline-flex';
@@ -3388,9 +3787,9 @@
 
         case 'InstallError':
           simbol.textContent = '!';
-          naslov.textContent = 'Instalacija nije uspjela.';
-          podnaslov.textContent = 'Nadogradnju možete pokušati ponovno.';
-          statusPoruka.textContent = podaci.greska || 'Preuzimanje ili instalacija arhive nije dovršena.';
+          naslov.textContent = t('Instalacija nije uspjela.');
+          podnaslov.textContent = t('Nadogradnju možete pokušati ponovno.');
+          statusPoruka.textContent = podaci.greska || t('Preuzimanje ili instalacija arhive nije dovršena.');
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           gumbPonovi.style.display = 'inline-flex';
@@ -3408,14 +3807,14 @@
       const zatvori = document.getElementById('nadogradnja-gumb-zatvori');
       gumb.disabled = true;
       zatvori.disabled = true;
-      gumb.textContent = 'Ponovno pokretanje…';
+      gumb.textContent = t('Ponovno pokretanje…');
       try {
         await handler.postMessage(null);
       } catch (err) {
-        document.getElementById('nadogradnja-status-poruka').textContent = 'Ponovno pokretanje nije uspjelo. Zatvorite PometiME s ⌘Q i otvorite ga ponovno.';
+        document.getElementById('nadogradnja-status-poruka').textContent = t('Ponovno pokretanje nije uspjelo. Zatvorite PometiME s ⌘Q i otvorite ga ponovno.');
         gumb.disabled = false;
         zatvori.disabled = false;
-        gumb.textContent = 'Ponovno pokreni PometiME';
+        gumb.textContent = t('Ponovno pokreni PometiME');
       }
     }
 
@@ -3424,8 +3823,8 @@
       try {
         const odg = await apiFetch('/api/nadogradnja');
         if (!odg.ok) {
-          const err = await odg.json().catch(() => ({ error: 'GitHub poslužitelj nije dostupan.' }));
-          throw new Error(err.error || 'Greška pri provjeri.');
+          const err = await odg.json().catch(() => ({ error: t('GitHub poslužitelj nije dostupan.') }));
+          throw new Error(err.error || t('Greška pri provjeri.'));
         }
         stanje.podaciONadogradnji = await odg.json();
 
@@ -3461,8 +3860,8 @@
           body: '{}'
         });
         if (!odg.ok) {
-          const err = await odg.json().catch(() => ({ error: 'Instalacija nije uspjela.' }));
-          throw new Error(err.error || 'Neuspjelo ažuriranje datoteka.');
+          const err = await odg.json().catch(() => ({ error: t('Instalacija nije uspjela.') }));
+          throw new Error(err.error || t('Neuspjelo ažuriranje datoteka.'));
         }
         postaviStanjeNadogradnje('Installed', stanje.podaciONadogradnji);
       } catch (err) {
@@ -3478,7 +3877,7 @@
       if (ikona) ikona.classList.add('rotiraj');
       try {
         const odg = await apiFetch('/api/skeniraj');
-        if (!odg.ok) throw new Error('Pregled diska nije uspio. Pokušajte ponovno.');
+        if (!odg.ok) throw new Error(t('Pregled diska nije uspio. Pokušajte ponovno.'));
         stanje.izvjestaj = await odg.json();
         stanje.zadnjeSkeniranje = new Date();
 
@@ -3505,7 +3904,7 @@
         if (stanje.aktivniTab === 'napredni') iscrtajNapredneAlate();
       } catch (err) {
         greskaUcitavanja = err.message;
-        prikaziPoruku('Greška pri skeniranju: ' + err.message);
+        prikaziPoruku(t('Greška pri skeniranju: {greska}', { greska: err.message }));
       } finally {
         if (ikona) ikona.classList.remove('rotiraj');
         zavrsiUcitavanje('ciscenje', unosUcitavanja, greskaUcitavanja);
@@ -3567,6 +3966,11 @@
 
     // Inicijalizacija i povezivanje događaja
     document.addEventListener('DOMContentLoaded', () => {
+      prevediElement(document.documentElement);
+      document.querySelectorAll('.side-jezik-btn').forEach(gumb => {
+        gumb.classList.toggle('active', gumb.dataset.jezik === jezik);
+        gumb.addEventListener('click', () => promijeniJezik(gumb.dataset.jezik));
+      });
       // Navigacija
       document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {

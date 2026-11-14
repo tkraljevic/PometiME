@@ -111,21 +111,21 @@ func otkrijHomebrew(p Postavke) (AlatZaCiscenje, bool) {
 	}
 	alat := AlatZaCiscenje{
 		ID:      "brew",
-		Naziv:   "Homebrew: stare verzije i preuzimanja",
-		Opis:    "Stare verzije paketa i preuzete arhive koje Homebrew više ne treba.",
+		Naziv:   T("Homebrew: stare verzije i preuzimanja"),
+		Opis:    T("Stare verzije paketa i preuzete arhive koje Homebrew više ne treba."),
 		Naredba: "brew cleanup --prune=all",
 	}
 	izlaz, err := pokreniAlatFn(program, "cleanup", "--prune=all", "-n")
 	if err != nil {
-		alat.Procjena = "Procjena nije dostupna, ali naredbu možete pokrenuti."
+		alat.Procjena = T("Procjena nije dostupna, ali naredbu možete pokrenuti.")
 		alat.MozeOcistiti = true
 		return alat, true
 	}
 	alat.VelicinaBajta = procjenaHomebrewa(string(izlaz))
 	alat.MozeOcistiti = alat.VelicinaBajta > 0
-	alat.Procjena = "Trenutačno nema ničega za ukloniti."
+	alat.Procjena = T("Trenutačno nema ničega za ukloniti.")
 	if alat.MozeOcistiti {
-		alat.Procjena = "Oslobodit će oko " + FormatirajBajte(alat.VelicinaBajta) + "."
+		alat.Procjena = fmt.Sprintf(T(T("Oslobodit će oko %s.")), FormatirajBajte(alat.VelicinaBajta))
 	}
 	return alat, true
 }
@@ -149,11 +149,11 @@ func otkrijGoModule(p Postavke) (AlatZaCiscenje, bool) {
 	velicina := IzracunajVelicinu(mapa)
 	return AlatZaCiscenje{
 		ID:            "go_modcache",
-		Naziv:         "Go moduli",
-		Opis:          "Preuzeti Go moduli. Projekti ih ponovno preuzmu pri sljedećoj izgradnji, za što treba internet.",
+		Naziv:         T("Go moduli"),
+		Opis:          T("Preuzeti Go moduli. Projekti ih ponovno preuzmu pri sljedećoj izgradnji, za što treba internet."),
 		Naredba:       "go clean -modcache",
 		VelicinaBajta: velicina,
-		Procjena:      "Oslobodit će oko " + FormatirajBajte(velicina) + ".",
+		Procjena:      fmt.Sprintf(T(T("Oslobodit će oko %s.")), FormatirajBajte(velicina)),
 		MozeOcistiti:  velicina > 0,
 	}, true
 }
@@ -166,11 +166,11 @@ func otkrijPnpm(p Postavke) (AlatZaCiscenje, bool) {
 	velicina := IzracunajVelicinu(mapa)
 	return AlatZaCiscenje{
 		ID:            "pnpm",
-		Naziv:         "pnpm: nekorišteni paketi",
-		Opis:          "Briše samo pakete iz spremišta koje nijedan projekt više ne koristi.",
+		Naziv:         T("pnpm: nekorišteni paketi"),
+		Opis:          T("Briše samo pakete iz spremišta koje nijedan projekt više ne koristi."),
 		Naredba:       "pnpm store prune",
 		VelicinaBajta: velicina,
-		Procjena:      "Spremište zauzima " + FormatirajBajte(velicina) + ", a oslobodit će se samo nekorišteni dio.",
+		Procjena:      fmt.Sprintf(T(T("Spremište zauzima %s, a oslobodit će se samo nekorišteni dio.")), FormatirajBajte(velicina)),
 		MozeOcistiti:  velicina > 0,
 	}, true
 }
@@ -193,19 +193,19 @@ func mapaIzAlata(p Postavke, ime string, argumenti ...string) (string, bool) {
 func OcistiRazvojniAlat(p Postavke, id string) (string, error) {
 	naredba, ok := naredbeAlata[id]
 	if !ok {
-		return "", fmt.Errorf("nepoznat alat: %s", id)
+		return "", fmt.Errorf(T("nepoznat alat: %s"), id)
 	}
 	program := pronadiProgram(p, naredba.program)
 	if program == "" {
-		return "", fmt.Errorf("program %s nije pronađen na ovom Macu", naredba.program)
+		return "", fmt.Errorf(T("program %s nije pronađen na ovom Macu"), naredba.program)
 	}
 	opis := naredba.program + " " + strings.Join(naredba.argumenti, " ")
 	prije := DohvatiStanjeDiska(p.KorijenKorisnika).SlobodnoBajta
 	if _, err := pokreniAlatFn(program, naredba.argumenti...); err != nil {
-		return "", fmt.Errorf("naredba %s nije uspjela: %s", opis, opisGreskeNaredbe(err))
+		return "", fmt.Errorf(T("naredba %s nije uspjela: %s"), opis, opisGreskeNaredbe(err))
 	}
 	dobiveno := max(DohvatiStanjeDiska(p.KorijenKorisnika).SlobodnoBajta-prije, 0)
-	return fmt.Sprintf("Naredba %s je završila. Slobodnog prostora ima %s više.", opis, FormatirajBajte(dobiveno)), nil
+	return fmt.Sprintf(T("Naredba %s je završila. Slobodnog prostora ima %s više."), opis, FormatirajBajte(dobiveno)), nil
 }
 
 // opisGreskeNaredbe dodaje zadnji redak koji je alat ispisao, jer on obično kaže zašto.

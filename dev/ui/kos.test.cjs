@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+const { prijevod } = require('./prijevod.cjs');
 const html = fs.readFileSync(path.join(__dirname, '../../internal/web/sucelje.html'), 'utf8');
 const source = html.slice(html.indexOf('// Stavka u Košu ovoliko dana'), html.indexOf('function iscrtajKos('));
 
@@ -15,7 +16,7 @@ function kontekst(kos) {
     document: { getElementById: id => (id === 'brza-akcija-kos' ? kartica : null) },
     formatirajBajte: b => b + ' B'
   });
-  vm.runInContext(source, context);
+  vm.runInContext(prijevod + source, context);
   return { context, naslov, opis };
 }
 

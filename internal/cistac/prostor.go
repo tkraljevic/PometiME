@@ -67,7 +67,7 @@ func IstraziProstor(p Postavke, putanja string, osvjezi bool) (*IzvjestajProstor
 	mjerenje := mjerenjeZa(cista, osvjezi)
 	stavke, err := stavkeMape(cista, mjerenje.velicine)
 	if err != nil {
-		return nil, fmt.Errorf("mapu %s nije moguće pročitati: %w", cista, err)
+		return nil, fmt.Errorf(T("mapu %s nije moguće pročitati: %w"), cista, err)
 	}
 	izvj := &IzvjestajProstora{
 		Putanja:        cista,
@@ -90,10 +90,10 @@ func odrediMapuProstora(dom, putanja string) (string, error) {
 		cista = filepath.Clean(putanja)
 	}
 	if cista != dom && !JeUnutarKorijena(cista, dom) {
-		return "", fmt.Errorf("mapa nije u vašoj korisničkoj mapi: %s", cista)
+		return "", fmt.Errorf(T("mapa nije u vašoj korisničkoj mapi: %s"), cista)
 	}
 	if info, err := os.Lstat(cista); err != nil || !info.IsDir() {
-		return "", fmt.Errorf("mapa ne postoji ili nije mapa: %s", cista)
+		return "", fmt.Errorf(T("mapa ne postoji ili nije mapa: %s"), cista)
 	}
 	return cista, nil
 }
@@ -252,13 +252,13 @@ func PrikaziUFinderu(p Postavke, putanja string) error {
 	dom := filepath.Clean(p.KorijenKorisnika)
 	cista := filepath.Clean(putanja)
 	if cista != dom && !JeUnutarKorijena(cista, dom) && !jeValjanaPutanjaAplikacije(p, cista) {
-		return fmt.Errorf("stavka nije u vašoj korisničkoj mapi ni među aplikacijama: %s", cista)
+		return fmt.Errorf(T("stavka nije u vašoj korisničkoj mapi ni među aplikacijama: %s"), cista)
 	}
 	if _, err := os.Lstat(cista); err != nil {
-		return fmt.Errorf("stavka više ne postoji: %s", cista)
+		return fmt.Errorf(T("stavka više ne postoji: %s"), cista)
 	}
 	if err := pokreniNaredbu("open", "-R", cista); err != nil {
-		return fmt.Errorf("Finder nije otvoren: %w", err)
+		return fmt.Errorf(T("Finder nije otvoren: %w"), err)
 	}
 	return nil
 }

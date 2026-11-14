@@ -142,7 +142,11 @@ type RezultatCiscenja struct {
 }
 
 // UzBrojHR vraća ispravan hrvatski oblik imenice uz zadani cijeli broj.
+// Na engleskom koristi pluraliEN, s ključem u hrvatskoj jednini.
 func UzBrojHR(n int, jednina, dvojina, mnozina string) string {
+	if engleski, ok := uzBrojEN(n, jednina); ok {
+		return engleski
+	}
 	apsolutni := n
 	if apsolutni < 0 {
 		apsolutni = -apsolutni
@@ -167,30 +171,30 @@ func oblikPremaZadnjojZnamenci(n, zadnja int, jednina, dvojina, mnozina string) 
 // PorukaRezultata vraća cijelu rečenicu o premještanju stavki u Koš s ispravnim oblikom uz broj.
 func PorukaRezultata(obrisano int, oslobodenoBajta int64) string {
 	if obrisano == 0 {
-		return "Nijedna stavka nije premještena u Koš za smeće."
+		return T("Nijedna stavka nije premještena u Koš za smeće.")
 	}
 	stavkeTekst := UzBrojHR(obrisano, "stavka", "stavke", "stavki")
 	velicinaTekst := FormatirajBajte(oslobodenoBajta)
-	return fmt.Sprintf("Uspješno premješteno u Koš %s (%s). Po potrebi ih možete vratiti iz kartice Koš i Povrat.", stavkeTekst, velicinaTekst)
+	return fmt.Sprintf(T("Uspješno premješteno u Koš %s (%s). Po potrebi ih možete vratiti iz kartice Koš i Povrat."), stavkeTekst, velicinaTekst)
 }
 
 // PorukaPovrata vraća cijelu rečenicu o povratu stavki iz Koša za smeće na izvorno mjesto.
 func PorukaPovrata(vraceno int, vracenoBajta int64) string {
 	if vraceno == 0 {
-		return "Nijedna stavka nije vraćena iz Koša za smeće."
+		return T("Nijedna stavka nije vraćena iz Koša za smeće.")
 	}
 	stavkeTekst := UzBrojHR(vraceno, "stavka", "stavke", "stavki")
 	velicinaTekst := FormatirajBajte(vracenoBajta)
-	return fmt.Sprintf("Uspješno vraćeno na izvorno mjesto %s (%s).", stavkeTekst, velicinaTekst)
+	return fmt.Sprintf(T("Uspješno vraćeno na izvorno mjesto %s (%s)."), stavkeTekst, velicinaTekst)
 }
 
 // PorukaTrajnogBrisanja vraća cijelu rečenicu o trajnom brisanju stavki iz Koša.
 func PorukaTrajnogBrisanja(izbrisano int, bajta int64) string {
 	if izbrisano == 0 {
-		return "Nijedna stavka nije trajno izbrisana."
+		return T("Nijedna stavka nije trajno izbrisana.")
 	}
 	stavkeTekst := UzBrojHR(izbrisano, "stavka", "stavke", "stavki")
-	return fmt.Sprintf("Trajno izbrisano %s. Oslobođeno je %s na disku.", stavkeTekst, FormatirajBajte(bajta))
+	return fmt.Sprintf(T("Trajno izbrisano %s. Oslobođeno je %s na disku."), stavkeTekst, FormatirajBajte(bajta))
 }
 
 // FormatirajBajte pretvara broj bajtova u čitljiv prikaz (KB, MB, GB).

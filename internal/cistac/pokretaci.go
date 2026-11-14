@@ -64,7 +64,7 @@ func prikupiPokretaceIzMape(mapa string, jeKorisnicki bool) []PokretacSustava {
 func obradiJedanPokretac(putanja, ime string, jeKorisnicki bool) PokretacSustava {
 	sadrzaj, err := os.ReadFile(putanja)
 	if err != nil {
-		return PokretacSustava{ID: putanja, Naziv: ime, Putanja: putanja, Status: "nepoznato", Opis: "Datoteka nije čitljiva."}
+		return PokretacSustava{ID: putanja, Naziv: ime, Putanja: putanja, Status: "nepoznato", Opis: T("Datoteka nije čitljiva.")}
 	}
 	izvrsna := izvuciIzvrsnuPutanju(string(sadrzaj))
 	postoji, status, opis := odrediStatusPokretaca(izvrsna)
@@ -92,12 +92,12 @@ func izvuciIzvrsnuPutanju(xmlTekst string) string {
 
 func odrediStatusPokretaca(izvrsna string) (bool, string, string) {
 	if izvrsna == "" {
-		return true, "aktivan", "Pokretač koristi sustavske servise ili ugrađeni XPC."
+		return true, "aktivan", T("Pokretač koristi sustavske servise ili ugrađeni XPC.")
 	}
 	if _, err := os.Stat(izvrsna); err == nil {
-		return true, "aktivan", "Aktivni pokretač instaliranog programa."
+		return true, "aktivan", T("Aktivni pokretač instaliranog programa.")
 	}
-	return false, "siroce", "Program je uklonjen s diska; preporučeno premjestiti u Koš."
+	return false, "siroce", T("Program je uklonjen s diska; preporučeno premjestiti u Koš.")
 }
 
 // PopisLokalnihSnimaka dohvaća popis lokalnih Time Machine APFS snimaka.
@@ -137,39 +137,39 @@ func IzvrsiOptimizaciju(p Postavke, vrsta string) (string, error) {
 	case "simulators":
 		return izvrsiSimulatorsOptimizaciju()
 	default:
-		return "", fmt.Errorf("nepoznata radnja optimizacije: %s", vrsta)
+		return "", fmt.Errorf(T("nepoznata radnja optimizacije: %s"), vrsta)
 	}
 }
 
 func izvrsiDnsOptimizaciju() (string, error) {
 	if err := pokreniNaredbu("dscacheutil", "-flushcache"); err != nil {
-		return "", fmt.Errorf("pražnjenje DNS predmemorije: %w", err)
+		return "", fmt.Errorf(T("pražnjenje DNS predmemorije: %w"), err)
 	}
-	return "DNS predmemorija je uspješno očišćena i osvježena.", nil
+	return T("DNS predmemorija je uspješno očišćena i osvježena."), nil
 }
 
 func izvrsiQuicklookOptimizaciju() (string, error) {
 	_ = pokreniNaredbu("qlmanage", "-r", "cache") // reset predmemorije pregleda ne ruši sustav
 	_ = pokreniNaredbu("qlmanage", "-r")          // ponovno pokretanje demona pregleda
-	return "QuickLook međuspremnik i ikone Finder-a su uspješno osvježeni.", nil
+	return T("QuickLook međuspremnik i ikone Finder-a su uspješno osvježeni."), nil
 }
 
 func izvrsiSnapshotsOptimizaciju() (string, error) {
 	if err := pokreniNaredbu("tmutil", "thinlocalsnapshots", "/", "999999999999", "4"); err != nil {
-		return "", fmt.Errorf("oslobađanje Time Machine snimaka: %w", err)
+		return "", fmt.Errorf(T("oslobađanje Time Machine snimaka: %w"), err)
 	}
-	return "Lokalne APFS Time Machine snimke su uspješno pročišćene i oslobođene.", nil
+	return T("Lokalne APFS Time Machine snimke su uspješno pročišćene i oslobođene."), nil
 }
 
 func otvoriMapuAerials() (string, error) {
 	mapa := filepath.Join(korijenSustavskeKnjiznice, "Application Support", "com.apple.idleassetsd", "Customer")
 	_ = pokreniNaredbu("open", mapa) // otvaranje mape u Finderu
-	return "Mapa zračnih pozadina je otvorena u Finderu.", nil
+	return T("Mapa zračnih pozadina je otvorena u Finderu."), nil
 }
 
 func izvrsiSimulatorsOptimizaciju() (string, error) {
 	if err := pokreniNaredbu("xcrun", "simctl", "delete", "unavailable"); err != nil {
-		return "", fmt.Errorf("čišćenje nedostupnih simulatora nije uspjelo (provjerite je li Xcode instaliran): %w", err)
+		return "", fmt.Errorf(T("čišćenje nedostupnih simulatora nije uspjelo (provjerite je li Xcode instaliran): %w"), err)
 	}
-	return "Nedostupni iOS simulatori su uspješno očišćeni.", nil
+	return T("Nedostupni iOS simulatori su uspješno očišćeni."), nil
 }

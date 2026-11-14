@@ -42,7 +42,7 @@ func obradiJedanSimulator(putanjaDir, dirName string) (kandidatCiscenja, bool) {
 		putanja:     putanjaDir,
 		naziv:       prikazNaziv,
 		kategorija:  "dev_ai",
-		opis:        fmt.Sprintf("Lokalni simulator uređaj (%s).", dirName),
+		opis:        fmt.Sprintf(T("Lokalni simulator uređaj (%s)."), dirName),
 		preporuceno: false,
 	}, true
 }
@@ -94,7 +94,7 @@ func prikupiAvdKandidate(mapaAvd string) []kandidatCiscenja {
 			putanja:     filepath.Join(mapaAvd, u.Name()),
 			naziv:       fmt.Sprintf("Android Emulator (AVD): %s", ime),
 			kategorija:  "dev_ai",
-			opis:        fmt.Sprintf("Lokalni Android virtualni uređaj (%s).", u.Name()),
+			opis:        fmt.Sprintf(T("Lokalni Android virtualni uređaj (%s)."), u.Name()),
 			preporuceno: false,
 		})
 	}

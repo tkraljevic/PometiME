@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+const { prijevod } = require('./prijevod.cjs');
 const html = fs.readFileSync(path.join(__dirname, '../../internal/web/sucelje.html'), 'utf8');
 const source = html.slice(html.indexOf('function postaviStanjeNadogradnje('), html.indexOf('// Učitavanje podataka s poslužitelja'));
 
@@ -23,7 +24,7 @@ function ui(data, installStatus = 200, restart = null) {
       return { ok: !options || installStatus === 200, json: async () => options ? { success: installStatus === 200, error: 'Nema dozvole za zamjenu.' } : data };
     }
   });
-  vm.runInContext(source, context);
+  vm.runInContext(prijevod + source, context);
   return { context, element, calls };
 }
 const release = {

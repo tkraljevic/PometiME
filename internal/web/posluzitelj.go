@@ -2,6 +2,7 @@
 package web
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/subtle"
 	_ "embed"
@@ -25,6 +26,9 @@ const ZaglavljeKljuca = "X-PometiME-Kljuc"
 const najveceTijeloZahtjeva = 1 << 20
 
 var uzorakSkripte = regexp.MustCompile(`(?s)<script>(.*?)</script>`)
+
+// suceljeEN je isto sučelje s oznakom engleskog jezika; skripta prema njoj prevodi tekst.
+var suceljeEN = bytes.Replace(ugradenoSucelje, []byte(`<html lang="hr">`), []byte(`<html lang="en">`), 1)
 
 // politikaSadrzaja dopušta samo ugrađenu skriptu sučelja. Ako se u stranicu
 // ipak ubaci HTML, preglednik ne pokreće njegov kod.
@@ -52,6 +56,10 @@ type zahtjevCiscenja struct {
 
 type zahtjevPutanje struct {
 	Putanja string `json:"path"`
+}
+
+type zahtjevJezika struct {
+	Jezik string `json:"language"`
 }
 
 type zahtjevAlata struct {
@@ -91,6 +99,8 @@ func NoviPosluzitelj(p cistac.Postavke, z Zastita) *Posluzitelj {
 	mux.HandleFunc("GET /api/nadogradnja", pos.obradiProvjeruNadogradnje)
 	mux.HandleFunc("GET /api/kos", pos.obradiKos)
 	mux.HandleFunc("GET /api/prostor", pos.obradiProstor)
+	mux.HandleFunc("GET /api/jezik", pos.obradiJezik)
+	mux.HandleFunc("POST /api/jezik", pos.obradiPromjenuJezika)
 	mux.HandleFunc("GET /api/razvojni-alati", pos.obradiRazvojneAlate)
 	mux.HandleFunc("POST /api/razvojni-alati/ocisti", pos.obradiCiscenjeAlata)
 	mux.HandleFunc("POST /api/prikazi-u-finderu", pos.obradiPrikaziUFinderu)
@@ -122,16 +132,16 @@ func (p *Posluzitelj) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Sučelje (GET /) ne sadrži ništa tajno, pa za njega vrijedi samo provjera Hosta.
 func (p *Posluzitelj) provjeriZahtjev(r *http.Request) (int, string) {
 	if !p.jeDopustenHost(r.Host) {
-		return http.StatusForbidden, "Zahtjev nije poslan na adresu ove aplikacije."
+		return http.StatusForbidden, cistac.T("Zahtjev nije poslan na adresu ove aplikacije.")
 	}
 	if !strings.HasPrefix(r.URL.Path, "/api/") {
 		return 0, ""
 	}
 	if !p.jeIspravanKljuc(r.Header.Get(ZaglavljeKljuca)) {
-		return http.StatusForbidden, "Zahtjev nije poslan iz prozora PometiME. Zatvorite PometiME i otvorite ga ponovno."
+		return http.StatusForbidden, cistac.T("Zahtjev nije poslan iz prozora PometiME. Zatvorite PometiME i otvorite ga ponovno.")
 	}
 	if r.Method == http.MethodPost && !jeJSONZahtjev(r) {
-		return http.StatusUnsupportedMediaType, "Zahtjev mora biti poslan kao JSON."
+		return http.StatusUnsupportedMediaType, cistac.T("Zahtjev mora biti poslan kao JSON.")
 	}
 	return 0, ""
 }
@@ -175,13 +185,17 @@ func izracunajPolitikuSadrzaja(html []byte) string {
 
 func (p *Posluzitelj) posluziSucelje(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		posluziJSON(w, http.StatusNotFound, odgovorGreske{Greska: "Tražena stranica nije pronađena."})
+		posluziJSON(w, http.StatusNotFound, odgovorGreske{Greska: cistac.T("Tražena stranica nije pronađena.")})
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Security-Policy", politikaSadrzaja)
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(ugradenoSucelje) // prekid veze klijenta pri čitanju HTML-a ne zahtijeva oporavak
+	sucelje := ugradenoSucelje
+	if cistac.Jezik() == cistac.JezikEngleski {
+		sucelje = suceljeEN
+	}
+	_, _ = w.Write(sucelje) // prekid veze klijenta pri čitanju HTML-a ne zahtijeva oporavak
 }
 
 func (p *Posluzitelj) obradiSkeniraj(w http.ResponseWriter, _ *http.Request) {
@@ -223,6 +237,24 @@ func (p *Posluzitelj) obradiOtvaranjePostavki(w http.ResponseWriter, _ *http.Req
 	posluziJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
+func (p *Posluzitelj) obradiJezik(w http.ResponseWriter, _ *http.Request) {
+	posluziJSON(w, http.StatusOK, zahtjevJezika{Jezik: cistac.Jezik()})
+}
+
+// obradiPromjenuJezika pamti odabir korisnika; sučelje se zatim ponovno učita na tom jeziku.
+func (p *Posluzitelj) obradiPromjenuJezika(w http.ResponseWriter, r *http.Request) {
+	var zah zahtjevJezika
+	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: cistac.T("Neispravan JSON zahtjev za jezik.")})
+		return
+	}
+	if err := cistac.SpremiJezik(p.postavke.KorijenKorisnika, zah.Jezik); err != nil {
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: err.Error()})
+		return
+	}
+	posluziJSON(w, http.StatusOK, zahtjevJezika{Jezik: cistac.Jezik()})
+}
+
 func (p *Posluzitelj) obradiRazvojneAlate(w http.ResponseWriter, _ *http.Request) {
 	posluziJSON(w, http.StatusOK, cistac.PronadiRazvojneAlate(p.postavke))
 }
@@ -231,7 +263,7 @@ func (p *Posluzitelj) obradiRazvojneAlate(w http.ResponseWriter, _ *http.Request
 func (p *Posluzitelj) obradiCiscenjeAlata(w http.ResponseWriter, r *http.Request) {
 	var zah zahtjevAlata
 	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
-		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za čišćenje alata."})
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: cistac.T("Neispravan JSON zahtjev za čišćenje alata.")})
 		return
 	}
 	poruka, err := cistac.OcistiRazvojniAlat(p.postavke, zah.ID)
@@ -245,7 +277,7 @@ func (p *Posluzitelj) obradiCiscenjeAlata(w http.ResponseWriter, r *http.Request
 func (p *Posluzitelj) obradiPrikaziUFinderu(w http.ResponseWriter, r *http.Request) {
 	var zah zahtjevPutanje
 	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
-		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za prikaz u Finderu."})
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: cistac.T("Neispravan JSON zahtjev za prikaz u Finderu.")})
 		return
 	}
 	if err := cistac.PrikaziUFinderu(p.postavke, zah.Putanja); err != nil {
@@ -256,15 +288,15 @@ func (p *Posluzitelj) obradiPrikaziUFinderu(w http.ResponseWriter, r *http.Reque
 }
 
 func (p *Posluzitelj) obradiOcisti(w http.ResponseWriter, r *http.Request) {
-	p.obradiPopisPutanja(w, r, "Neispravan JSON zahtjev za čišćenje.", cistac.OcistiPutanje)
+	p.obradiPopisPutanja(w, r, cistac.T("Neispravan JSON zahtjev za čišćenje."), cistac.OcistiPutanje)
 }
 
 func (p *Posluzitelj) obradiVrati(w http.ResponseWriter, r *http.Request) {
-	p.obradiPopisPutanja(w, r, "Neispravan JSON zahtjev za povrat iz Koša.", cistac.VratiIzKosa)
+	p.obradiPopisPutanja(w, r, cistac.T("Neispravan JSON zahtjev za povrat iz Koša."), cistac.VratiIzKosa)
 }
 
 func (p *Posluzitelj) obradiTrajnoBrisanje(w http.ResponseWriter, r *http.Request) {
-	p.obradiPopisPutanja(w, r, "Neispravan JSON zahtjev za trajno brisanje.", cistac.TrajnoIzbrisiIzKosa)
+	p.obradiPopisPutanja(w, r, cistac.T("Neispravan JSON zahtjev za trajno brisanje."), cistac.TrajnoIzbrisiIzKosa)
 }
 
 // obradiPopisPutanja čita popis putanja iz zahtjeva i predaje ga zadanoj radnji.
@@ -281,7 +313,7 @@ func (p *Posluzitelj) obradiPopisPutanja(w http.ResponseWriter, r *http.Request,
 func (p *Posluzitelj) obradiDeinstaliraj(w http.ResponseWriter, r *http.Request) {
 	var zah zahtjevDeinstalacije
 	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
-		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za deinstalaciju."})
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: cistac.T("Neispravan JSON zahtjev za deinstalaciju.")})
 		return
 	}
 	ukloni := cistac.DeinstalirajAplikaciju
@@ -294,7 +326,7 @@ func (p *Posluzitelj) obradiDeinstaliraj(w http.ResponseWriter, r *http.Request)
 func (p *Posluzitelj) obradiOptimiziraj(w http.ResponseWriter, r *http.Request) {
 	var zah zahtjevOptimizacije
 	if err := json.NewDecoder(r.Body).Decode(&zah); err != nil {
-		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Neispravan JSON zahtjev za optimizaciju."})
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: cistac.T("Neispravan JSON zahtjev za optimizaciju.")})
 		return
 	}
 	poruka, err := cistac.IzvrsiOptimizaciju(p.postavke, zah.Akcija)
@@ -321,7 +353,7 @@ func (p *Posluzitelj) obradiAerials(w http.ResponseWriter, _ *http.Request) {
 func (p *Posluzitelj) obradiStablo(w http.ResponseWriter, r *http.Request) {
 	putanja := r.URL.Query().Get("putanja")
 	if putanja == "" {
-		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: "Parametar putanja je obavezan."})
+		posluziJSON(w, http.StatusBadRequest, odgovorGreske{Greska: cistac.T("Parametar putanja je obavezan.")})
 		return
 	}
 	izvj, err := cistac.PregledajStablo(p.postavke, putanja)
@@ -350,7 +382,7 @@ func (p *Posluzitelj) obradiPrimjenuNadogradnje(w http.ResponseWriter, _ *http.R
 	}
 	posluziJSON(w, http.StatusOK, map[string]any{
 		"success": true,
-		"message": "PometiME je uspješno ažuriran na najnoviju verziju. Pokrenite aplikaciju ponovno.",
+		"message": cistac.T("PometiME je uspješno ažuriran na najnoviju verziju. Pokrenite aplikaciju ponovno."),
 	})
 }
 

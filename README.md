@@ -27,6 +27,8 @@ Sučelje je podijeljeno na šest jednostavnih cjelina:
 6. **Koš i povrat** — Popis svih stavki koje je PometiME premjestio u Koš. Jedan klik na *Vrati odabrano* vraća datoteke točno tamo gdje su bile. Prostor se oslobađa tek kad stavke trajno izbrišete gumbom *Trajno izbriši*; stavke starije od 7 dana su istaknute.
 
 Sučelje koristi plave nijanse, ikonicu četke i usklađene SVG ikonice naprednih alata. Podržava svijetli i tamni izgled automatski ovisno o postavkama sustava (Postavke -> Izgled) iz vašeg OS-a.
+
+PometiME radi na hrvatskom i engleskom. Pri prvom pokretanju uzima jezik sustava: hrvatski ako je on prvi jezik Maca, a engleski za sve ostale jezike. Jezik možete promijeniti prekidačem **HR / EN** na dnu bočne trake, a PometiME taj odabir pamti i nakon nadogradnje.
 ![PometiME 1.0.8 — izvorne ikonice aplikacija, gumb Ukloni i pregled pripadajućih podataka](docs/redizajn_aplikacije.png)
 
 ## Sigurnost na prvom mjestu

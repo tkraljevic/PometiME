@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+const { prijevod } = require('./prijevod.cjs');
 const html = fs.readFileSync(path.join(__dirname, '../../internal/web/sucelje.html'), 'utf8');
 const source = html.slice(html.indexOf('// Učitavanje popisa:'), html.indexOf('// Formatiranje bajtova'));
 function setup(fetcher) {
@@ -15,7 +16,7 @@ function setup(fetcher) {
     iscrtajAplikacije: () => renders++, iscrtajCiscenje() {}, iscrtajNapredneAlate() {}, iscrtajKos() {},
     ucitajAplikacije() {}, ucitajKos() {}, ucitajSkeniranje() {}, postaviBadge() {}, osvjeziDonjuTraku() {}
   });
-  vm.runInContext(source, context);
+  vm.runInContext(prijevod + source, context);
   return {
     context,
     status: () => vm.runInContext('ucitavanja.aplikacije', context),

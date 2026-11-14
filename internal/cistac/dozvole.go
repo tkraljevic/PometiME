@@ -20,8 +20,8 @@ type NedostupnaMapa struct {
 
 func zasticeneMapeSkeniranja(dom string) []NedostupnaMapa {
 	return []NedostupnaMapa{
-		{Naziv: "iOS sigurnosne kopije", Putanja: filepath.Join(dom, "Library", "Application Support", "MobileSync", "Backup")},
-		{Naziv: "Privici iz Maila", Putanja: filepath.Join(dom, "Library", "Containers", "com.apple.mail", "Data", "Library", "Mail Downloads")},
+		{Naziv: T("iOS sigurnosne kopije"), Putanja: filepath.Join(dom, "Library", "Application Support", "MobileSync", "Backup")},
+		{Naziv: T("Privici iz Maila"), Putanja: filepath.Join(dom, "Library", "Containers", "com.apple.mail", "Data", "Library", "Mail Downloads")},
 	}
 }
 
@@ -45,7 +45,7 @@ func jeOdbijenPristup(err error) bool {
 // OtvoriPostavkeDozvole otvara Postavke sustava na mjestu gdje se PometiME-u daje pristup.
 func OtvoriPostavkeDozvole() error {
 	if err := pokreniNaredbu("open", adresaPostavkiDozvole); err != nil {
-		return fmt.Errorf("postavke sustava nisu otvorene: %w", err)
+		return fmt.Errorf(T("postavke sustava nisu otvorene: %w"), err)
 	}
 	return nil
 }

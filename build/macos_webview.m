@@ -115,7 +115,8 @@ static BOOL PometiScheduleRelaunch(NSString *appPath, pid_t pid, NSError **error
     [NSApp setMainMenu:menubar];
 
     NSMenu *appMenu = [[NSMenu alloc] init];
-    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Zatvori PometiME"
+    BOOL hrvatski = [[NSLocale preferredLanguages].firstObject hasPrefix:@"hr"];
+    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:(hrvatski ? @"Zatvori PometiME" : @"Quit PometiME")
                                                       action:@selector(terminate:)
                                                keyEquivalent:@"q"];
     [appMenu addItem:quitItem];
@@ -128,7 +129,9 @@ static BOOL PometiScheduleRelaunch(NSString *appPath, pid_t pid, NSError **error
 
     self.serverTask = [[NSTask alloc] init];
     [self.serverTask setExecutableURL:[NSURL fileURLWithPath:serverPath]];
-    [self.serverTask setArguments:@[@"-adresa=127.0.0.1:0"]];
+    // Poslužitelj prema jeziku sustava bira hrvatski ili engleski dok korisnik sam ne odabere.
+    NSString *jezik = [NSLocale preferredLanguages].firstObject ?: @"";
+    [self.serverTask setArguments:@[@"-adresa=127.0.0.1:0", [@"-jezik-sustava=" stringByAppendingString:jezik]]];
 
     NSPipe *outPipe = [NSPipe pipe];
     [self.serverTask setStandardOutput:outPipe];
@@ -183,6 +186,8 @@ static BOOL PometiScheduleRelaunch(NSString *appPath, pid_t pid, NSError **error
     self.webView = [[WKWebView alloc] initWithFrame:[[self.window contentView] bounds]
                                       configuration:config];
     [self.webView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+    // Naslov prozora prati naslov stranice, pa je na jeziku koji je korisnik odabrao.
+    [self.webView addObserver:self forKeyPath:@"title" options:NSKeyValueObservingOptionNew context:NULL];
     [[self.window contentView] addSubview:self.webView];
 
     NSURL *url = [NSURL URLWithString:urlString];
@@ -216,6 +221,14 @@ static BOOL PometiScheduleRelaunch(NSString *appPath, pid_t pid, NSError **error
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 150 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
         [NSApp terminate:nil];
     });
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
+                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change context:(void *)context {
+    NSString *naslov = self.webView.title;
+    if ([keyPath isEqualToString:@"title"] && naslov.length > 0) {
+        [self.window setTitle:naslov];
+    }
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {

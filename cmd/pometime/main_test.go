@@ -99,3 +99,22 @@ func TestPokreniGreskeArgumenataIPrikljucka(t *testing.T) {
 		t.Errorf("očekivana valjana korisnička mapa, dobiveno %q (%v)", dom, err)
 	}
 }
+
+// Dok korisnik ne odabere jezik, aplikacija preuzima jezik sustava.
+func TestJezikSustava(t *testing.T) {
+	t.Cleanup(func() {
+		_ = cistac.PostaviJezik(cistac.JezikHrvatski) // ostali testovi očekuju hrvatski
+	})
+	for sustav, ocekivano := range map[string]string{"en-US": cistac.JezikEngleski, "hr-HR": cistac.JezikHrvatski} {
+		ctx, otkazi := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		var izlaz bytes.Buffer
+		err := pokreni(ctx, []string{"-adresa=127.0.0.1:0", "-korijen=" + t.TempDir(), "-jezik-sustava=" + sustav}, &izlaz)
+		otkazi()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cistac.Jezik() != ocekivano {
+			t.Errorf("jezik sustava %s: očekivan jezik %s, dobiveno %s", sustav, ocekivano, cistac.Jezik())
+		}
+	}
+}

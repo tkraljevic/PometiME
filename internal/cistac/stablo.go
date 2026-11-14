@@ -34,12 +34,12 @@ type IzvjestajStabla struct {
 func PregledajStablo(p Postavke, putanja string) (*IzvjestajStabla, error) {
 	cistaPutanja := filepath.Clean(putanja)
 	if !jePutanjaDozvoljenaZaPregled(p, cistaPutanja) {
-		return nil, fmt.Errorf("putanja nije dopuštena za pregled: %s", cistaPutanja)
+		return nil, fmt.Errorf(T("putanja nije dopuštena za pregled: %s"), cistaPutanja)
 	}
 
 	st, err := os.Stat(cistaPutanja)
 	if err != nil {
-		return nil, fmt.Errorf("čitanje putanje: %w", err)
+		return nil, fmt.Errorf(T("čitanje putanje: %w"), err)
 	}
 
 	if !st.IsDir() {

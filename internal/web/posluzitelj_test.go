@@ -571,3 +571,40 @@ func TestAPIUklanjanjeSamoPodataka(t *testing.T) {
 		t.Errorf("podaci aplikacije moraju biti u Košu: %v", err)
 	}
 }
+
+func TestAPIJezik(t *testing.T) {
+	pos, dom, _ := postaviTestniPosluzitelj(t)
+	t.Cleanup(func() {
+		_ = cistac.PostaviJezik(cistac.JezikHrvatski) // promjena jezika vrijedi za cijeli paket
+	})
+	posalji := func(metoda, tijelo string) *httptest.ResponseRecorder {
+		odg := httptest.NewRecorder()
+		pos.ServeHTTP(odg, httptest.NewRequest(metoda, "/api/jezik", strings.NewReader(tijelo)))
+		return odg
+	}
+
+	if odg := posalji(http.MethodGet, ""); odg.Code != http.StatusOK || !strings.Contains(odg.Body.String(), `"language":"hr"`) {
+		t.Fatalf("očekivan hrvatski kao zadani jezik, dobiveno %d %s", odg.Code, odg.Body.String())
+	}
+	if odg := posalji(http.MethodPost, "{neispravno"); odg.Code != http.StatusBadRequest {
+		t.Errorf("očekivan 400 za neispravan JSON, dobiveno %d", odg.Code)
+	}
+	if odg := posalji(http.MethodPost, `{"language":"fr"}`); odg.Code != http.StatusBadRequest {
+		t.Errorf("očekivan 400 za nepodržan jezik, dobiveno %d", odg.Code)
+	}
+	if odg := posalji(http.MethodPost, `{"language":"en"}`); odg.Code != http.StatusOK || !strings.Contains(odg.Body.String(), `"language":"en"`) {
+		t.Fatalf("očekivana promjena na engleski, dobiveno %d %s", odg.Code, odg.Body.String())
+	}
+	if cistac.UcitajJezik(dom, "hr-HR") != cistac.JezikEngleski {
+		t.Errorf("odabir jezika mora ostati zapamćen za sljedeće pokretanje")
+	}
+
+	stranica := httptest.NewRecorder()
+	pos.ServeHTTP(stranica, httptest.NewRequest(http.MethodGet, "/", nil))
+	if !strings.Contains(stranica.Body.String(), `<html lang="en">`) {
+		t.Errorf("na engleskom sučelje mora imati oznaku lang=\"en\"")
+	}
+	if odg := posalji(http.MethodPost, "{neispravno"); !strings.Contains(odg.Body.String(), "Invalid JSON") {
+		t.Errorf("poruka o grešci mora biti na engleskom, dobiveno %s", odg.Body.String())
+	}
+}

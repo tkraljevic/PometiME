@@ -50,7 +50,7 @@ func stvoriKandidataInstalacije(mapa, ime string, info os.FileInfo) kandidatCisc
 	opis, preporuceno := opisInstalacije(ime, dani)
 	return kandidatCiscenja{
 		putanja:     filepath.Join(mapa, ime),
-		naziv:       "Instalacijski paket: " + ime,
+		naziv:       T("Instalacijski paket: ") + ime,
 		kategorija:  "installers",
 		opis:        opis,
 		preporuceno: preporuceno,
@@ -60,11 +60,11 @@ func stvoriKandidataInstalacije(mapa, ime string, info os.FileInfo) kandidatCisc
 func opisInstalacije(ime string, dani int) (string, bool) {
 	ext := strings.ToUpper(strings.TrimPrefix(filepath.Ext(ime), "."))
 	if dani <= 0 {
-		return fmt.Sprintf("Nedavno preuzeti instalacijski paket (%s), preuzet danas.", ext), false
+		return fmt.Sprintf(T("Nedavno preuzeti instalacijski paket (%s), preuzet danas."), ext), false
 	}
 	daniTekst := UzBrojHR(dani, "dan", "dana", "dana")
 	if dani < 7 {
-		return fmt.Sprintf("Nedavno preuzeti instalacijski paket (%s), preuzet prije %s.", ext, daniTekst), false
+		return fmt.Sprintf(T("Nedavno preuzeti instalacijski paket (%s), preuzet prije %s."), ext, daniTekst), false
 	}
-	return fmt.Sprintf("Instalacijski paket (%s) preuzet prije %s. Preporučeno za uklanjanje ako je aplikacija instalirana.", ext, daniTekst), true
+	return fmt.Sprintf(T("Instalacijski paket (%s) preuzet prije %s. Preporučeno za uklanjanje ako je aplikacija instalirana."), ext, daniTekst), true
 }

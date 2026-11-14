@@ -79,14 +79,14 @@ func JeSigurnaPutanja(p Postavke, putanja string) bool {
 // obrisiJednuStavku provjerava sigurnost, računa veličinu i uklanja putanju s diska.
 func obrisiJednuStavku(p Postavke, putanja string) (int64, error) {
 	if !JeSigurnaPutanja(p, putanja) {
-		return 0, fmt.Errorf("putanja odbijena iz sigurnosnih razloga: %s", putanja)
+		return 0, fmt.Errorf(T("putanja odbijena iz sigurnosnih razloga: %s"), putanja)
 	}
 	cista := filepath.Clean(putanja)
 	if _, err := os.Lstat(cista); err != nil {
 		if os.IsNotExist(err) {
 			return 0, nil
 		}
-		return 0, fmt.Errorf("provjera putanje %s: %w", cista, err)
+		return 0, fmt.Errorf(T("provjera putanje %s: %w"), cista, err)
 	}
 	velicina := IzracunajVelicinu(cista)
 	if err := PremjestiUKos(p, cista, velicina); err != nil {
@@ -127,8 +127,8 @@ func DeinstalirajAplikaciju(p Postavke, putanjaApp string, povezane []string) Re
 	cistaApp := filepath.Clean(putanjaApp)
 	if !jeValjanaPutanjaAplikacije(p, cistaApp) {
 		return RezultatCiscenja{
-			Poruka: "Deinstalacija odbijena jer putanja nije valjana aplikacija.",
-			Greske: []string{fmt.Sprintf("nevaljana putanja aplikacije: %s", putanjaApp)},
+			Poruka: T("Deinstalacija odbijena jer putanja nije valjana aplikacija."),
+			Greske: []string{fmt.Sprintf(T("nevaljana putanja aplikacije: %s"), putanjaApp)},
 			Disk:   DohvatiStanjeDiska(p.KorijenKorisnika),
 		}
 	}
@@ -143,8 +143,8 @@ func DeinstalirajAplikaciju(p Postavke, putanjaApp string, povezane []string) Re
 func UkloniPodatkeAplikacije(p Postavke, putanjaApp string, povezane []string) RezultatCiscenja {
 	if !jeValjanaPutanjaAplikacije(p, filepath.Clean(putanjaApp)) {
 		return RezultatCiscenja{
-			Poruka: "Uklanjanje podataka odbijeno jer putanja nije valjana aplikacija.",
-			Greske: []string{fmt.Sprintf("nevaljana putanja aplikacije: %s", putanjaApp)},
+			Poruka: T("Uklanjanje podataka odbijeno jer putanja nije valjana aplikacija."),
+			Greske: []string{fmt.Sprintf(T("nevaljana putanja aplikacije: %s"), putanjaApp)},
 			Disk:   DohvatiStanjeDiska(p.KorijenKorisnika),
 		}
 	}

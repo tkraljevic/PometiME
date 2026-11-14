@@ -58,7 +58,7 @@ func obradiVideoUlaz(ukupno *int64, broj *int) fs.WalkDirFunc {
 func OcistiZracnePozadine(p Postavke) (string, error) {
 	info := SkenirajZracnePozadine(p)
 	if info.UkupnoBajta == 0 && info.BrojVidea == 0 {
-		return "Nema preuzetih 4K videozapisa ni predmemorije pozadina za čišćenje.", nil
+		return T("Nema preuzetih 4K videozapisa ni predmemorije pozadina za čišćenje."), nil
 	}
 
 	// 1. Očisti korisnički međuspremnik pozadina
@@ -71,12 +71,12 @@ func OcistiZracnePozadine(p Postavke) (string, error) {
 		if err := obrisiMovDatoteke(mapaCustomer); err != nil {
 			skripta := fmt.Sprintf("do shell script %q with administrator privileges", `find '/Library/Application Support/com.apple.idleassetsd/Customer' -type f -name '*.mov' -delete`)
 			if errAuth := pokreniNaredbu("osascript", "-e", skripta); errAuth != nil {
-				return "", fmt.Errorf("za brisanje 4K videozapisa iz /Library potrebna je administratorska potvrda: %w", errAuth)
+				return "", fmt.Errorf(T("za brisanje 4K videozapisa iz /Library potrebna je administratorska potvrda: %w"), errAuth)
 			}
 		}
 	}
 
-	return "Preuzete 4K zračne pozadine i predmemorija su uspješno očišćeni.", nil
+	return T("Preuzete 4K zračne pozadine i predmemorija su uspješno očišćeni."), nil
 }
 
 func obrisiMovDatoteke(korijen string) error {

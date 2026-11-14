@@ -32,6 +32,7 @@ func pokreni(ctx context.Context, argumenti []string, izlaz io.Writer) error {
 	zastavice.SetOutput(io.Discard)
 	adresa := zastavice.String("adresa", "127.0.0.1:19845", "Lokalna adresa za PometiME sučelje")
 	korijen := zastavice.String("korijen", "", "Korijenska mapa korisnika (zadano $HOME)")
+	jezikSustava := zastavice.String("jezik-sustava", "", "Prvi jezik sustava, npr. hr-HR; određuje jezik dok ga korisnik ne odabere")
 	if err := zastavice.Parse(argumenti); err != nil {
 		return fmt.Errorf("neispravni argumenti naredbenog retka: %w", err)
 	}
@@ -40,6 +41,7 @@ func pokreni(ctx context.Context, argumenti []string, izlaz io.Writer) error {
 	if err != nil {
 		return err
 	}
+	_ = cistac.PostaviJezik(cistac.UcitajJezik(dom, *jezikSustava)) // UcitajJezik vraća samo podržane jezike
 	slusac, err := net.Listen("tcp", *adresa)
 	if err != nil {
 		return fmt.Errorf("otvaranje mrežnog priključka %s: %w", *adresa, err)
