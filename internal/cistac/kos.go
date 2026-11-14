@@ -27,13 +27,52 @@ func putanjaPovijesti(p Postavke) string {
 	return filepath.Join(mapaKosa(p), datotekaPovijestiKosa)
 }
 
-func odrediCiljUKosu(kos, osnovnoIme string) string {
+// najviseImenaUKosu ograničava traženje slobodnog imena u Košu. U praksi se do
+// njega ne dolazi, ali čuva od beskonačne petlje kad se Koš ne može pregledati.
+const najviseImenaUKosu = 1000
+
+// bravaPremjestanja drži odabir imena i premještanje zajedno, pa dvije stavke
+// istog imena ne mogu istodobno dobiti isto mjesto u Košu.
+var bravaPremjestanja sync.Mutex
+
+// odrediCiljUKosu bira ime koje u Košu još ne postoji. Uklanjanje aplikacije
+// premješta više mapa istog imena (Caches/com.foo, WebKit/com.foo) u istoj
+// milisekundi, pa se uz vremensku oznaku po potrebi dodaje i redni broj.
+// Vraća false ako slobodno ime nije pronađeno.
+func odrediCiljUKosu(kos, osnovnoIme string) (string, bool) {
 	kandidat := filepath.Join(kos, osnovnoIme)
-	if _, err := os.Lstat(kandidat); os.IsNotExist(err) {
-		return kandidat
+	oznaka := filepath.Join(kos, osnovnoIme+"_"+time.Now().Format("20060102_150405.000"))
+	for broj := 1; zauzetoUKosu(kandidat); broj++ {
+		if broj > najviseImenaUKosu {
+			return "", false
+		}
+		kandidat = oznaka
+		if broj > 1 {
+			kandidat = fmt.Sprintf("%s_%d", oznaka, broj)
+		}
 	}
-	vremenskaOznaka := time.Now().Format("20060102_150405.000")
-	return filepath.Join(kos, fmt.Sprintf("%s_%s", osnovnoIme, vremenskaOznaka))
+	return kandidat, true
+}
+
+// zauzetoUKosu je oprezno: mjesto je slobodno samo kad je sigurno da ondje nema
+// ničega, jer bi premještanje datoteke na zauzeto mjesto tiho pregazilo staru.
+func zauzetoUKosu(putanja string) bool {
+	_, err := os.Lstat(putanja)
+	return !os.IsNotExist(err)
+}
+
+// premjestiNaSlobodnoMjesto premješta stavku u Koš pod imenom koje ondje još ne postoji.
+func premjestiNaSlobodnoMjesto(kos, cistaPutanja string) (string, error) {
+	bravaPremjestanja.Lock()
+	defer bravaPremjestanja.Unlock()
+	cilj, ok := odrediCiljUKosu(kos, filepath.Base(cistaPutanja))
+	if !ok {
+		return "", fmt.Errorf(T("premještanje u Koš %s: u Košu nema slobodnog imena"), cistaPutanja)
+	}
+	if err := os.Rename(cistaPutanja, cilj); err != nil {
+		return "", fmt.Errorf(T("premještanje u Koš %s: %w"), cistaPutanja, err)
+	}
+	return cilj, nil
 }
 
 // PremjestiUKos premješta zadanu putanju u korisnički ~/.Trash i bilježi je u povijest za povrat.
@@ -42,9 +81,9 @@ func PremjestiUKos(p Postavke, cistaPutanja string, velicina int64) error {
 	if err := os.MkdirAll(kos, 0o700); err != nil {
 		return fmt.Errorf(T("priprema mape Koša %s: %w"), kos, err)
 	}
-	cilj := odrediCiljUKosu(kos, filepath.Base(cistaPutanja))
-	if err := os.Rename(cistaPutanja, cilj); err != nil {
-		return fmt.Errorf(T("premještanje u Koš %s: %w"), cistaPutanja, err)
+	cilj, err := premjestiNaSlobodnoMjesto(kos, cistaPutanja)
+	if err != nil {
+		return err
 	}
 	stavka := StavkaKosa{
 		ID:              cilj,

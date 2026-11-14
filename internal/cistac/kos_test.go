@@ -206,3 +206,90 @@ func TestPovijestKosaIstodobniUpisi(t *testing.T) {
 		t.Errorf("neuspjeli upis ne smije pokvariti postojeću povijest, ima %d zapisa", n)
 	}
 }
+
+// Uklanjanje aplikacije premješta mape istog imena iz Caches, HTTPStorages i
+// WebKit odmah jednu za drugom. Svaka mora završiti u Košu pod svojim imenom,
+// a datoteka istog imena ne smije pregaziti onu koja je već u Košu.
+func TestKosStavkeIstogImena(t *testing.T) {
+	p := ZadanePostavke(t.TempDir())
+	var izvori []string
+	for _, mapa := range []string{"Caches", "HTTPStorages", "WebKit", "Logs", "Preferences"} {
+		izvor := filepath.Join(p.KorijenKorisnika, "Library", mapa, "com.primjer.app")
+		napraviDatoteku(t, filepath.Join(izvor, "podaci.bin"), 10)
+		izvori = append(izvori, izvor)
+	}
+	for _, mapa := range []string{"Caches", "Logs", "Preferences"} {
+		datoteka := filepath.Join(p.KorijenKorisnika, "Library", mapa, "isto.plist")
+		if err := os.WriteFile(datoteka, []byte(mapa), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		izvori = append(izvori, datoteka)
+	}
+	for _, izvor := range izvori {
+		if err := PremjestiUKos(p, izvor, 10); err != nil {
+			t.Errorf("premještanje %s: %v", izvor, err)
+		}
+	}
+
+	uKosu := map[string]string{}
+	for _, st := range IzlistajKos(p) {
+		if prije, ok := uKosu[st.PutanjaUKosu]; ok {
+			t.Errorf("%s i %s dobile su isto mjesto u Košu: %s", prije, st.IzvornaPutanja, st.PutanjaUKosu)
+		}
+		uKosu[st.PutanjaUKosu] = st.IzvornaPutanja
+		if _, err := os.Lstat(st.PutanjaUKosu); err != nil {
+			t.Errorf("stavke iz %s nema u Košu: %v", st.IzvornaPutanja, err)
+		}
+		if strings.HasSuffix(st.IzvornaPutanja, "isto.plist") {
+			sadrzaj, _ := os.ReadFile(st.PutanjaUKosu) // nedostatak datoteke javlja provjera iznad
+			if !strings.Contains(st.IzvornaPutanja, string(sadrzaj)) {
+				t.Errorf("datoteka iz %s u Košu ima tuđi sadržaj %q", st.IzvornaPutanja, sadrzaj)
+			}
+		}
+	}
+	if len(uKosu) != len(izvori) {
+		t.Errorf("u Košu mora biti %d stavki, ima ih %d", len(izvori), len(uKosu))
+	}
+	for _, izvor := range izvori {
+		if _, err := os.Lstat(izvor); err == nil {
+			t.Errorf("%s je ostao na disku", izvor)
+		}
+	}
+}
+
+// Kad se Koš ne može pregledati, PometiME ne smije riskirati da pregazi stavku
+// koja je već ondje, pa premještanje odbija, a izvor ostaje na mjestu.
+func TestKosBezSlobodnogImena(t *testing.T) {
+	p := ZadanePostavke(t.TempDir())
+	izvor := filepath.Join(p.KorijenKorisnika, "Library", "Caches", "com.primjer.app")
+	napraviDatoteku(t, filepath.Join(izvor, "podaci.bin"), 10)
+	if err := os.MkdirAll(mapaKosa(p), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(mapaKosa(p), 0o000); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = os.Chmod(mapaKosa(p), 0o700) // TempDir mora se moći očistiti
+	}()
+	err := PremjestiUKos(p, izvor, 10)
+	if err == nil || !strings.Contains(err.Error(), "nema slobodnog imena") {
+		t.Errorf("očekivano odbijanje premještanja, dobiveno %v", err)
+	}
+	if _, err := os.Stat(izvor); err != nil {
+		t.Errorf("izvor mora ostati na mjestu: %v", err)
+	}
+}
+
+// Stavka koja je u međuvremenu nestala s diska ne upisuje se u povijest Koša.
+func TestKosNestalaStavka(t *testing.T) {
+	p := ZadanePostavke(t.TempDir())
+	nestalo := filepath.Join(p.KorijenKorisnika, "Library", "Caches", "nestalo")
+	err := PremjestiUKos(p, nestalo, 10)
+	if err == nil || !strings.Contains(err.Error(), "premještanje u Koš") {
+		t.Errorf("očekivana greška premještanja, dobiveno %v", err)
+	}
+	if n := len(IzlistajKos(p)); n != 0 {
+		t.Errorf("povijest Koša mora ostati prazna, ima %d zapisa", n)
+	}
+}
