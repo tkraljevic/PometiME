@@ -506,6 +506,8 @@ func TestUsporediInacice(t *testing.T) {
 		{"1.0.0", "2.0.0", true},
 		{"1.0.0", "1.0.0", false},
 		{"1.0.1", "1.0.0", false},
+		{"1.0.9", "1.0.10", true},
+		{"1.0.10", "1.0.9", false},
 		{"v1.0.0", "v1.0.1", true},
 		{"v1.2.0", "1.1.9", false},
 		{"abc", "def", false},
