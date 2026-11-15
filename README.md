@@ -4,11 +4,11 @@
 
 **PometiME** je jednostavan i siguran čistač diska za macOS. Pomaže vam osloboditi prostor od privremenih datoteka, razvojnih predmemorija i zaostalih podataka aplikacija — bez straha od slučajnog brisanja važnih stvari.
 
-Sve što se očisti prvo ide u **Koš za smeće** (`~/.Trash`), pa ako vam bilo što ikad ponovno zatreba, možete to vratiti jednim klikom.
+Datoteke i mape koje PometiME očisti idu u **Koš za smeće** (`~/.Trash`), pa ih jednim klikom možete vratiti. Iznimka je nekoliko radnji u *Naprednim alatima* koje brišu odmah; popis je u odjeljku *Sigurnost na prvom mjestu*.
 
-![PometiME 1.0.8 — pregled diska i preporučeno čišćenje](docs/screenshot.png)
+![PometiME 1.0.12 — pregled diska i preporučeno čišćenje](docs/screenshot.png)
 
-*Snimka pokrenute aplikacije PometiME 1.0.8 od 8. studenoga 2026. Prikazane veličine ovise o stanju diska.*
+*Snimka sučelja PometiME 1.0.12 od 15. studenoga 2026. Prikazane veličine ovise o stanju diska.*
 
 ## Kako radi
 
@@ -33,7 +33,8 @@ PometiME radi na hrvatskom i engleskom. Pri prvom pokretanju uzima jezik sustava
 
 ## Sigurnost na prvom mjestu
 
-- **Nema trajnog brisanja bez Koša**: Sve očišćene stavke idu u vaš macOS Koš.
+- **Očišćeno ide u Koš**: Stavke iz Čišćenja i Naprednih alata, uklonjene aplikacije i njihovi podaci te zaostali pokretači idu u vaš macOS Koš i mogu se vratiti.
+- **Što se briše odmah, bez Koša**: naredbe alata Homebrew, Go i pnpm (uz potvrdu), proređivanje Time Machine snimaka, čišćenje 4K pozadina, brisanje nedostupnih iOS simulatora i gumb *Trajno izbriši* u Košu (uz potvrdu). Pražnjenje DNS-a i osvježavanje QuickLooka ne brišu vaše datoteke.
 - **Zaštićene mape**: PometiME automatski štiti osjetljive datoteke sustava (`com.apple.*`, `CloudKit`, Claude `memory` mape).
 - **Naredbe samo iz vlastitog prozora**: Sučelje i čistač razgovaraju preko lokalnog poslužitelja na adresi 127.0.0.1. Poslužitelj pri svakom pokretanju dobije novi ključ i odbija zahtjev bez njega, pa datoteke ne može premjestiti ni web-stranica ni drugi program na računalu.
 - **Bez vanjskih ovisnosti**: Izrađen u čistom Go standardnom paketu i Cocoa/WebKit sučelju — lagan, brz i otvorenog koda.
@@ -42,6 +43,16 @@ PometiME radi na hrvatskom i engleskom. Pri prvom pokretanju uzima jezik sustava
 ## Preuzimanje i pokretanje
 
 Najnoviju verziju možete preuzeti na stranici [GitHub Izdanja](https://github.com/tkraljevic/PometiME/releases).
+
+PometiME radi na Macu s Apple Silicon čipom (M1 ili noviji) i macOS-u 13 ili novijem. Za Mac s Intelovim procesorom paketa nema.
+
+**Prvo otvaranje:** PometiME je potpisan vlastitim certifikatom, a ne Appleovim razvojnim računom, pa ga Apple nije provjerio. Zato ga macOS pri prvom otvaranju zaustavi. Otvorite ga ovako:
+
+1. Raspakirajte `PometiME-macOS.zip` i premjestite `PometiME.app` u mapu Aplikacije.
+2. Otvorite PometiME. Kad macOS javi da ga ne može provjeriti, zatvorite poruku.
+3. U *Postavkama sustava → Privatnost i sigurnost* pri dnu pritisnite *Otvori svejedno* uz poruku o PometiME-u i potvrdite lozinkom.
+
+Na macOS-u 13 i 14 dovoljno je u Finderu kliknuti aplikaciju desnom tipkom i odabrati *Otvori*. Nadogradnje iz same aplikacije to više ne traže.
 
 **Prijelaz s verzija 1.0.2–1.0.5:** zbog greške u starom sučelju nadogradnje potrebno je jednom ručno preuzeti verziju 1.0.6 ili noviju, zatvoriti PometiME i zamijeniti aplikaciju u mapi Aplikacije. U novijem izdanju ispravljeno je prepoznavanje dostupne nadogradnje i slanje zahtjeva za instalaciju.
 
@@ -61,11 +72,11 @@ make quality
 node --test dev/ui/*.test.cjs
 ```
 
-Za razvoj bez paketa aplikacije pokrenite `make run`. Poslužitelj ispiše redak `POMETIME_URL=…` s ključem sesije. Otvorite baš tu adresu u pregledniku, jer bez ključa sučelje ne može ništa učitati.
+Za razvoj bez paketa aplikacije pokrenite `make run`. Poslužitelj ispiše redak `POMETIME_URL=…` s ključem sesije. Otvorite baš tu adresu u pregledniku, jer bez ključa sučelje ne može ništa učitati. Program izgrađen bez Makefilea, npr. `go run ./cmd/pometime`, javlja verziju 0.0.0.
 
 ## Izdavanje nove verzije
 
-1. Povećajte verziju u `build/Info.plist` i u `internal/cistac/nadogradnja.go` (`TrenutnaInacica`).
+1. Povećajte verziju u `build/Info.plist`: `CFBundleShortVersionString` (npr. 1.0.13) i `CFBundleVersion` za jedan. To je jedino mjesto s verzijom. `make build` i `make app` je upisuju u program, a poslužitelj u sučelje.
 2. Izgradite aplikaciju: `make app`. Kod se potpisuje certifikatom „PometiME izdanja”.
 3. Potpišite arhivu: `make potpisi`. Nastaje `dist/PometiME-macOS.zip.sig`. Ako aplikacija nije potpisana certifikatom, `make potpisi` odbija nastaviti.
 4. Uz izdanje na GitHubu objavite obje datoteke, `PometiME-macOS.zip` i `PometiME-macOS.zip.sig`. Izdanje bez potpisa aplikacija nudi samo za ručno preuzimanje.
