@@ -34,7 +34,7 @@ PometiME radi na hrvatskom i engleskom. Pri prvom pokretanju uzima jezik sustava
 ## Sigurnost na prvom mjestu
 
 - **Očišćeno ide u Koš**: Stavke iz Čišćenja i Naprednih alata, uklonjene aplikacije i njihovi podaci te zaostali pokretači idu u vaš macOS Koš i mogu se vratiti.
-- **Što se briše odmah, bez Koša**: naredbe alata Homebrew, Go i pnpm (uz potvrdu), proređivanje Time Machine snimaka, čišćenje 4K pozadina, brisanje nedostupnih iOS simulatora i gumb *Trajno izbriši* u Košu (uz potvrdu). Pražnjenje DNS-a i osvježavanje QuickLooka ne brišu vaše datoteke.
+- **Što se briše odmah, bez Koša**: naredbe alata Homebrew, Go i pnpm, proređivanje Time Machine snimaka, čišćenje 4K pozadina, brisanje nedostupnih iOS simulatora i gumb *Trajno izbriši* u Košu. Prije svake od tih radnji PometiME traži potvrdu i kaže da se obrisano ne može vratiti. Pražnjenje DNS-a i osvježavanje QuickLooka ne brišu vaše datoteke.
 - **Zaštićene mape**: PometiME automatski štiti osjetljive datoteke sustava (`com.apple.*`, `CloudKit`, Claude `memory` mape).
 - **Naredbe samo iz vlastitog prozora**: Sučelje i čistač razgovaraju preko lokalnog poslužitelja na adresi 127.0.0.1. Poslužitelj pri svakom pokretanju dobije novi ključ i odbija zahtjev bez njega, pa datoteke ne može premjestiti ni web-stranica ni drugi program na računalu.
 - **Bez vanjskih ovisnosti**: Izrađen u čistom Go standardnom paketu i Cocoa/WebKit sučelju — lagan, brz i otvorenog koda.

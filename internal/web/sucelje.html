@@ -1872,6 +1872,12 @@
       "Odaberi starije od 7 dana": "Select older than 7 days",
       "Odaberi starije od 7 dana ({n})": "Select older than 7 days ({n})",
       "Odaberi sve": "Select All",
+      "Obrisati 4K zračne pozadine?": "Delete the 4K aerial wallpapers?",
+      "Obrisati lokalne Time Machine snimke?": "Delete local Time Machine snapshots?",
+      "Obrisati nedostupne simulatore?": "Delete unavailable simulators?",
+      "Obriši pozadine": "Delete Wallpapers",
+      "Obriši simulatore": "Delete Simulators",
+      "Obriši snimke": "Delete Snapshots",
       "Odaberite što želite očistiti.": "Choose what to clean.",
       "Odabrane stavke su očišćene i sigurno premještene u macOS Koš.": "The selected items were cleaned and safely moved to the macOS Trash.",
       "Odabrano {n}": "{n} selected",
@@ -1891,6 +1897,7 @@
       "Otvori Postavke sustava": "Open System Settings",
       "Otvori mapu {ime}": "Open folder {ime}",
       "Ova mapa je prazna.": "This folder is empty.",
+      "Ovo ne ide u Koš i ne može se vratiti.": "This does not go to the Trash and cannot be restored.",
       "Ovu verziju preuzmite sa stranice izdanja na GitHubu.": "Download this version from its release page on GitHub.",
       "Očisti nedostupne": "Remove Unavailable",
       "Očisti odabrano →": "Clean Selected →",
@@ -1911,6 +1918,7 @@
       "Pokrećem {naredba}… Ovo može potrajati nekoliko minuta.": "Running {naredba}… This can take a few minutes.",
       "Pokušaj ponovno": "Try Again",
       "PometiME ne vidi sve. Bez Potpunog pristupa disku macOS ne da pročitati ove podatke: {mape}.": "PometiME cannot see everything. Without Full Disk Access, macOS blocks reading this data: {mape}.",
+      "PometiME će obrisati {n} ({velicina}) i predmemoriju pozadina. macOS će možda tražiti administratorsku lozinku. Pozadinu koju poslije odaberete macOS će ponovno preuzeti.": "PometiME will delete {n} ({velicina}) and the wallpaper cache. macOS may ask for an administrator password. Any wallpaper you choose later, macOS will download again.",
       "PometiME će u Koš premjestiti {n} ({velicina}). Zatim će otvoriti Finder s označenom aplikacijom: povucite je u Koš i upišite lozinku.": "PometiME will move {n} belonging to the app ({velicina}) to the Trash. Then Finder opens with the app selected: drag it to the Trash and enter your password.",
       "PometiME — Čistač diska i aplikacija": "PometiME — Disk and App Cleaner",
       "Pometimo odabrane stavke?": "Clean up the selected items?",
@@ -2031,6 +2039,7 @@
       "Vratite očišćene stavke →": "Restore cleaned items →",
       "Vratite stavke na izvorno mjesto dok se nalaze u Košu.": "Restore items to their original place while they are in the Trash.",
       "Vraćanje stavki na izvorno mjesto…": "Restoring items to their original place…",
+      "Xcode će obrisati simulatore čiji runtime više nije instaliran, zajedno s aplikacijama i podacima u njima.": "Xcode will delete simulators whose runtime is no longer installed, together with the apps and data in them.",
       "Zajedno s pripadajućim podacima u biblioteci.": "Together with their data in the Library.",
       "Zaostale datoteke i postavke aplikacija koje su ranije uklonjene s Maca.": "Leftover files and settings of apps removed from this Mac.",
       "Zaostale mape aplikacija koje su uklonjene iz mape Applications.": "Leftover folders of apps removed from the Applications folder.",
@@ -2043,6 +2052,7 @@
       "Zbrajam veličine mapa u vašoj korisničkoj mapi.": "Adding up folder sizes in your home folder.",
       "iOS Simulatori (simctl)": "iOS Simulators (simctl)",
       "macOS preuzima 4K videozapise iz zraka (često 40+ GB). Ovdje možete osloboditi prostor.": "macOS downloads 4K aerial videos (often 40+ GB). You can free that space here.",
+      "macOS će obrisati Time Machine snimke spremljene na ovom disku ({n}). Iz njih više nećete moći vratiti stariju inačicu datoteke. Sigurnosne kopije na vanjskom disku ostaju.": "macOS will delete the Time Machine snapshots stored on this disk ({n}). You will no longer be able to restore an older version of a file from them. Backups on your external disk stay.",
       "nepoznato": "unknown",
       "od ukupno {ukupno} ({posto}% slobodno)": "of {ukupno} total ({posto}% free)",
       "od ukupno...": "of total...",
@@ -2852,10 +2862,7 @@
         <button type="button" class="btn btn-sm btn-primary" id="akcija-tm">Oslobodi snimke</button>
       `;
       prevediElement(tmKarta);
-      tmKarta.querySelector('#akcija-tm').addEventListener('click', async () => {
-        await pokreniOptimizaciju('snapshots');
-        await ucitajSnimke();
-      });
+      tmKarta.querySelector('#akcija-tm').addEventListener('click', () => zatraziPotvrduRadnjeSustava('snapshots', ucitajSnimke));
 
       // 4. 4K Aerials
       const aerKarta = document.createElement('div');
@@ -2871,10 +2878,7 @@
         </div>
       `;
       prevediElement(aerKarta);
-      aerKarta.querySelector('#akcija-aer-ocisti').addEventListener('click', async () => {
-        await pokreniOptimizaciju('aerials');
-        await ucitajAerials();
-      });
+      aerKarta.querySelector('#akcija-aer-ocisti').addEventListener('click', () => zatraziPotvrduRadnjeSustava('aerials', ucitajAerials));
       aerKarta.querySelector('#akcija-aer-otvori').addEventListener('click', () => pokreniOptimizaciju('otvori_aerials'));
 
       // 5. iOS Simulatori
@@ -2886,10 +2890,7 @@
         <button type="button" class="btn btn-sm btn-primary" id="akcija-sim">Očisti nedostupne</button>
       `;
       prevediElement(simKarta);
-      simKarta.querySelector('#akcija-sim').addEventListener('click', async () => {
-        await pokreniOptimizaciju('simulators');
-        await ucitajSkeniranje();
-      });
+      simKarta.querySelector('#akcija-sim').addEventListener('click', () => zatraziPotvrduRadnjeSustava('simulators', ucitajSkeniranje));
 
       grid.append(dnsKarta, qlKarta, tmKarta, aerKarta, simKarta);
       spremnik.appendChild(grid);
@@ -3665,6 +3666,34 @@
       } catch (err) {
         prikaziPoruku(t('Greška pri povratu: {greska}', { greska: err.message }));
       }
+    }
+
+    // RADNJE SUSTAVA: snimke, pozadine i simulatori brišu se odmah, bez Koša,
+    // pa ih korisnik prvo potvrdi.
+    function zatraziPotvrduRadnjeSustava(akcija, osvjezi) {
+      let naslov, opis, gumb;
+      if (akcija === 'snapshots') {
+        naslov = t('Obrisati lokalne Time Machine snimke?');
+        opis = t('macOS će obrisati Time Machine snimke spremljene na ovom disku ({n}). Iz njih više nećete moći vratiti stariju inačicu datoteke. Sigurnosne kopije na vanjskom disku ostaju.',
+          { n: uzBrojHR((stanje.snimke || []).length, 'lokalna snimka', 'lokalne snimke', 'lokalnih snimaka') });
+        gumb = t('Obriši snimke');
+      } else if (akcija === 'aerials') {
+        const ae = stanje.aerials || { total_bytes: 0, video_count: 0 };
+        naslov = t('Obrisati 4K zračne pozadine?');
+        opis = t('PometiME će obrisati {n} ({velicina}) i predmemoriju pozadina. macOS će možda tražiti administratorsku lozinku. Pozadinu koju poslije odaberete macOS će ponovno preuzeti.',
+          { n: uzBrojHR(ae.video_count, 'videozapis', 'videozapisa', 'videozapisa'), velicina: formatirajBajte(ae.total_bytes) });
+        gumb = t('Obriši pozadine');
+      } else if (akcija === 'simulators') {
+        naslov = t('Obrisati nedostupne simulatore?');
+        opis = t('Xcode će obrisati simulatore čiji runtime više nije instaliran, zajedno s aplikacijama i podacima u njima.');
+        gumb = t('Obriši simulatore');
+      } else {
+        return;
+      }
+      otvoriDijalogPotvrde(naslov, opis + '\n\n' + t('Ovo ne ide u Koš i ne može se vratiti.'), gumb, async () => {
+        await pokreniOptimizaciju(akcija);
+        await osvjezi();
+      });
     }
 
     // Optimizacija sustava (DNS, QuickLook, Snapshots, Aerials, Simulators)
