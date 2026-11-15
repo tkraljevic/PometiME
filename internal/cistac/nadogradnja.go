@@ -18,8 +18,10 @@ import (
 	"time"
 )
 
-// TrenutnaInacica definira ugrađenu verziju programa PometiME.
-const TrenutnaInacica = "1.0.12"
+// TrenutnaInacica je verzija programa. Makefile je pri izgradnji uzima iz
+// build/Info.plist, pa se verzija mijenja samo ondje. Program izgrađen bez
+// Makefilea javlja 0.0.0.
+var TrenutnaInacica = "0.0.0"
 
 // identifikatorPaketa je CFBundleIdentifier koji preuzeta aplikacija mora imati.
 const identifikatorPaketa = "hr.kraljevic.pometime"

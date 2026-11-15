@@ -4,12 +4,14 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -309,6 +311,26 @@ func TestZastitaAPIja(t *testing.T) {
 	bezKljuca.ServeHTTP(odg, zah)
 	if odg.Code != http.StatusForbidden {
 		t.Errorf("poslužitelj bez ključa mora odbiti API, dobiveno %d", odg.Code)
+	}
+}
+
+// Verzija se upisuje samo u build/Info.plist. Poslužitelj je upisuje u stranicu,
+// a sažetak skripte u politici mora odgovarati baš toj stranici, inače
+// preglednik ne pokrene sučelje.
+func TestSuceljeDobivaVerzijuOdPosluzitelja(t *testing.T) {
+	if rucnaVerzija := regexp.MustCompile(`(PometiME |['">])\d+\.\d+\.\d+['"<]`).Find(sirovoSucelje); rucnaVerzija != nil {
+		t.Errorf("sucelje.html ima ručno upisanu verziju %s; umjesto nje stavite %s", rucnaVerzija, oznakaVerzije)
+	}
+	odg := httptest.NewRecorder()
+	NoviPosluzitelj(cistac.Postavke{}, testnaZastita).ServeHTTP(odg, httptest.NewRequest(http.MethodGet, "/", nil))
+	stranica := odg.Body.Bytes()
+	if bytes.Contains(stranica, []byte(oznakaVerzije)) || !bytes.Contains(stranica, []byte("PometiME "+cistac.TrenutnaInacica)) {
+		t.Errorf("stranica mora pokazati verziju %s, a ne oznaku %s", cistac.TrenutnaInacica, oznakaVerzije)
+	}
+	skripta := uzorakSkripte.FindSubmatch(stranica)
+	zbroj := sha256.Sum256(skripta[1])
+	if !strings.Contains(odg.Header().Get("Content-Security-Policy"), base64.StdEncoding.EncodeToString(zbroj[:])) {
+		t.Errorf("politika sadržaja nema sažetak skripte koju poslužitelj šalje")
 	}
 }
 

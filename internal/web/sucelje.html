@@ -1384,7 +1384,7 @@
     <!-- Kartica verzije i nadogradnje -->
     <div class="side-update-box">
       <div class="side-update-ver">
-        <span id="prikaz-trenutne-verzije">PometiME 1.0.12</span>
+        <span id="prikaz-trenutne-verzije">PometiME {{VERZIJA}}</span>
         <span id="indikator-nove-verzije" class="side-update-badge" style="display: none;">● Nova</span>
       </div>
       <button type="button" class="side-update-btn" id="gumb-provjeri-nadogradnju">
@@ -1737,11 +1737,11 @@
       <div class="update-versions-grid" id="nadogradnja-kartice-verzija">
         <div class="update-ver-card">
           <div class="update-ver-label">Instalirana verzija</div>
-          <div class="update-ver-value" id="nadogradnja-stara-verzija">1.0.12</div>
+          <div class="update-ver-value" id="nadogradnja-stara-verzija">{{VERZIJA}}</div>
         </div>
         <div class="update-ver-card">
           <div class="update-ver-label">Dostupna verzija</div>
-          <div class="update-ver-value" id="nadogradnja-nova-verzija">1.0.12</div>
+          <div class="update-ver-value" id="nadogradnja-nova-verzija">{{VERZIJA}}</div>
         </div>
       </div>
 
@@ -2137,6 +2137,9 @@
     // Ključ sesije dolazi u adresi stranice (?k=…). Bez njega poslužitelj odbija
     // svaki zahtjev, pa naredbe ne može slati druga stranica ni drugi program.
     const kljucSesije = new URLSearchParams(window.location.search).get('k') || '';
+
+    // Verziju upisuje poslužitelj kad šalje stranicu.
+    const TRENUTNA_VERZIJA = '{{VERZIJA}}';
 
     function apiFetch(url, opcije = {}) {
       const zaglavlja = Object.assign({}, opcije.headers, { 'X-PometiME-Kljuc': kljucSesije });
@@ -3727,8 +3730,8 @@
           simbol.textContent = '\u2193';
           naslov.textContent = t('Nova verzija je spremna.');
           podnaslov.textContent = t('Pregledajte novosti i ažurirajte PometiME.');
-          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || '1.0.12';
-          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || '1.0.12';
+          document.getElementById('nadogradnja-stara-verzija').textContent = podaci.current_version || TRENUTNA_VERZIJA;
+          document.getElementById('nadogradnja-nova-verzija').textContent = podaci.latest_version || TRENUTNA_VERZIJA;
           karticeVerzija.style.display = 'grid';
 
           const biljeske = podaci.release_notes ? renderirajMarkdown(podaci.release_notes) : '<p>' + t('Bilješke uz izdanje trenutačno nisu dostupne. Više informacija potražite na stranici izdanja.') + '</p>';
@@ -3752,7 +3755,7 @@
           simbol.textContent = '\u2713';
           naslov.textContent = t('Sve je ažurno.');
           podnaslov.textContent = t('Već koristite najnoviju verziju PometiME.');
-          statusPoruka.textContent = t('Instalirana verzija {verzija}', { verzija: podaci.current_version || '1.0.12' });
+          statusPoruka.textContent = t('Instalirana verzija {verzija}', { verzija: podaci.current_version || TRENUTNA_VERZIJA });
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           break;
@@ -3770,7 +3773,7 @@
           simbol.textContent = '\u2713';
           naslov.textContent = t('Nadogradnja je instalirana.');
           podnaslov.textContent = t('Pokrenite PometiME ponovno kako biste koristili novu verziju.');
-          statusPoruka.textContent = t('Instalirana verzija {verzija}', { verzija: podaci.latest_version || '1.0.12' });
+          statusPoruka.textContent = t('Instalirana verzija {verzija}', { verzija: podaci.latest_version || TRENUTNA_VERZIJA });
           statusPoruka.style.display = 'block';
           gumbZatvori.style.display = 'inline-flex';
           if (window.webkit?.messageHandlers?.pometimeRestart) gumbRestart.style.display = 'inline-flex';

@@ -33,7 +33,7 @@ const tekstoviIzHtmla = dio => [...dio.matchAll(/>([^<>]+)</g)]
   .map(m => m[1].replace(/&rarr;/g, '→').replace(/&ldquo;/g, '“').replace(/&rdquo;/g, '”')
     .replace(/&larr;/g, '←').replace(/&check;/g, '✓').replace(/&middot;/g, '·').replace(/&nearr;/g, '↗')
     .replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim())
-  .filter(tekst => /[A-Za-zčćžšđ]{2}/.test(tekst.replace(/&[a-z]+;/g, '')) && !/^PometiME( [\d.]+)?$/.test(tekst) && !['Macintosh HD', 'HR', 'EN'].includes(tekst));
+  .filter(tekst => /[A-Za-zčćžšđ]{2}/.test(tekst.replace(/&[a-z]+;/g, '')) && !/^(PometiME|PometiME \{\{VERZIJA\}\}|\{\{VERZIJA\}\})$/.test(tekst) && !['Macintosh HD', 'HR', 'EN'].includes(tekst));
 
 test('na hrvatskom tekst ostaje izvorni, a brojevi imaju decimalni zarez', () => {
   const k = kontekst('hr');

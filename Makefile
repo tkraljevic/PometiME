@@ -8,11 +8,14 @@ KLJUC_POTPISA ?= $(HOME)/.config/pometime/nadogradnja-ed25519.key
 # Certifikat za potpis koda: macOS uz njega veže dozvole, pa one ostaju nakon nadogradnje.
 KEYCHAIN_IZDANJA ?= $(HOME)/.config/pometime/potpisivanje.keychain-db
 JAVNI_KLJUC := $(shell sed -n 's/^const javniKljucNadogradnjeB64 = "\(.*\)"$$/\1/p' internal/cistac/nadogradnja.go)
+# Verzija se upisuje samo u build/Info.plist; program i sučelje dobiju je pri izgradnji.
+VERZIJA := $(shell sed -n '/<key>CFBundleShortVersionString<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' build/Info.plist)
 
 .PHONY: build app certifikat potpisi run quality quality-tools quality-report quality-test quality-baseline quality-puni-race
 
 build:
-	go build -o pometime ./cmd/pometime
+	@test -n "$(VERZIJA)" || (echo 'U build/Info.plist nije pronađena verzija (CFBundleShortVersionString).'; exit 1)
+	go build -ldflags "-X pometime/internal/cistac.TrenutnaInacica=$(VERZIJA)" -o pometime ./cmd/pometime
 
 app: build
 	rm -rf dist/PometiME.app dist/PometiME-macOS.zip dist/PometiME-macOS.zip.sig

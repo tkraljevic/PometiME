@@ -167,6 +167,9 @@ func TestPrimijeniNadogradnjuInstalira(t *testing.T) {
 }
 
 func TestPrimijeniNadogradnjuOdbija(t *testing.T) {
+	stara := TrenutnaInacica
+	t.Cleanup(func() { TrenutnaInacica = stara })
+	TrenutnaInacica = "1.5.0" // arhiva 1.0.0 mora biti starija od instalirane verzije
 	ispravna := zipIzDatoteka(t, map[string]string{"PometiME.app/Contents/Info.plist": testniInfoPlist(identifikatorPaketa, "9.0.0")})
 	tudja := zipIzDatoteka(t, map[string]string{"Drugi.app/Contents/Info.plist": testniInfoPlist("com.example.drugi", "9.0.0")})
 	starija := zipIzDatoteka(t, map[string]string{"PometiME.app/Contents/Info.plist": testniInfoPlist(identifikatorPaketa, "1.0.0")})

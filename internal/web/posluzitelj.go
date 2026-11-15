@@ -17,7 +17,14 @@ import (
 )
 
 //go:embed sucelje.html
-var ugradenoSucelje []byte
+var sirovoSucelje []byte
+
+// oznakaVerzije u sucelje.html stoji umjesto verzije, da se verzija ne bi
+// upisivala ručno na više mjesta.
+const oznakaVerzije = "{{VERZIJA}}"
+
+// ugradenoSucelje je stranica s upisanom verzijom programa.
+var ugradenoSucelje = bytes.ReplaceAll(sirovoSucelje, []byte(oznakaVerzije), []byte(cistac.TrenutnaInacica))
 
 // ZaglavljeKljuca nosi ključ sesije u svakom zahtjevu prema API-ju.
 const ZaglavljeKljuca = "X-PometiME-Kljuc"

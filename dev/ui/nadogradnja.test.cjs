@@ -17,6 +17,7 @@ function ui(data, installStatus = 200, restart = null) {
   const context = vm.createContext({
     document: { getElementById: element },
     stanje: {},
+    TRENUTNA_VERZIJA: '0.0.0',
     window: { webkit: restart ? { messageHandlers: { pometimeRestart: { postMessage: restart } } } : undefined },
     renderirajMarkdown: s => s,
     apiFetch: async (url, options) => {
