@@ -1864,7 +1864,7 @@
       "Nema stavki za prikaz u ovom filtru. Vaš Mac je već čist!": "Nothing to show in this filter. Your Mac is already clean!",
       "Neuspjelo ažuriranje datoteka.": "Updating the files failed.",
       "Nije moguće dohvatiti podatke o novim izdanjima s GitHuba.": "Could not get release information from GitHub.",
-      "Nije pronađen nijedan podržani alat (Homebrew, Go, pnpm).": "No supported tool was found (Homebrew, Go, pnpm).",
+      "Nije pronađen nijedan alat koji PometiME zna očistiti.": "No tool that PometiME knows how to clean was found.",
       "Nije pronađena nijedna aplikacija prema zadanom pojmu pretrage.": "No apps match your search.",
       "Nije provjeren": "Not checked",
       "Nova verzija je spremna.": "A new version is ready.",
@@ -3034,7 +3034,7 @@
       if (ra.ucitava || ra.greska || ra.popis.length === 0) {
         const poruka = document.createElement('div');
         poruka.className = 'item-desc';
-        poruka.textContent = ra.ucitava ? t('Provjeravam instalirane alate\u2026') : (ra.greska || t('Nije pronađen nijedan podržani alat (Homebrew, Go, pnpm).'));
+        poruka.textContent = ra.ucitava ? t('Provjeravam instalirane alate\u2026') : (ra.greska || t('Nije pronađen nijedan alat koji PometiME zna očistiti.'));
         spremnik.appendChild(poruka);
         return;
       }

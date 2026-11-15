@@ -26,29 +26,107 @@ type AlatZaCiscenje struct {
 	MozeOcistiti  bool   `json:"can_clean"`
 }
 
-// naredbaAlata opisuje program i argumente kojima alat čisti svoje spremište.
-type naredbaAlata struct {
-	program   string
-	argumenti []string
+// opisAlata je jedan alat koji PometiME zna očistiti: kako ga pronaći,
+// što briše i kojom naredbom.
+type opisAlata struct {
+	id      string
+	program string   // ključ u mjestima programa
+	naredba []string // argumenti naredbe za čišćenje
+	naziv   string
+	opis    string
+	// mapa vraća mapu koju naredba čisti, da se izmjeri koliko zauzima.
+	mapa func(p Postavke, program string) (string, bool)
+	// samoDio znači da naredba briše samo nekorišteni dio mape.
+	samoDio bool
+	// procijeni zamjenjuje mjerenje mape kad alat sam zna procijeniti.
+	procijeni func(program string, alat *AlatZaCiscenje)
+}
+
+// popisAlata vraća sve alate koje PometiME zna očistiti. Novi alat dodaje se
+// samo ovdje. Tekstovi se prevode pri svakom pozivu, jer korisnik može
+// promijeniti jezik dok program radi.
+func popisAlata() []opisAlata {
+	mapaNpma := mapaIzIspisa("config", "get", "cache")
+	return []opisAlata{
+		{id: "brew", program: "brew", naredba: []string{"cleanup", "--prune=all"},
+			naziv:     T("Homebrew: stare verzije i preuzimanja"),
+			opis:      T("Stare verzije paketa i preuzete arhive koje Homebrew više ne treba."),
+			procijeni: procijeniHomebrew},
+		{id: "go_cache", program: "go", naredba: []string{"clean", "-cache"},
+			naziv: T("Go: međuspremnik izgradnje"),
+			opis:  T("Prevedeni Go paketi i spremljeni rezultati testova. Go ih ponovno napravi, pa je sljedeća izgradnja sporija."),
+			mapa:  mapaIzIspisa("env", "GOCACHE")},
+		{id: "go_modcache", program: "go", naredba: []string{"clean", "-modcache"},
+			naziv: T("Go moduli"),
+			opis:  T("Preuzeti Go moduli. Projekti ih ponovno preuzmu pri sljedećoj izgradnji, za što treba internet."),
+			mapa:  mapaIzIspisa("env", "GOMODCACHE")},
+		{id: "npm", program: "npm", naredba: []string{"cache", "clean", "--force"},
+			naziv: T("npm: preuzeti paketi"),
+			opis:  T("Paketi koje je npm preuzeo. Pri sljedećoj instalaciji ponovno se preuzmu, za što treba internet."),
+			mapa:  podmapa(mapaNpma, "_cacache")},
+		{id: "npx", program: "npm", naredba: []string{"cache", "npx", "rm", "--force"},
+			naziv: T("npx: preuzeti programi"),
+			opis:  T("Programi pokrenuti naredbom npx, među njima često i MCP poslužitelji. Pri sljedećem pokretanju ponovno se preuzmu."),
+			mapa:  podmapa(mapaNpma, "_npx")},
+		{id: "pnpm", program: "pnpm", naredba: []string{"store", "prune"},
+			naziv:   T("pnpm: nekorišteni paketi"),
+			opis:    T("Briše samo pakete iz spremišta koje nijedan projekt više ne koristi."),
+			mapa:    mapaIzIspisa("store", "path"),
+			samoDio: true},
+		{id: "yarn", program: "yarn", naredba: []string{"cache", "clean"},
+			naziv: T("Yarn: preuzeti paketi"),
+			opis:  T("Paketi koje je Yarn preuzeo. Pri sljedećoj instalaciji ponovno se preuzmu, za što treba internet."),
+			mapa:  mapaIzIspisa("cache", "dir")},
+		{id: "pip", program: "pip3", naredba: []string{"cache", "purge"},
+			naziv: T("pip: preuzeti Python paketi"),
+			opis:  T("Paketi koje je pip preuzeo. Instalirani paketi ostaju."),
+			mapa:  mapaIzIspisa("cache", "dir")},
+		{id: "uv", program: "uv", naredba: []string{"cache", "clean"},
+			naziv: T("uv: preuzeti Python paketi"),
+			opis:  T("Paketi koje je uv preuzeo. Pri sljedećoj instalaciji ponovno se preuzmu, za što treba internet."),
+			mapa:  mapaIzIspisa("cache", "dir")},
+		{id: "cocoapods", program: "pod", naredba: []string{"cache", "clean", "--all"},
+			naziv: T("CocoaPods: preuzeti podovi"),
+			opis:  T("Podovi koje je CocoaPods preuzeo. Projekti ih ponovno preuzmu pri sljedećem pod install."),
+			mapa:  mapaUDomu("Library", "Caches", "CocoaPods")},
+		{id: "swiftpm", program: "swift", naredba: []string{"package", "purge-cache"},
+			naziv: T("Swift: preuzeti paketi"),
+			opis:  T("Spremište Swift paketa. Projekti ih ponovno preuzmu pri sljedećoj izgradnji."),
+			mapa:  mapaUDomu("Library", "Caches", "org.swift.swiftpm")},
+		{id: "golangci_lint", program: "golangci-lint", naredba: []string{"cache", "clean"},
+			naziv: T("golangci-lint: spremljene provjere"),
+			opis:  T("Rezultati ranijih provjera koda. Sljedeća provjera bit će sporija."),
+			mapa:  mapaIzIspisa("cache", "status")},
+		{id: "composer", program: "composer", naredba: []string{"clear-cache"},
+			naziv: T("Composer: preuzeti PHP paketi"),
+			opis:  T("Paketi koje je Composer preuzeo. Pri sljedećoj instalaciji ponovno se preuzmu, za što treba internet."),
+			mapa:  mapaIzIspisa("config", "--global", "cache-dir")},
+	}
 }
 
 const rokNaredbeAlata = 10 * time.Minute
 
 var (
 	// Aplikacija pokrenuta iz Findera nema PATH ljuske, pa se programi traže na poznatim mjestima.
+	// Za Python i Swift uzimaju se pravi programi, a ne /usr/bin: ondje su samo omotači
+	// koji bez Xcodeovih alata otvore prozor za njihovu instalaciju.
 	mjestaProgramaFn = func(dom string) map[string][]string {
 		return map[string][]string{
-			"brew": {"/opt/homebrew/bin/brew", "/usr/local/bin/brew"},
-			"go":   {"/opt/homebrew/bin/go", "/usr/local/go/bin/go", "/usr/local/bin/go"},
-			"pnpm": {filepath.Join(dom, "Library", "pnpm", "pnpm"), "/opt/homebrew/bin/pnpm", "/usr/local/bin/pnpm"},
+			"brew":          {"/opt/homebrew/bin/brew", "/usr/local/bin/brew"},
+			"go":            {"/opt/homebrew/bin/go", "/usr/local/go/bin/go", "/usr/local/bin/go"},
+			"npm":           {"/opt/homebrew/bin/npm", "/usr/local/bin/npm", filepath.Join(dom, ".volta", "bin", "npm")},
+			"pnpm":          {filepath.Join(dom, "Library", "pnpm", "pnpm"), "/opt/homebrew/bin/pnpm", "/usr/local/bin/pnpm"},
+			"yarn":          {"/opt/homebrew/bin/yarn", "/usr/local/bin/yarn", filepath.Join(dom, ".yarn", "bin", "yarn")},
+			"pip3":          {"/opt/homebrew/bin/pip3", "/usr/local/bin/pip3", "/Library/Frameworks/Python.framework/Versions/Current/bin/pip3", "/Library/Developer/CommandLineTools/usr/bin/pip3", "/Applications/Xcode.app/Contents/Developer/usr/bin/pip3"},
+			"uv":            {filepath.Join(dom, ".local", "bin", "uv"), filepath.Join(dom, ".cargo", "bin", "uv"), "/opt/homebrew/bin/uv", "/usr/local/bin/uv"},
+			"pod":           {"/opt/homebrew/bin/pod", "/usr/local/bin/pod"},
+			"swift":         {"/Library/Developer/CommandLineTools/usr/bin/swift", "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift"},
+			"golangci-lint": {"/opt/homebrew/bin/golangci-lint", "/usr/local/bin/golangci-lint", filepath.Join(dom, "go", "bin", "golangci-lint")},
+			"composer":      {"/opt/homebrew/bin/composer", "/usr/local/bin/composer"},
 		}
 	}
-	pokreniAlatFn = pokreniAlat
-	naredbeAlata  = map[string]naredbaAlata{
-		"brew":        {"brew", []string{"cleanup", "--prune=all"}},
-		"go_modcache": {"go", []string{"clean", "-modcache"}},
-		"pnpm":        {"pnpm", []string{"store", "prune"}},
-	}
+	pokreniAlatFn      = pokreniAlat
+	slobodnoBajtaFn    = func(put string) int64 { return DohvatiStanjeDiska(put).SlobodnoBajta }
 	uzorakBrewProcjene = regexp.MustCompile(`free approximately ([0-9.]+)([KMGT]?B)`)
 )
 
@@ -62,12 +140,28 @@ func PostaviAlateZaTest(mjesta map[string][]string, pokreni func(string, ...stri
 	}
 }
 
+// pokreniAlat pokreće alat iz mape /, da ga ne zbune postavke nekog projekta.
 func pokreniAlat(program string, argumenti ...string) ([]byte, error) {
 	ctx, otkazi := context.WithTimeout(context.Background(), rokNaredbeAlata)
 	defer otkazi()
 	naredba := exec.CommandContext(ctx, program, argumenti...)
-	naredba.Env = append(os.Environ(), "HOMEBREW_NO_AUTO_UPDATE=1", "HOMEBREW_NO_ENV_HINTS=1")
+	naredba.Dir = "/"
+	naredba.Env = okruzenjeAlata(program)
 	return naredba.Output()
+}
+
+// okruzenjeAlata dodaje u PATH mapu samog alata i Homebrew. npm, Yarn i Composer
+// su skripte koje traže node ili php, a aplikacija iz Findera ima samo /usr/bin.
+// Ostale varijable sprečavaju da alat nešto preuzima ili nudi nadogradnju.
+func okruzenjeAlata(program string) []string {
+	put := strings.Join([]string{filepath.Dir(program), "/opt/homebrew/bin", "/usr/local/bin", os.Getenv("PATH")}, string(os.PathListSeparator))
+	return append(os.Environ(),
+		"PATH="+put,
+		"HOMEBREW_NO_AUTO_UPDATE=1", "HOMEBREW_NO_ENV_HINTS=1",
+		"COREPACK_ENABLE_NETWORK=0",
+		"npm_config_update_notifier=false",
+		"PIP_DISABLE_PIP_VERSION_CHECK=1",
+	)
 }
 
 func pronadiProgram(p Postavke, ime string) string {
@@ -82,14 +176,14 @@ func pronadiProgram(p Postavke, ime string) string {
 // PronadiRazvojneAlate vraća instalirane alate s procjenom prostora koji mogu osloboditi.
 // Alati se provjeravaju usporedno, jer samo pokusno čišćenje Homebrewa traje desetak sekundi.
 func PronadiRazvojneAlate(p Postavke) []AlatZaCiscenje {
-	otkrivanja := []func(Postavke) (AlatZaCiscenje, bool){otkrijHomebrew, otkrijGoModule, otkrijPnpm}
-	pronadeni := make([]*AlatZaCiscenje, len(otkrivanja))
+	opisi := popisAlata()
+	pronadeni := make([]*AlatZaCiscenje, len(opisi))
 	var wg sync.WaitGroup
-	for i, otkrij := range otkrivanja {
+	for i, opis := range opisi {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if alat, ok := otkrij(p); ok {
+			if alat, ok := otkrijAlat(p, opis); ok {
 				pronadeni[i] = &alat
 			}
 		}()
@@ -104,30 +198,54 @@ func PronadiRazvojneAlate(p Postavke) []AlatZaCiscenje {
 	return alati
 }
 
-func otkrijHomebrew(p Postavke) (AlatZaCiscenje, bool) {
-	program := pronadiProgram(p, "brew")
+// otkrijAlat provjerava je li alat instaliran i koliko zauzima ono što briše.
+// Alat koji ne zna reći gdje mu je spremište ne nudi se, jer vjerojatno ne radi.
+func otkrijAlat(p Postavke, opis opisAlata) (AlatZaCiscenje, bool) {
+	program := pronadiProgram(p, opis.program)
 	if program == "" {
 		return AlatZaCiscenje{}, false
 	}
 	alat := AlatZaCiscenje{
-		ID:      "brew",
-		Naziv:   T("Homebrew: stare verzije i preuzimanja"),
-		Opis:    T("Stare verzije paketa i preuzete arhive koje Homebrew više ne treba."),
-		Naredba: "brew cleanup --prune=all",
+		ID:      opis.id,
+		Naziv:   opis.naziv,
+		Opis:    opis.opis,
+		Naredba: opis.program + " " + strings.Join(opis.naredba, " "),
 	}
+	if opis.procijeni != nil {
+		opis.procijeni(program, &alat)
+		return alat, true
+	}
+	mapa, ok := opis.mapa(p, program)
+	if !ok {
+		return AlatZaCiscenje{}, false
+	}
+	alat.VelicinaBajta = IzracunajVelicinu(mapa)
+	alat.MozeOcistiti = alat.VelicinaBajta > 0
+	switch {
+	case !alat.MozeOcistiti:
+		alat.Procjena = T("Trenutačno nema ničega za ukloniti.")
+	case opis.samoDio:
+		alat.Procjena = fmt.Sprintf(T("Spremište zauzima %s, a oslobodit će se samo nekorišteni dio."), FormatirajBajte(alat.VelicinaBajta))
+	default:
+		alat.Procjena = fmt.Sprintf(T("Oslobodit će oko %s."), FormatirajBajte(alat.VelicinaBajta))
+	}
+	return alat, true
+}
+
+// procijeniHomebrew pokreće pokusno čišćenje, jer Homebrew briše po više mapa.
+func procijeniHomebrew(program string, alat *AlatZaCiscenje) {
 	izlaz, err := pokreniAlatFn(program, "cleanup", "--prune=all", "-n")
 	if err != nil {
 		alat.Procjena = T("Procjena nije dostupna, ali naredbu možete pokrenuti.")
 		alat.MozeOcistiti = true
-		return alat, true
+		return
 	}
 	alat.VelicinaBajta = procjenaHomebrewa(string(izlaz))
 	alat.MozeOcistiti = alat.VelicinaBajta > 0
 	alat.Procjena = T("Trenutačno nema ničega za ukloniti.")
 	if alat.MozeOcistiti {
-		alat.Procjena = fmt.Sprintf(T(T("Oslobodit će oko %s.")), FormatirajBajte(alat.VelicinaBajta))
+		alat.Procjena = fmt.Sprintf(T("Oslobodit će oko %s."), FormatirajBajte(alat.VelicinaBajta))
 	}
-	return alat, true
 }
 
 // procjenaHomebrewa čita redak "would free approximately 1.2GB" iz pokusnog čišćenja.
@@ -141,70 +259,76 @@ func procjenaHomebrewa(izlaz string) int64 {
 	return int64(broj * jedinice[m[2]])
 }
 
-func otkrijGoModule(p Postavke) (AlatZaCiscenje, bool) {
-	mapa, ok := mapaIzAlata(p, "go", "env", "GOMODCACHE")
-	if !ok {
-		return AlatZaCiscenje{}, false
+// mapaIzIspisa pita alat gdje mu je spremište.
+func mapaIzIspisa(argumenti ...string) func(Postavke, string) (string, bool) {
+	return func(_ Postavke, program string) (string, bool) {
+		izlaz, err := pokreniAlatFn(program, argumenti...)
+		if err != nil {
+			return "", false
+		}
+		return putanjaIzIspisa(string(izlaz))
 	}
-	velicina := IzracunajVelicinu(mapa)
-	return AlatZaCiscenje{
-		ID:            "go_modcache",
-		Naziv:         T("Go moduli"),
-		Opis:          T("Preuzeti Go moduli. Projekti ih ponovno preuzmu pri sljedećoj izgradnji, za što treba internet."),
-		Naredba:       "go clean -modcache",
-		VelicinaBajta: velicina,
-		Procjena:      fmt.Sprintf(T(T("Oslobodit će oko %s.")), FormatirajBajte(velicina)),
-		MozeOcistiti:  velicina > 0,
-	}, true
 }
 
-func otkrijPnpm(p Postavke) (AlatZaCiscenje, bool) {
-	mapa, ok := mapaIzAlata(p, "pnpm", "store", "path")
-	if !ok {
-		return AlatZaCiscenje{}, false
+// putanjaIzIspisa uzima prvi redak koji je apsolutna putanja. golangci-lint
+// ispred putanje piše "Dir:", ostali alati ispisuju samo putanju.
+func putanjaIzIspisa(izlaz string) (string, bool) {
+	for _, redak := range strings.Split(izlaz, "\n") {
+		redak = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(redak), "Dir:"))
+		if filepath.IsAbs(redak) {
+			return filepath.Clean(redak), true
+		}
 	}
-	velicina := IzracunajVelicinu(mapa)
-	return AlatZaCiscenje{
-		ID:            "pnpm",
-		Naziv:         T("pnpm: nekorišteni paketi"),
-		Opis:          T("Briše samo pakete iz spremišta koje nijedan projekt više ne koristi."),
-		Naredba:       "pnpm store prune",
-		VelicinaBajta: velicina,
-		Procjena:      fmt.Sprintf(T(T("Spremište zauzima %s, a oslobodit će se samo nekorišteni dio.")), FormatirajBajte(velicina)),
-		MozeOcistiti:  velicina > 0,
-	}, true
+	return "", false
 }
 
-// mapaIzAlata pita alat gdje mu je spremište i vraća putanju ako je apsolutna.
-func mapaIzAlata(p Postavke, ime string, argumenti ...string) (string, bool) {
-	program := pronadiProgram(p, ime)
-	if program == "" {
-		return "", false
+// podmapa vraća mapu unutar spremišta koje alat javlja.
+func podmapa(mapa func(Postavke, string) (string, bool), ime string) func(Postavke, string) (string, bool) {
+	return func(p Postavke, program string) (string, bool) {
+		korijen, ok := mapa(p, program)
+		if !ok {
+			return "", false
+		}
+		return filepath.Join(korijen, ime), true
 	}
-	izlaz, err := pokreniAlatFn(program, argumenti...)
-	mapa := strings.TrimSpace(string(izlaz))
-	if err != nil || !filepath.IsAbs(mapa) {
-		return "", false
+}
+
+// mapaUDomu je stalna mapa u korisničkoj mapi, za alate koji je ne znaju ispisati.
+func mapaUDomu(dijelovi ...string) func(Postavke, string) (string, bool) {
+	return func(p Postavke, _ string) (string, bool) {
+		return filepath.Join(append([]string{p.KorijenKorisnika}, dijelovi...)...), true
 	}
-	return mapa, true
 }
 
 // OcistiRazvojniAlat pokreće naredbu alata i javlja koliko je slobodnog prostora dobiveno.
 func OcistiRazvojniAlat(p Postavke, id string) (string, error) {
-	naredba, ok := naredbeAlata[id]
-	if !ok {
+	var alat *opisAlata
+	for _, opis := range popisAlata() {
+		if opis.id == id {
+			alat = &opis
+			break
+		}
+	}
+	if alat == nil {
 		return "", fmt.Errorf(T("nepoznat alat: %s"), id)
 	}
-	program := pronadiProgram(p, naredba.program)
+	program := pronadiProgram(p, alat.program)
 	if program == "" {
-		return "", fmt.Errorf(T("program %s nije pronađen na ovom Macu"), naredba.program)
+		return "", fmt.Errorf(T("program %s nije pronađen na ovom Macu"), alat.program)
 	}
-	opis := naredba.program + " " + strings.Join(naredba.argumenti, " ")
-	prije := DohvatiStanjeDiska(p.KorijenKorisnika).SlobodnoBajta
-	if _, err := pokreniAlatFn(program, naredba.argumenti...); err != nil {
-		return "", fmt.Errorf(T("naredba %s nije uspjela: %s"), opis, opisGreskeNaredbe(err))
+	opis := alat.program + " " + strings.Join(alat.naredba, " ")
+	prije := slobodnoBajtaFn(p.KorijenKorisnika)
+	_, err := pokreniAlatFn(program, alat.naredba...)
+	dobiveno := max(slobodnoBajtaFn(p.KorijenKorisnika)-prije, 0)
+	if err != nil {
+		greska := strings.TrimRight(opisGreskeNaredbe(err), ".")
+		// go clean -cache javi grešku ako drugi program u isto vrijeme piše u mapu,
+		// a ipak obriše gotovo sve. Korisnik treba znati i to.
+		if dobiveno > 0 {
+			return "", fmt.Errorf(T("naredba %s nije uspjela: %s. Slobodnog prostora ipak ima %s više."), opis, greska, FormatirajBajte(dobiveno))
+		}
+		return "", fmt.Errorf(T("naredba %s nije uspjela: %s"), opis, greska)
 	}
-	dobiveno := max(DohvatiStanjeDiska(p.KorijenKorisnika).SlobodnoBajta-prije, 0)
 	return fmt.Sprintf(T("Naredba %s je završila. Slobodnog prostora ima %s više."), opis, FormatirajBajte(dobiveno)), nil
 }
 
