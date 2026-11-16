@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -30,12 +31,28 @@ func DozvoljeniKorijeni(p Postavke) []string {
 		filepath.Join(k, ".gradle", "caches"),
 		filepath.Join(k, ".m2", "repository"),
 		filepath.Join(k, ".cargo", "registry", "cache"),
+		filepath.Join(k, ".cargo", "registry", "src"),
+		filepath.Join(k, ".cargo", "git", "checkouts"),
 		filepath.Join(k, ".claude", "projects"),
 		filepath.Join(k, ".android", "avd"),
 		filepath.Join(k, "go", "pkg", "mod", "cache"),
 		filepath.Join(k, "Downloads"),
 		filepath.Join(k, "Applications"),
 		app,
+	}
+}
+
+// cijeleMape su mape predmemorije koje se smiju premjestiti cijele, a ne samo
+// njihov sadržaj. Njihove roditeljske mape čuvaju i postavke, npr. ~/.m2/settings.xml
+// s pristupnim podacima, pa nisu među dozvoljenim korijenima.
+func cijeleMape(k string) []string {
+	return []string{
+		filepath.Join(k, "go", "pkg", "mod", "cache"),
+		filepath.Join(k, ".cargo", "registry", "cache"),
+		filepath.Join(k, ".cargo", "registry", "src"),
+		filepath.Join(k, ".cargo", "git", "checkouts"),
+		filepath.Join(k, ".gradle", "caches"),
+		filepath.Join(k, ".m2", "repository"),
 	}
 }
 
@@ -67,6 +84,9 @@ func JeSigurnaPutanja(p Postavke, putanja string) bool {
 	cista := filepath.Clean(putanja)
 	if jeZasticenaClaudeMemorija(cista) {
 		return false
+	}
+	if slices.Contains(cijeleMape(filepath.Clean(p.KorijenKorisnika)), cista) {
+		return true
 	}
 	for _, korijen := range DozvoljeniKorijeni(p) {
 		if JeUnutarKorijena(cista, korijen) {

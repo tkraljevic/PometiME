@@ -225,6 +225,8 @@ func fiksniRazvojniKandidati(k string) []kandidatCiscenja {
 		{filepath.Join(k, "Library", "pnpm", "store"), "PNPM Store", "dev_ai", T("Globalno spremište PNPM paketa."), false},
 		{filepath.Join(k, "Library", "Caches", "pip"), "Python Pip Cache", "dev_ai", T("Međuspremnik preuzetih Python paketa."), true},
 		{filepath.Join(k, ".cargo", "registry", "cache"), "Rust Cargo Cache", "dev_ai", T("Preuzete arhive Rust paketa."), true},
+		{filepath.Join(k, ".cargo", "registry", "src"), "Rust Cargo Sources", "dev_ai", T("Raspakirani izvorni kôd Rust paketa. Cargo ga ponovno raspakira pri sljedećoj izgradnji."), true},
+		{filepath.Join(k, ".cargo", "git", "checkouts"), "Rust Cargo Git Checkouts", "dev_ai", T("Rust paketi preuzeti iz Git repozitorija. Cargo ih ponovno izvuče pri sljedećoj izgradnji."), true},
 		{filepath.Join(k, ".gradle", "caches"), "Gradle Cache", "dev_ai", T("Međuspremnik preuzetih Java/Android Gradle paketa."), false},
 		{filepath.Join(k, ".m2", "repository"), "Maven Repository", "dev_ai", T("Lokalno spremište Java Maven ovisnosti."), false},
 		{filepath.Join(k, "Library", "Caches", "goimports"), "Goimports Cache", "dev_ai", T("Privremeni indeks za goimports alat."), true},

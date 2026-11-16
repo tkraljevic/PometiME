@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -97,6 +98,10 @@ func popisAlata() []opisAlata {
 			naziv: T("golangci-lint: spremljene provjere"),
 			opis:  T("Rezultati ranijih provjera koda. Sljedeća provjera bit će sporija."),
 			mapa:  mapaIzIspisa("cache", "status")},
+		{id: "dart_pub", program: "dart", naredba: []string{"pub", "cache", "clean", "--force"},
+			naziv: T("Dart i Flutter: preuzeti paketi"),
+			opis:  T("Paketi koje su preuzeli dart pub get i flutter pub get. Projekti ih ponovno preuzmu pri sljedećem pub get, za što treba internet."),
+			mapa:  mapaUDomu(".pub-cache")},
 		{id: "composer", program: "composer", naredba: []string{"clear-cache"},
 			naziv: T("Composer: preuzeti PHP paketi"),
 			opis:  T("Paketi koje je Composer preuzeo. Pri sljedećoj instalaciji ponovno se preuzmu, za što treba internet."),
@@ -123,6 +128,8 @@ var (
 			"swift":         {"/Library/Developer/CommandLineTools/usr/bin/swift", "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift"},
 			"golangci-lint": {"/opt/homebrew/bin/golangci-lint", "/usr/local/bin/golangci-lint", filepath.Join(dom, "go", "bin", "golangci-lint")},
 			"composer":      {"/opt/homebrew/bin/composer", "/usr/local/bin/composer"},
+			"dart":          {"/opt/homebrew/bin/dart", "/usr/local/bin/dart", filepath.Join(dom, "flutter", "bin", "dart"), filepath.Join(dom, "development", "flutter", "bin", "dart"), filepath.Join(dom, "fvm", "default", "bin", "dart")},
+			"rustup":        {filepath.Join(dom, ".cargo", "bin", "rustup"), "/opt/homebrew/opt/rustup/bin/rustup", "/opt/homebrew/bin/rustup", "/usr/local/bin/rustup"},
 		}
 	}
 	pokreniAlatFn      = pokreniAlat
@@ -177,23 +184,26 @@ func pronadiProgram(p Postavke, ime string) string {
 // Alati se provjeravaju usporedno, jer samo pokusno čišćenje Homebrewa traje desetak sekundi.
 func PronadiRazvojneAlate(p Postavke) []AlatZaCiscenje {
 	opisi := popisAlata()
-	pronadeni := make([]*AlatZaCiscenje, len(opisi))
+	pronadeni := make([][]AlatZaCiscenje, len(opisi)+1)
 	var wg sync.WaitGroup
 	for i, opis := range opisi {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if alat, ok := otkrijAlat(p, opis); ok {
-				pronadeni[i] = &alat
+				pronadeni[i] = []AlatZaCiscenje{alat}
 			}
 		}()
 	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		pronadeni[len(opisi)] = otkrijRustToolchainove(p)
+	}()
 	wg.Wait()
 	alati := []AlatZaCiscenje{}
-	for _, alat := range pronadeni {
-		if alat != nil {
-			alati = append(alati, *alat)
-		}
+	for _, dio := range pronadeni {
+		alati = append(alati, dio...)
 	}
 	return alati
 }
@@ -302,23 +312,13 @@ func mapaUDomu(dijelovi ...string) func(Postavke, string) (string, bool) {
 
 // OcistiRazvojniAlat pokreće naredbu alata i javlja koliko je slobodnog prostora dobiveno.
 func OcistiRazvojniAlat(p Postavke, id string) (string, error) {
-	var alat *opisAlata
-	for _, opis := range popisAlata() {
-		if opis.id == id {
-			alat = &opis
-			break
-		}
+	program, ime, argumenti, err := naredbaAlata(p, id)
+	if err != nil {
+		return "", err
 	}
-	if alat == nil {
-		return "", fmt.Errorf(T("nepoznat alat: %s"), id)
-	}
-	program := pronadiProgram(p, alat.program)
-	if program == "" {
-		return "", fmt.Errorf(T("program %s nije pronađen na ovom Macu"), alat.program)
-	}
-	opis := alat.program + " " + strings.Join(alat.naredba, " ")
+	opis := ime + " " + strings.Join(argumenti, " ")
 	prije := slobodnoBajtaFn(p.KorijenKorisnika)
-	_, err := pokreniAlatFn(program, alat.naredba...)
+	_, err = pokreniAlatFn(program, argumenti...)
 	dobiveno := max(slobodnoBajtaFn(p.KorijenKorisnika)-prije, 0)
 	if err != nil {
 		greska := strings.TrimRight(opisGreskeNaredbe(err), ".")
@@ -330,6 +330,126 @@ func OcistiRazvojniAlat(p Postavke, id string) (string, error) {
 		return "", fmt.Errorf(T("naredba %s nije uspjela: %s"), opis, greska)
 	}
 	return fmt.Sprintf(T("Naredba %s je završila. Slobodnog prostora ima %s više."), opis, FormatirajBajte(dobiveno)), nil
+}
+
+// naredbaAlata pronalazi program i argumente za alat koji je korisnik odabrao.
+// Rust toolchain uklanja se samo ako je instaliran i nije zadani.
+func naredbaAlata(p Postavke, id string) (program, ime string, argumenti []string, err error) {
+	if tc, jeToolchain := strings.CutPrefix(id, prefiksToolchaina); jeToolchain {
+		ime, argumenti = "rustup", []string{"toolchain", "uninstall", tc}
+	} else {
+		opisi := popisAlata()
+		i := slices.IndexFunc(opisi, func(o opisAlata) bool { return o.id == id })
+		if i < 0 {
+			return "", "", nil, fmt.Errorf(T("nepoznat alat: %s"), id)
+		}
+		ime, argumenti = opisi[i].program, opisi[i].naredba
+	}
+	program = pronadiProgram(p, ime)
+	if program == "" {
+		return "", "", nil, fmt.Errorf(T("program %s nije pronađen na ovom Macu"), ime)
+	}
+	if ime == "rustup" && !jeSuvisanToolchain(program, argumenti[2]) {
+		return "", "", nil, fmt.Errorf(T("toolchain %s nije instaliran ili je zadani"), argumenti[2])
+	}
+	return program, ime, argumenti, nil
+}
+
+// Rust toolchainovi nisu jedan alat: svaki toolchain osim zadanog dobije svoj red.
+const prefiksToolchaina = "rustup:"
+
+var uzorakImenaToolchaina = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+
+type toolchainRusta struct {
+	ime    string
+	zadani bool // zadani ili aktivni toolchain nikad se ne nudi za uklanjanje
+}
+
+// toolchainoviRusta čita "rustup toolchain list", npr. "stable-aarch64-apple-darwin (active, default)".
+func toolchainoviRusta(program string) ([]toolchainRusta, bool) {
+	izlaz, err := pokreniAlatFn(program, "toolchain", "list")
+	if err != nil {
+		return nil, false
+	}
+	var popis []toolchainRusta
+	for _, redak := range strings.Split(string(izlaz), "\n") {
+		polja := strings.Fields(redak)
+		if len(polja) == 0 || !uzorakImenaToolchaina.MatchString(polja[0]) || strings.HasPrefix(redak, "no ") {
+			continue
+		}
+		oznake := strings.Join(polja[1:], " ")
+		popis = append(popis, toolchainRusta{polja[0], strings.Contains(oznake, "default") || strings.Contains(oznake, "active")})
+	}
+	return popis, true
+}
+
+func jeSuvisanToolchain(program, ime string) bool {
+	popis, ok := toolchainoviRusta(program)
+	return ok && slices.ContainsFunc(popis, func(tc toolchainRusta) bool { return tc.ime == ime && !tc.zadani })
+}
+
+// otkrijRustToolchainove nudi uklanjanje svakog toolchaina osim zadanog i
+// kaže kad je to ista verzija kao zadani, jer je onda sigurno višak.
+func otkrijRustToolchainove(p Postavke) []AlatZaCiscenje {
+	program := pronadiProgram(p, "rustup")
+	if program == "" {
+		return nil
+	}
+	popis, ok := toolchainoviRusta(program)
+	dom, okDom := mapaIzIspisa("show", "home")(p, program)
+	if !ok || !okDom {
+		return nil
+	}
+	zadana := zadanaVerzija(dom, popis)
+	var alati []AlatZaCiscenje
+	for _, tc := range popis {
+		if !tc.zadani {
+			alati = append(alati, redToolchaina(dom, tc.ime, zadana))
+		}
+	}
+	return alati
+}
+
+func zadanaVerzija(dom string, popis []toolchainRusta) string {
+	for _, tc := range popis {
+		if tc.zadani {
+			return verzijaToolchaina(dom, tc.ime)
+		}
+	}
+	return ""
+}
+
+// verzijaToolchaina vraća npr. "rustc 1.99.1 (58cf8f9c3 2026-10-13)" ili prazan tekst.
+func verzijaToolchaina(dom, ime string) string {
+	izlaz, err := pokreniAlatFn(filepath.Join(dom, "toolchains", ime, "bin", "rustc"), "--version")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(izlaz))
+}
+
+func redToolchaina(dom, ime, zadana string) AlatZaCiscenje {
+	velicina := IzracunajVelicinu(filepath.Join(dom, "toolchains", ime))
+	return AlatZaCiscenje{
+		ID:            prefiksToolchaina + ime,
+		Naziv:         fmt.Sprintf(T("Rust toolchain %s"), ime),
+		Opis:          opisToolchaina(verzijaToolchaina(dom, ime), zadana),
+		Naredba:       "rustup toolchain uninstall " + ime,
+		VelicinaBajta: velicina,
+		Procjena:      fmt.Sprintf(T("Oslobodit će oko %s."), FormatirajBajte(velicina)),
+		MozeOcistiti:  velicina > 0,
+	}
+}
+
+func opisToolchaina(verzija, zadana string) string {
+	if verzija == "" || verzija != zadana {
+		return T("Rust toolchain koji nije zadani. Projekt koji ga treba ponovno će ga preuzeti.")
+	}
+	broj := verzija
+	if polja := strings.Fields(verzija); len(polja) > 1 {
+		broj = polja[1]
+	}
+	return fmt.Sprintf(T("Ista verzija kao zadani toolchain (%s), pa je višak."), broj)
 }
 
 // opisGreskeNaredbe dodaje zadnji redak koji je alat ispisao, jer on obično kaže zašto.

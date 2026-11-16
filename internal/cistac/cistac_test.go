@@ -699,3 +699,19 @@ func TestSimulatoriIAvd(t *testing.T) {
 		t.Fatalf("očekivane 4 stavke u SkenirajRazvojneAlate, dobiveno %d", len(stavke))
 	}
 }
+
+// Svaka mapa koju skener nudi mora proći sigurnosnu provjeru, inače se ne
+// može očistiti. Roditeljske mape čuvaju i postavke, pa ne smiju proći.
+func TestRazvojneMapeSuSigurne(t *testing.T) {
+	p := ZadanePostavke(t.TempDir())
+	for _, k := range fiksniRazvojniKandidati(p.KorijenKorisnika) {
+		if !JeSigurnaPutanja(p, k.putanja) {
+			t.Errorf("%s se nudi, ali ne prolazi sigurnosnu provjeru: %s", k.naziv, k.putanja)
+		}
+	}
+	for _, roditelj := range [][]string{{".m2"}, {".gradle"}, {".cargo"}, {".cargo", "registry"}, {".cargo", "git"}, {"go", "pkg", "mod"}} {
+		if put := filepath.Join(append([]string{p.KorijenKorisnika}, roditelj...)...); JeSigurnaPutanja(p, put) {
+			t.Errorf("roditeljska mapa %s ne smije biti sigurna", put)
+		}
+	}
+}

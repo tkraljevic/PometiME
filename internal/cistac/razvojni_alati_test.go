@@ -80,9 +80,11 @@ func TestPronadiRazvojneAlate(t *testing.T) {
 	napraviDatoteku(t, filepath.Join(pip, "http-v2", "a"), 4000)
 	napraviDatoteku(t, filepath.Join(lint, "ab", "f"), 1000)
 	napraviDatoteku(t, filepath.Join(pods, "Pods", "pod.zip"), 3000)
+	pub := filepath.Join(p.KorijenKorisnika, ".pub-cache")
+	napraviDatoteku(t, filepath.Join(pub, "hosted", "pub.dev", "http-1.0.0", "lib.dart"), 2000)
 
 	postaviLazneAlate(t, mapa,
-		[]string{"brew", "go", "npm", "pnpm", "yarn", "pip3", "uv", "pod", "swift", "golangci-lint"},
+		[]string{"brew", "go", "npm", "pnpm", "yarn", "pip3", "uv", "pod", "swift", "golangci-lint", "dart"},
 		map[string]lazniOdgovor{
 			"brew cleanup --prune=all -n": {izlaz: "Would remove: x\n==> This operation would free approximately 1.5GB of disk space.\n"},
 			"go env GOCACHE":              {izlaz: gocache + "\n"},
@@ -108,6 +110,7 @@ func TestPronadiRazvojneAlate(t *testing.T) {
 		"cocoapods":     IzracunajVelicinu(pods),
 		"swiftpm":       0,
 		"golangci_lint": IzracunajVelicinu(lint),
+		"dart_pub":      IzracunajVelicinu(pub),
 	}
 	var redoslijed []string
 	for _, alat := range alati {
@@ -121,7 +124,7 @@ func TestPronadiRazvojneAlate(t *testing.T) {
 			t.Errorf("%s: očekivano %d bajta, dobiveno %+v", alat.ID, velicina, alat)
 		}
 	}
-	if got := strings.Join(redoslijed, ","); got != "brew,go_cache,go_modcache,npm,npx,pnpm,pip,cocoapods,swiftpm,golangci_lint" {
+	if got := strings.Join(redoslijed, ","); got != "brew,go_cache,go_modcache,npm,npx,pnpm,pip,cocoapods,swiftpm,golangci_lint,dart_pub" {
 		t.Errorf("alati moraju doći redom iz popisa, dobiveno %s", got)
 	}
 	poID := map[string]AlatZaCiscenje{}
@@ -136,6 +139,9 @@ func TestPronadiRazvojneAlate(t *testing.T) {
 	}
 	if a := poID["swiftpm"]; !strings.Contains(a.Procjena, "nema ničega") {
 		t.Errorf("prazno spremište nema što osloboditi: %+v", a)
+	}
+	if a := poID["dart_pub"]; a.Naredba != "dart pub cache clean --force" {
+		t.Errorf("dart bez --force traži potvrdu koju PometiME ne može dati: %+v", a)
 	}
 	if a := poID["npx"]; a.Naredba != "npm cache npx rm --force" {
 		t.Errorf("neočekivana naredba za npx: %+v", a)
@@ -165,6 +171,9 @@ func TestPopisAlataJeCjelovit(t *testing.T) {
 		if (opis.mapa == nil) == (opis.procijeni == nil) {
 			t.Errorf("%s: alat treba ili mapu ili vlastitu procjenu", opis.id)
 		}
+	}
+	if len(mjesta["rustup"]) == 0 {
+		t.Errorf("nije zapisano gdje se traži rustup")
 	}
 }
 
@@ -315,5 +324,123 @@ func TestAlatNalaziProgramePokrajSebe(t *testing.T) {
 	t.Setenv("PATH", "/usr/bin:/bin")
 	if izlaz, err := pokreniAlat(alat); err != nil || string(izlaz) != "radi\n" {
 		t.Errorf("alat mora naći program iz svoje mape, dobiveno %q (%v)", izlaz, err)
+	}
+}
+
+// postaviLazniRustup glumi rustup sa zadanim stable, nightlyjem i 1.99.1,
+// koji je ista verzija kao stable.
+func postaviLazniRustup(t *testing.T) (Postavke, string, *[]string) {
+	t.Helper()
+	mapa := t.TempDir()
+	p := ZadanePostavke(filepath.Join(mapa, "dom"))
+	rustup := lazniProgram(t, filepath.Join(p.KorijenKorisnika, ".cargo", "bin", "rustup"))
+	dom := filepath.Join(p.KorijenKorisnika, ".rustup")
+	verzije := map[string]string{
+		"stable-aarch64-apple-darwin":  "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+		"nightly-aarch64-apple-darwin": "rustc 1.101.0-nightly (1234abcd 2026-11-10)",
+		"1.99.1-aarch64-apple-darwin":  "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+	}
+	for ime := range verzije {
+		napraviDatoteku(t, filepath.Join(dom, "toolchains", ime, "lib", "librustc.dylib"), 9000)
+	}
+	pozivi := &[]string{}
+	var brava sync.Mutex
+	t.Cleanup(PostaviAlateZaTest(map[string][]string{"rustup": {rustup}}, func(program string, argumenti ...string) ([]byte, error) {
+		brava.Lock()
+		*pozivi = append(*pozivi, strings.Join(argumenti, " "))
+		brava.Unlock()
+		if program == rustup {
+			switch strings.Join(argumenti, " ") {
+			case "toolchain list":
+				return []byte("stable-aarch64-apple-darwin (active, default)\nnightly-aarch64-apple-darwin\n1.99.1-aarch64-apple-darwin\n"), nil
+			case "show home":
+				return []byte(dom + "\n"), nil
+			}
+			return nil, nil
+		}
+		for ime, verzija := range verzije {
+			if program == filepath.Join(dom, "toolchains", ime, "bin", "rustc") {
+				return []byte(verzija + "\n"), nil
+			}
+		}
+		return nil, errors.New("nepoznat program " + program)
+	}))
+	return p, dom, pozivi
+}
+
+func TestRustToolchainovi(t *testing.T) {
+	p, dom, _ := postaviLazniRustup(t)
+	alati := PronadiRazvojneAlate(p)
+	if len(alati) != 2 {
+		t.Fatalf("zadani toolchain se ne nudi, očekivana 2 reda, dobiveno %+v", alati)
+	}
+	for _, alat := range alati {
+		ime := strings.TrimPrefix(alat.ID, prefiksToolchaina)
+		if alat.Naredba != "rustup toolchain uninstall "+ime || alat.VelicinaBajta != IzracunajVelicinu(filepath.Join(dom, "toolchains", ime)) || !alat.MozeOcistiti {
+			t.Errorf("neočekivan toolchain: %+v", alat)
+		}
+	}
+	if v := verzijaToolchaina(dom, "beta-aarch64-apple-darwin"); v != "" {
+		t.Errorf("toolchain bez rustca nema verziju, dobiveno %q", v)
+	}
+	if v := zadanaVerzija(dom, []toolchainRusta{{ime: "nightly-aarch64-apple-darwin"}}); v != "" {
+		t.Errorf("bez zadanog toolchaina nema zadane verzije, dobiveno %q", v)
+	}
+	if !strings.Contains(alati[0].Opis, "nije zadani") || !strings.Contains(alati[1].Opis, "Ista verzija kao zadani toolchain (1.99.1)") {
+		t.Errorf("višak toolchain mora biti označen: %q / %q", alati[0].Opis, alati[1].Opis)
+	}
+}
+
+func TestUklanjanjeToolchaina(t *testing.T) {
+	p, _, pozivi := postaviLazniRustup(t)
+	if poruka, err := OcistiRazvojniAlat(p, "rustup:1.99.1-aarch64-apple-darwin"); err != nil || !strings.Contains(poruka, "rustup toolchain uninstall 1.99.1-aarch64-apple-darwin je završila") {
+		t.Fatalf("očekivano uklanjanje toolchaina, dobiveno %q (%v)", poruka, err)
+	}
+	if zadnji := (*pozivi)[len(*pozivi)-1]; zadnji != "toolchain uninstall 1.99.1-aarch64-apple-darwin" {
+		t.Errorf("pokrenuta je kriva naredba: %s", zadnji)
+	}
+	// Zadani toolchain, nepoznat toolchain i ime s putanjom se odbijaju.
+	for _, id := range []string{"rustup:stable-aarch64-apple-darwin", "rustup:beta", "rustup:../../Library"} {
+		broj := len(*pozivi)
+		if _, err := OcistiRazvojniAlat(p, id); err == nil || !strings.Contains(err.Error(), "nije instaliran ili je zadani") {
+			t.Errorf("%s: očekivano odbijanje, dobiveno %v", id, err)
+		}
+		for _, poziv := range (*pozivi)[broj:] {
+			if strings.HasPrefix(poziv, "toolchain uninstall") {
+				t.Errorf("%s: uklanjanje se ne smije pokrenuti", id)
+			}
+		}
+	}
+}
+
+func TestRustupKojiNeRadi(t *testing.T) {
+	mapa := t.TempDir()
+	postaviLazneAlate(t, mapa, []string{"rustup"}, map[string]lazniOdgovor{"rustup toolchain list": {greska: errors.New("rustup je pokvaren")}})
+	if alati := otkrijRustToolchainove(ZadanePostavke(mapa)); alati != nil {
+		t.Errorf("rustup koji ne radi ne nudi ništa, dobiveno %+v", alati)
+	}
+	if _, err := OcistiRazvojniAlat(ZadanePostavke(mapa), "rustup:nightly"); err == nil {
+		t.Errorf("bez popisa toolchainova ništa se ne uklanja")
+	}
+	t.Cleanup(PostaviAlateZaTest(map[string][]string{}, nil))
+	if alati := otkrijRustToolchainove(ZadanePostavke(mapa)); alati != nil {
+		t.Errorf("bez rustupa nema toolchainova, dobiveno %+v", alati)
+	}
+	if _, err := OcistiRazvojniAlat(ZadanePostavke(mapa), "rustup:nightly"); err == nil || !strings.Contains(err.Error(), "nije pronađen") {
+		t.Errorf("očekivana greška za rustup koji ne postoji, dobiveno %v", err)
+	}
+}
+
+func TestOpisToolchaina(t *testing.T) {
+	if opis := opisToolchaina("rustc 1.99.1 (58cf8f9c3 2026-10-13)", "rustc 1.99.1 (58cf8f9c3 2026-10-13)"); !strings.Contains(opis, "(1.99.1)") {
+		t.Errorf("ista verzija je višak, dobiveno %q", opis)
+	}
+	if opis := opisToolchaina("1.99.1", "1.99.1"); !strings.Contains(opis, "(1.99.1)") {
+		t.Errorf("verzija bez imena programa ostaje cijela, dobiveno %q", opis)
+	}
+	for _, par := range [][2]string{{"", ""}, {"rustc 1.98.0", "rustc 1.99.1"}} {
+		if opis := opisToolchaina(par[0], par[1]); !strings.Contains(opis, "nije zadani") {
+			t.Errorf("%q: nepoznata ili druga verzija nije višak, dobiveno %q", par, opis)
+		}
 	}
 }
