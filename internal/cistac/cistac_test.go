@@ -715,3 +715,81 @@ func TestRazvojneMapeSuSigurne(t *testing.T) {
 		}
 	}
 }
+
+func TestProjektniBuildKandidati(t *testing.T) {
+	dom := t.TempDir()
+	p := ZadanePostavke(dom)
+
+	// 1. Rust projekt u ~/projekti/MojRust
+	rustProj := filepath.Join(dom, "projekti", "MojRust")
+	napraviDatoteku(t, filepath.Join(rustProj, "Cargo.toml"), 50)
+	napraviDatoteku(t, filepath.Join(rustProj, "target", "debug", "app"), 500)
+
+	// 2. Swift projekt u ~/Projects/MojSwift
+	swiftProj := filepath.Join(dom, "Projects", "MojSwift")
+	napraviDatoteku(t, filepath.Join(swiftProj, "Package.swift"), 50)
+	napraviDatoteku(t, filepath.Join(swiftProj, ".build", "release", "app"), 600)
+
+	// 3. Podprojekt u ~/projekti/Monorepo/subcrate
+	subProj := filepath.Join(dom, "projekti", "Monorepo", "subcrate")
+	napraviDatoteku(t, filepath.Join(subProj, "Cargo.toml"), 50)
+	napraviDatoteku(t, filepath.Join(subProj, "target", "lib.rlib"), 300)
+
+	// 4. Lažna mapa target bez Cargo.toml
+	lazniProj := filepath.Join(dom, "projekti", "NijeRust")
+	napraviDatoteku(t, filepath.Join(lazniProj, "target", "junk.bin"), 200)
+
+	// 5. Rust i Swift projekti bez build mapa (tek klonirani)
+	noviRust := filepath.Join(dom, "projekti", "NoviRust")
+	napraviDatoteku(t, filepath.Join(noviRust, "Cargo.toml"), 50)
+	noviSwift := filepath.Join(dom, "Projects", "NoviSwift")
+	napraviDatoteku(t, filepath.Join(noviSwift, "Package.swift"), 50)
+
+	// 6. Datoteka i skrivena mapa u projekti (za potpunu pokrivenost filtara)
+	napraviDatoteku(t, filepath.Join(dom, "projekti", "upute.txt"), 10)
+	napraviDatoteku(t, filepath.Join(dom, "projekti", ".git", "config"), 10)
+	napraviDatoteku(t, filepath.Join(rustProj, "src", "main.rs"), 20)
+	napraviDatoteku(t, filepath.Join(rustProj, ".skriveno", "test.txt"), 10)
+
+	kandidati := prikupiProjektneKandidate(dom)
+	if len(kandidati) != 3 {
+		t.Fatalf("očekivana 3 kandidata projekata, dobiveno %d", len(kandidati))
+	}
+
+	for _, k := range kandidati {
+		if !JeSigurnaPutanja(p, k.putanja) {
+			t.Errorf("kandidat %s mora biti siguran za brisanje: %s", k.naziv, k.putanja)
+		}
+	}
+
+	// Provjere sigurnosti za nepodržane putanje
+	if JeSigurnaPutanja(p, filepath.Join(lazniProj, "target")) {
+		t.Errorf("target bez Cargo.toml ne smije biti siguran")
+	}
+	if JeSigurnaPutanja(p, filepath.Join(lazniProj, ".build")) {
+		t.Errorf(".build bez Package.swift ne smije biti siguran")
+	}
+	if JeSigurnaPutanja(p, "/izvan/korisnika/target") {
+		t.Errorf("target izvan korisničkog korijena ne smije biti siguran")
+	}
+	if JeSigurnaPutanja(p, rustProj) {
+		t.Errorf("korijen projekta ne smije biti siguran za brisanje")
+	}
+	if JeSigurnaPutanja(p, filepath.Join(rustProj, "Cargo.toml")) {
+		t.Errorf("Cargo.toml ne smije biti siguran za brisanje")
+	}
+
+	// Pokrivanje rubnih slučajeva
+	if k := skenirajMapuProjekata(filepath.Join(dom, "nepostoji")); k != nil {
+		t.Errorf("očekivan nil za nepostojeću mapu projekata")
+	}
+	if k := provjeriPodprojekteZaBuild(filepath.Join(dom, "nepostoji"), "nepostoji"); k != nil {
+		t.Errorf("očekivan nil za nepostojeću mapu podprojekata")
+	}
+	if r := provjeriRustBuild(filepath.Join(dom, "nepostoji"), "nepostoji"); r != nil {
+		t.Errorf("očekivan nil za nepostojeći rust build")
+	}
+	if s := provjeriSwiftBuild(filepath.Join(dom, "nepostoji"), "nepostoji"); s != nil {
+		t.Errorf("očekivan nil za nepostojeći swift build")
+	}
+}

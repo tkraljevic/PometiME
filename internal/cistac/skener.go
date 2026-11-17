@@ -207,6 +207,7 @@ func SkenirajRazvojneAlate(p Postavke) []StavkaCiscenja {
 	kandidati = append(kandidati, prikupiClaudeKandidate(filepath.Join(p.KorijenKorisnika, ".claude", "projects"))...)
 	kandidati = append(kandidati, prikupiSimulatorKandidate(filepath.Join(p.KorijenKorisnika, "Library", "Developer", "CoreSimulator", "Devices"))...)
 	kandidati = append(kandidati, prikupiAvdKandidate(filepath.Join(p.KorijenKorisnika, ".android", "avd"))...)
+	kandidati = append(kandidati, prikupiProjektneKandidate(p.KorijenKorisnika)...)
 	return izmjeriKandidate(kandidati, p.NajmanjaVelicinaRazvojnih)
 }
 
@@ -281,6 +282,98 @@ func claudePodmapeSesije(putanjaSesije, nazivProjekta string) []kandidatCiscenja
 				preporuceno: true,
 			})
 		}
+	}
+	return izlaz
+}
+
+var standardneMapeProjekata = []string{
+	"projekti", "Projects", "Developer", "Development", "Workspace", "code", "src", "git",
+}
+
+func prikupiProjektneKandidate(korijenKorisnika string) []kandidatCiscenja {
+	var izlaz []kandidatCiscenja
+	for _, mapa := range standardneMapeProjekata {
+		put := filepath.Join(korijenKorisnika, mapa)
+		izlaz = append(izlaz, skenirajMapuProjekata(put)...)
+	}
+	return izlaz
+}
+
+func skenirajMapuProjekata(putanjaMape string) []kandidatCiscenja {
+	unosi, err := os.ReadDir(putanjaMape)
+	if err != nil {
+		return nil
+	}
+	var izlaz []kandidatCiscenja
+	for _, u := range unosi {
+		if !u.IsDir() || strings.HasPrefix(u.Name(), ".") {
+			continue
+		}
+		projPut := filepath.Join(putanjaMape, u.Name())
+		izlaz = append(izlaz, provjeriProjektZaBuild(projPut, u.Name())...)
+		izlaz = append(izlaz, provjeriPodprojekteZaBuild(projPut, u.Name())...)
+	}
+	return izlaz
+}
+
+func provjeriRustBuild(projPut, naziv string) *kandidatCiscenja {
+	if !jeRustTarget(projPut) {
+		return nil
+	}
+	tPut := filepath.Join(projPut, "target")
+	if info, err := os.Stat(tPut); err == nil && info.IsDir() {
+		return &kandidatCiscenja{
+			putanja:     tPut,
+			naziv:       fmt.Sprintf(T("Rust build: %s"), naziv),
+			kategorija:  "dev_ai",
+			opis:        T("Prevedene datoteke Rust projekta (cargo clean). Ponovno se stvaraju pri sljedećoj izgradnji."),
+			preporuceno: false,
+		}
+	}
+	return nil
+}
+
+func provjeriSwiftBuild(projPut, naziv string) *kandidatCiscenja {
+	if !jeSwiftBuild(projPut) {
+		return nil
+	}
+	bPut := filepath.Join(projPut, ".build")
+	if info, err := os.Stat(bPut); err == nil && info.IsDir() {
+		return &kandidatCiscenja{
+			putanja:     bPut,
+			naziv:       fmt.Sprintf(T("Swift build: %s"), naziv),
+			kategorija:  "dev_ai",
+			opis:        T("Prevedene datoteke Swift projekta (swift package clean)."),
+			preporuceno: false,
+		}
+	}
+	return nil
+}
+
+func provjeriProjektZaBuild(projPut, naziv string) []kandidatCiscenja {
+	var izlaz []kandidatCiscenja
+	if r := provjeriRustBuild(projPut, naziv); r != nil {
+		izlaz = append(izlaz, *r)
+	}
+	if s := provjeriSwiftBuild(projPut, naziv); s != nil {
+		izlaz = append(izlaz, *s)
+	}
+	return izlaz
+}
+
+func provjeriPodprojekteZaBuild(projPut, nazivRoditelja string) []kandidatCiscenja {
+	unosi, err := os.ReadDir(projPut)
+	if err != nil {
+		return nil
+	}
+	var izlaz []kandidatCiscenja
+	for _, u := range unosi {
+		if !u.IsDir() || strings.HasPrefix(u.Name(), ".") || u.Name() == "target" || u.Name() == "node_modules" {
+			continue
+		}
+		podPut := filepath.Join(projPut, u.Name())
+		prikaz := nazivRoditelja + "/" + u.Name()
+		izlaz = append(izlaz, provjeriProjektZaBuild(podPut, prikaz)...)
 	}
 	return izlaz
 }

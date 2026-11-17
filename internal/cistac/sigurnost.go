@@ -76,24 +76,58 @@ func jeZasticenaClaudeMemorija(cistaPutanja string) bool {
 	return baza == "memory" || sadrziMem
 }
 
-// JeSigurnaPutanja provjerava smije li se zadana putanja sigurno obrisati.
-func JeSigurnaPutanja(p Postavke, putanja string) bool {
-	if strings.TrimSpace(putanja) == "" || !filepath.IsAbs(putanja) {
-		return false
-	}
-	cista := filepath.Clean(putanja)
-	if jeZasticenaClaudeMemorija(cista) {
-		return false
-	}
-	if slices.Contains(cijeleMape(filepath.Clean(p.KorijenKorisnika)), cista) {
-		return true
-	}
+func jeNevazecaPutanja(putanja string) bool {
+	return strings.TrimSpace(putanja) == "" || !filepath.IsAbs(putanja)
+}
+
+func jeUnutarDozvoljenihKorijena(p Postavke, cista string) bool {
 	for _, korijen := range DozvoljeniKorijeni(p) {
 		if JeUnutarKorijena(cista, korijen) {
 			return true
 		}
 	}
 	return false
+}
+
+func jeRustTarget(roditelj string) bool {
+	info, err := os.Stat(filepath.Join(roditelj, "Cargo.toml"))
+	return err == nil && !info.IsDir()
+}
+
+func jeSwiftBuild(roditelj string) bool {
+	info, err := os.Stat(filepath.Join(roditelj, "Package.swift"))
+	return err == nil && !info.IsDir()
+}
+
+func jeDozvoljeniProjektniBuild(k, cista string) bool {
+	baza := filepath.Base(cista)
+	if baza != "target" && baza != ".build" {
+		return false
+	}
+	roditelj := filepath.Dir(cista)
+	if !JeUnutarKorijena(roditelj, k) {
+		return false
+	}
+	if baza == "target" {
+		return jeRustTarget(roditelj)
+	}
+	return jeSwiftBuild(roditelj)
+}
+
+// JeSigurnaPutanja provjerava smije li se zadana putanja sigurno obrisati.
+func JeSigurnaPutanja(p Postavke, putanja string) bool {
+	if jeNevazecaPutanja(putanja) {
+		return false
+	}
+	cista := filepath.Clean(putanja)
+	if jeZasticenaClaudeMemorija(cista) {
+		return false
+	}
+	k := filepath.Clean(p.KorijenKorisnika)
+	if slices.Contains(cijeleMape(k), cista) || jeDozvoljeniProjektniBuild(k, cista) {
+		return true
+	}
+	return jeUnutarDozvoljenihKorijena(p, cista)
 }
 
 // obrisiJednuStavku provjerava sigurnost, računa veličinu i uklanja putanju s diska.
